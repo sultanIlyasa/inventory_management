@@ -36,22 +36,17 @@ class DailyInputController extends Controller
 
         $material = Materials::findOrFail($validated['material_id']);
 
-        // determine status
-        $status = 'OK';
-        if ($validated['daily_stock'] > $material->stock_maximum) {
-            // If stock exceeds maximum, cannot input
-            return response()->json([
-                'success' => false,
-                'message' => 'Daily stock exceeds maximum limit.'
-            ], 422);
-        } elseif ($validated['daily_stock'] == 0) {
+        $dailyStock = max(0, $validated['daily_stock']); // prevent negative numbers
+
+        if ($dailyStock === 0) {
             $status = 'SHORTAGE';
-        } elseif ($validated['daily_stock'] < $material->stock_minimum) {
+        } elseif ($dailyStock < $material->stock_minimum) {
             $status = 'CRITICAL';
+        } elseif ($dailyStock > $material->stock_maximum) {
+            $status = 'OVERFLOW';
         } else {
             $status = 'OK';
         }
-
         if ($validated['date'] == Carbon::today()->toDateString()) {
             // Check if an entry already exists for today
             $existing = DailyInput::where('material_id', $validated['material_id'])
@@ -127,5 +122,4 @@ class DailyInputController extends Controller
             'message' => 'Daily input deleted successfully'
         ]);
     }
-
 }

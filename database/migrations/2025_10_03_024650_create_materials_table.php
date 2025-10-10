@@ -19,6 +19,10 @@ return new class extends Migration
             $table->integer("stock_minimum");
             $table->integer("stock_maximum");
             $table->string('unit_of_measure');
+            $table->string('rack_address')->nullable();
+            $table->String('vendor_name')->nullable();
+            $table->json('emails')->nullable();
+            $table->string('phone_number')->nullable();
             $table->timestamps();
         });
     }

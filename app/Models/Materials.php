@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 class Materials extends Model
 {
     use HasFactory;
+    protected $casts = [
+        'emails' => 'array',
+    ];
+
 
     protected $fillable = [
         'material_number',
@@ -16,6 +20,10 @@ class Materials extends Model
         'stock_minimum',
         'stock_maximum',
         'unit_of_measure',
+        'rack_address',
+        'vendor_name',
+        'emails',
+        'phone_number'
     ];
 
     /**
@@ -23,6 +31,6 @@ class Materials extends Model
      */
     public function dailyInputs()
     {
-        return $this->hasMany(DailyInput::class);
+        return $this->hasMany(DailyInput::class, 'material_id', 'id');
     }
 }

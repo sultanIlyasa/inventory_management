@@ -35,7 +35,7 @@
                 <li>
                     <a href="/" @click="closeSidebar"
                         class="block hover:bg-gray-700 p-3 rounded cursor-pointer transition-colors">
-                        Home
+                        Daily Input
                     </a>
                 </li>
                 <!-- <li>
@@ -44,6 +44,12 @@
                         Daily Input
                     </a>
                 </li> -->
+                <li>
+                    <a href="/reports" @click="closeSidebar"
+                        class="block hover:bg-gray-700 p-3 rounded cursor-pointer transition-colors">
+                        Reports
+                    </a>
+                </li>
             </ul>
 
             <!-- Auth Section -->

@@ -15,6 +15,8 @@ Route::put('/materials/{id}', [MaterialsController::class, 'update']);
 Route::delete('/materials/{id}', [MaterialsController::class, 'destroy']);
 Route::get('/materials/{id}', [MaterialsController::class, 'show']);
 
+// Reports Routes
+
 // Daily Input Routes
 Route::get('/daily-input', [DailyInputController::class, 'index']);
 Route::post('/daily-input', [DailyInputController::class, 'store']);
@@ -27,6 +29,8 @@ Route::prefix('reports')->group(function () {
     Route::get('/yearly', [ReportController::class, 'yearly']);
     Route::get('/monthly', [ReportController::class, 'monthly']);
     Route::get('/daily', [ReportController::class, 'daily']);
+    Route::get('/general', [ReportController::class, 'getGeneralReport']);
+    Route::get('/current-status', [ReportController::class, 'currentStatusReport']);
 });
 
 // Material Tracking Routes

@@ -18,7 +18,7 @@ return new class extends Migration
                 ->onDelete('cascade');
             $table->date('date');
             $table->integer('daily_stock');
-            $table->enum('status', ['OK', 'CRITICAL', 'SHORTAGE']);
+            $table->enum('status', ['OK', 'CRITICAL', 'SHORTAGE', 'OVERFLOW']);
             $table->timestamps();
         });
     }

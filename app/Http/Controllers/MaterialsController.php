@@ -35,7 +35,11 @@ class MaterialsController extends Controller
             'stock_minimum' => 'required|integer|min:0',
             'stock_maximum' => 'required|integer|min:0',
             'unit_of_measure' => 'required|string',
-            'pic_name' => 'required|string'
+            'pic_name' => 'required|string',
+            'rack_address' => 'sometimes|string',
+            'vendor_name' => 'sometimes|string',
+            'emails' => 'sometimes|array',
+            'phone_number' => 'sometimes|string'
         ]);
 
         $materials = Materials::create($validated);
@@ -57,7 +61,11 @@ class MaterialsController extends Controller
             'stock_minimum' => 'sometimes|integer|min:0',
             'stock_maximum' => 'sometimes|integer|min:0',
             'unit_of_measure' => 'sometimes|string',
-            'pic_name' => 'sometimes|string'
+            'pic_name' => 'sometimes|string',
+            'rack_address' => 'sometimes|string',
+            'vendor_name' => 'sometimes|string',
+            'emails' => 'sometimes|array',
+            'phone_number' => 'sometimes|string'
         ]);
 
         $materials->update($validated);

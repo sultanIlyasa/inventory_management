@@ -1,23 +1,24 @@
 import { ref, computed, watch } from "vue";
 import axios from "axios";
 
-export function useReport() {
+export function useStatusOverdue() {
     // State
     const reportData = ref({ reports: [] });
-    const isLoading = ref(false);
-    const error = ref(null);
+    const searchTerm = ref("");
+    const selectedDate = ref(new Date().toISOString().split("T")[0]);
     const selectedPIC = ref("");
     const itemsPerPage = 15;
     const currentPage = ref(1);
-    const searchTerm = ref("");
-    const selectedDate = ref(new Date().toISOString().split("T")[0]);
+    const isLoading = ref(false);
+    const error = ref(null);
+    const selectedStatus = ref("");
 
     // Fetch Data
     const fetchDataCurrent = async () => {
         isLoading.value = true;
         error.value = null;
         try {
-            const res = await axios.get(`/api/reports/current-status`);
+            const res = await axios.get(`/api/reports/overdue-status`);
             reportData.value = {
                 reports: res.data || [],
             };
@@ -39,7 +40,7 @@ export function useReport() {
                 number: index + 1,
                 material_number: report.material_number,
                 description: report.description,
-                pic: report.pic,
+                pic_name: report.pic,
                 instock: report.instock,
                 status: report.current_status,
                 days: report.days,
@@ -51,26 +52,45 @@ export function useReport() {
     const filteredReports = computed(() => {
         let filtered = allReports.value;
 
+        if (selectedStatus.value && selectedStatus.value !== "OK") {
+            filtered = filtered.filter(
+                (it) => it.status === selectedStatus.value
+            );
+        }
+
         if (selectedPIC.value) {
             filtered = filtered.filter(
-                (item) => item.pic === selectedPIC.value
+                (it) => it.pic_name === selectedPIC.value
             );
         }
 
         if (searchTerm.value) {
-            const term = searchTerm.value.toLowerCase();
-            filtered = filtered.filter(
-                (item) =>
-                    item.material_number.toLowerCase().includes(term) ||
-                    item.description.toLowerCase().includes(term) ||
-                    item.pic.toLowerCase().includes(term) ||
-                    item.status.toLowerCase().includes(term)
-            );
+            const q = searchTerm.value.toLowerCase();
+            filtered = filtered.filter((it) => {
+                return (
+                    String(it.pic_name || "")
+                        .toLowerCase()
+                        .includes(q) ||
+                    String(it.material_number).toLowerCase().includes(q) ||
+                    String(it.description || "")
+                        .toLowerCase()
+                        .includes(q) ||
+                    String(it.status || "")
+                        .toLowerCase()
+                        .includes(q)
+                );
+            });
         }
         return filtered;
     });
+    const uniquePICs = computed(() => {
+        const pics = new Set();
+        allReports.value.forEach((item) => {
+            if (item.pic_name) pics.add(item.pic_name);
+        });
+        return Array.from(pics).sort();
+    });
 
-    // Pagination
     const totalReports = computed(() => filteredReports.value.length);
     const totalPages = computed(() =>
         Math.ceil(totalReports.value / itemsPerPage)
@@ -144,9 +164,11 @@ export function useReport() {
         visiblePages,
         itemsPerPage,
         totalReports,
-        allReports,
+        uniquePICs,
+        clearFilters,
         // Pagination
         // Methods
         fetchDataCurrent,
+        selectedStatus,
     };
 }

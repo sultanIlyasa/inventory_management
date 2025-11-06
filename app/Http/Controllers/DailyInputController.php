@@ -41,7 +41,7 @@ class DailyInputController extends Controller
         if ($dailyStock === 0) {
             $status = 'SHORTAGE';
         } elseif ($dailyStock < $material->stock_minimum) {
-            $status = 'CRITICAL';
+            $status = 'CAUTION';
         } elseif ($dailyStock > $material->stock_maximum) {
             $status = 'OVERFLOW';
         } else {
@@ -92,21 +92,63 @@ class DailyInputController extends Controller
     public function dailyStatus(Request $request)
     {
         $date = $request->query('date', Carbon::today()->toDateString());
+        $usage = $request->query('usage');
+        $location = $request->query('location');
 
-        // Get all checked materials with their daily input
-        $checked = DailyInput::with('material')
-            ->whereDate('date', $date)
-            ->get();
+        // Build query with optional filters
+        $dailyInputsQuery = DailyInput::with('material')
+            ->whereDate('date', $date);
 
-        // Extract material_ids from checked list
+        // Filter by usage (supports single, comma-separated, or array)
+        if (!empty($usage)) {
+            $usages = is_array($usage)
+                ? $usage
+                : array_map('trim', explode(',', $usage));
+            $dailyInputsQuery->whereHas('material', function ($query) use ($usages) {
+                $query->whereIn('usage', $usages);
+            });
+        }
+
+        // Filter by location (supports single, comma-separated, or array)
+        if (!empty($location)) {
+            $locations = is_array($location)
+                ? $location
+                : array_map('trim', explode(',', $location));
+            $dailyInputsQuery->whereHas('material', function ($query) use ($locations) {
+                $query->whereIn('location', $locations);
+            });
+        }
+
+        // Get checked materials after applying filters
+        $checked = $dailyInputsQuery->get();
+
+        // Extract IDs of checked materials
         $checkedIds = $checked->pluck('material_id')->toArray();
 
-        // Get all missing materials
-        $missing = Materials::whereNotIn('id', $checkedIds)->get();
+        // Get missing materials (apply same filters)
+        $missing = Materials::query()
+            ->when(!empty($usage), function ($query) use ($usage) {
+                $usages = is_array($usage)
+                    ? $usage
+                    : array_map('trim', explode(',', $usage));
+                $query->whereIn('usage', $usages);
+            })
+            ->when(!empty($location), function ($query) use ($location) {
+                $locations = is_array($location)
+                    ? $location
+                    : array_map('trim', explode(',', $location));
+                $query->whereIn('location', $locations);
+            })
+            ->whereNotIn('id', $checkedIds)
+            ->get();
 
         return response()->json([
             'success' => true,
             'date' => $date,
+            'filters' => [
+                'usage' => $usage,
+                'location' => $location,
+            ],
             'checked' => $checked,
             'missing' => $missing,
         ]);

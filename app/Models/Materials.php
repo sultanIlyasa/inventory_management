@@ -8,12 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 class Materials extends Model
 {
     use HasFactory;
-    protected $casts = [
-        'emails' => 'array',
-    ];
 
 
     protected $fillable = [
+        'vendor_id',
         'material_number',
         'description',
         'pic_name',
@@ -21,9 +19,8 @@ class Materials extends Model
         'stock_maximum',
         'unit_of_measure',
         'rack_address',
-        'vendor_name',
-        'emails',
-        'phone_number'
+        'usage',
+        'location'
     ];
 
     /**
@@ -32,5 +29,11 @@ class Materials extends Model
     public function dailyInputs()
     {
         return $this->hasMany(DailyInput::class, 'material_id', 'id');
+    }
+
+    // each material belongs to one vendor
+    public function vendor()
+    {
+        return $this->belongsTo(Vendors::class, 'vendor_number');
     }
 }

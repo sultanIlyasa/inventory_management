@@ -20,12 +20,12 @@ class DailyInputSeeder extends Seeder
             $previousStock = rand(30, 70); // Starting stock
 
             // Create daily inputs for the last 30 days
-            for ($day = 29; $day >= 0; $day--) {
+            for ($day = 30; $day >= 0; $day--) {
                 $date = Carbon::now()->subDays($day);
 
                 // Stock fluctuates slightly from previous day (more realistic)
-                $change = rand(-10, 10);
-                $daily_stock = max(0, min(100, $previousStock + $change));
+                $change = rand(-5, 5);
+                $daily_stock = max(0, min(20, $previousStock + $change));
 
                 // Determine status based on stock levels
                 $status = 'OK';
@@ -34,7 +34,7 @@ class DailyInputSeeder extends Seeder
                 } elseif ($daily_stock == 0) {
                     $status = 'SHORTAGE';
                 } elseif ($daily_stock < $material->stock_minimum) {
-                    $status = 'CRITICAL';
+                    $status = 'CAUTION';
                 }
 
                 DB::table('daily_inputs')->insert([

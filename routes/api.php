@@ -3,10 +3,8 @@
 use Illuminate\Http\Request;
 use App\Http\Controllers\DailyInputController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\MaterialTrackingController;
 use App\Http\Controllers\MaterialsController;
-
-use Illuminate\Foundation\Application;
+use App\Http\Controllers\VendorController;
 use Illuminate\Support\Facades\Route;
 // Material Routes
 Route::get('/materials', [MaterialsController::class, 'index']);
@@ -26,17 +24,17 @@ Route::delete('/daily-input/delete/{id}', [DailyInputController::class, 'destroy
 
 // Report Routes
 Route::prefix('reports')->group(function () {
-    Route::get('/yearly', [ReportController::class, 'yearly']);
-    Route::get('/monthly', [ReportController::class, 'monthly']);
-    Route::get('/daily', [ReportController::class, 'daily']);
     Route::get('/general', [ReportController::class, 'getGeneralReport']);
     Route::get('/current-status', [ReportController::class, 'currentStatusReport']);
+    Route::get('/caution-leaderboard', [ReportController::class, 'getCautionLeaderboard']);
+    Route::get('/shortage-leaderboard', [ReportController::class, 'getShortageLeaderboard']);
+    Route::get('/overdue-status', [ReportController::class, 'getOverdueStatus']);
+    Route::get('/recovery-days', [ReportController::class, 'getRecoveryDays']);
+    Route::get('recovery-trend', [ReportController::class, 'getRecoveryTrend']);
 });
 
-// Material Tracking Routes
-Route::prefix('tracking')->group(function () {
-    Route::get('/active', [MaterialTrackingController::class, 'active']);
-    Route::get('/history', [MaterialTrackingController::class, 'history']);
-    Route::post('/start', [MaterialTrackingController::class, 'start']);
-    Route::post('/end', [MaterialTrackingController::class, 'end']);
-});
+// Vendor Routes
+Route::get('/vendors', [VendorController::class, 'index']);
+Route::get('/vendors/materials/{vendor_number}', [VendorController::class, 'materialsByVendor']);
+
+//

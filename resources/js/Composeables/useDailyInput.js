@@ -1,40 +1,42 @@
 // composables/useSearchFilters.js
-import { ref, computed, watch } from 'vue'
-import axios from 'axios'
+import { ref, computed, watch } from "vue";
+import axios from "axios";
 
 export function useDailyInput() {
     // State
-    const reportData = ref({ checked: [], missing: [] })
-    const searchTerm = ref('')
-    const selectedDate = ref(new Date().toISOString().split('T')[0])
-    const selectedPIC = ref('')
-    const currentPage = ref(1)
-    const itemsPerPage = 25
-    const isLoading = ref(false)
-    const error = ref(null)
+    const reportData = ref({ checked: [], missing: [] });
+    const searchTerm = ref("");
+    const selectedDate = ref(new Date().toISOString().split("T")[0]);
+    const selectedPIC = ref("");
+    const selectedUsage = ref("");
+    const selectedLocation = ref("");
+    const currentPage = ref(1);
+    const itemsPerPage = 25;
+    const isLoading = ref(false);
+    const error = ref(null);
 
     // Fetch data
     const fetchData = async () => {
-        isLoading.value = true
-        error.value = null
+        isLoading.value = true;
+        error.value = null;
         try {
-            const res = await axios.get(`/api/daily-input/status?date=${selectedDate.value}`)
+            const res = await axios.get(
+                `/api/daily-input/status?date=${selectedDate.value}`
+            );
             reportData.value = {
                 checked: res.data.checked || [],
-                missing: res.data.missing || []
-            }
+                missing: res.data.missing || [],
+            };
         } catch (err) {
-            console.error('Failed to load report data:', err)
-            error.value = err.message
+            console.error("Failed to load report data:", err);
+            error.value = err.message;
         } finally {
-            isLoading.value = false
+            isLoading.value = false;
         }
-    }
-
-
+    };
 
     const allItems = computed(() => {
-        const items = []
+        const items = [];
 
         reportData.value.checked.forEach((item, index) => {
             items.push({
@@ -50,9 +52,10 @@ export function useDailyInput() {
                 rack_address: item.material.rack_address,
                 daily_stock: item.daily_stock,
                 status: item.status,
-
-            })
-        })
+                location: item.material.location, // ✅ Fixed
+                usage: item.material.usage, // ✅ Fixed
+            });
+        });
 
         reportData.value.missing.forEach((item, index) => {
             items.push({
@@ -67,142 +70,211 @@ export function useDailyInput() {
                 stock_maximum: item.stock_maximum,
                 rack_address: item.rack_address,
                 daily_stock: null,
-                status: 'UNCHECKED',
+                status: "UNCHECKED",
+                location: item.location, // This should already be correct for missing items
+                usage: item.usage, // This should already be correct for missing items
+            });
+        });
 
-            })
-        })
-
-        return items
-    })
+        return items;
+    });
 
     const filteredItems = computed(() => {
-        let items = allItems.value
+        let items = allItems.value;
 
         if (selectedPIC.value) {
-            items = items.filter((it) => it.pic_name === selectedPIC.value)
+            items = items.filter((it) => it.pic_name === selectedPIC.value);
+        }
+        if (selectedLocation.value) {
+            items = items.filter(
+                (it) => it.location === selectedLocation.value
+            );
+        }
+        if (selectedUsage.value) {
+            items = items.filter((it) => it.usage === selectedUsage.value);
         }
 
         if (searchTerm.value) {
-            const q = searchTerm.value.toLowerCase()
+            const q = searchTerm.value.toLowerCase();
             items = items.filter((it) => {
                 return (
-                    String(it.pic_name || '').toLowerCase().includes(q) ||
+                    String(it.pic_name || "")
+                        .toLowerCase()
+                        .includes(q) ||
                     String(it.material_number).toLowerCase().includes(q) ||
-                    String(it.description || '').toLowerCase().includes(q) ||
-                    String(it.status || '').toLowerCase().includes(q)
-                )
-            })
+                    String(it.description || "")
+                        .toLowerCase()
+                        .includes(q) ||
+                    String(it.status || "")
+                        .toLowerCase()
+                        .includes(q)
+                );
+            });
         }
 
-        return items
-    })
+        return items;
+    });
 
     const uniquePICs = computed(() => {
-        const pics = new Set()
-        allItems.value.forEach(item => {
-            if (item.pic_name) pics.add(item.pic_name)
-        })
-        return Array.from(pics).sort()
-    })
+        const pics = new Set();
+        allItems.value.forEach((item) => {
+            if (item.pic_name) pics.add(item.pic_name);
+        });
+        return Array.from(pics).sort();
+    });
 
-    const uncheckedCount = computed(() => reportData.value.missing.length)
+    const locations = computed(() => {
+        const locations = new Set();
+        allItems.value.forEach((item) => {
+            if (item.location) locations.add(item.location);
+        });
+        return Array.from(locations).sort();
+    });
+    const usages = computed(() => {
+        const usages = new Set();
+        allItems.value.forEach((item) => {
+            if (item.usage) usages.add(item.usage);
+        });
+        return Array.from(usages).sort();
+    });
 
-    // Pagination
-    const totalItems = computed(() => filteredItems.value.length)
-    const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage))
+    const uncheckedCount = computed(() => reportData.value.missing.length);
+
+    // Add sorting state
+    const sortBy = ref(""); // e.g., 'material_number', 'status', 'pic_name'
+    const sortOrder = ref("default");
+
+    const filteredAndSortedItems = computed(() => {
+        let items = filteredItems.value;
+
+        switch (sortOrder.value) {
+            case "priority":
+                return [...items].sort((a, b) => {
+                    const orderMap = {
+                        SHORTAGE: 1,
+                        OVERFLOW: 2,
+                        CAUTION: 3,
+                        UNCHECKED: 4,
+                        OK: 5,
+                    };
+                    return (
+                        (orderMap[a.status] || 999) -
+                        (orderMap[b.status] || 999)
+                    );
+                });
+            case "status-asc":
+                return [...items].sort((a, b) =>
+                    a.status.localeCompare(b.status)
+                );
+            case "status-desc":
+                return [...items].sort((a, b) =>
+                    b.status.localeCompare(a.status)
+                );
+            default:
+                return items;
+        }
+    });
+    // Pagination (now uses sortedItems instead of filteredItems)
+    const totalItems = computed(() => filteredAndSortedItems.value.length);
+    const totalPages = computed(() =>
+        Math.ceil(totalItems.value / itemsPerPage)
+    );
 
     const paginatedItems = computed(() => {
-        const start = (currentPage.value - 1) * itemsPerPage
-        const end = start + itemsPerPage
-        return filteredItems.value.slice(start, end)
-    })
+        const start = (currentPage.value - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        return filteredAndSortedItems.value.slice(start, end);
+    });
 
     const startItem = computed(() => {
-        return totalItems.value === 0 ? 0 : (currentPage.value - 1) * itemsPerPage + 1
-    })
+        return totalItems.value === 0
+            ? 0
+            : (currentPage.value - 1) * itemsPerPage + 1;
+    });
 
     const endItem = computed(() => {
-        return Math.min(currentPage.value * itemsPerPage, totalItems.value)
-    })
+        return Math.min(currentPage.value * itemsPerPage, totalItems.value);
+    });
 
     const visiblePages = computed(() => {
-        const pages = []
-        const maxVisible = 5
-        let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-        let end = Math.min(totalPages.value, start + maxVisible - 1)
+        const pages = [];
+        const maxVisible = 5;
+        let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2));
+        let end = Math.min(totalPages.value, start + maxVisible - 1);
 
         if (end - start + 1 < maxVisible) {
-            start = Math.max(1, end - maxVisible + 1)
+            start = Math.max(1, end - maxVisible + 1);
         }
 
         for (let i = start; i <= end; i++) {
-            pages.push(i)
+            pages.push(i);
         }
 
-        return pages
-    })
-
+        return pages;
+    });
     // Methods
     const clearFilters = () => {
-        searchTerm.value = ''
-        selectedPIC.value = ''
-        currentPage.value = 1
-    }
+        searchTerm.value = "";
+        selectedPIC.value = "";
+        selectedLocation.value = "";
+        selectedUsage.value = "";
+        currentPage.value = 1;
+    };
 
     const submitDailyStock = async (item) => {
         if (item.daily_stock < 0) {
-            alert('Please enter valid daily stock')
-            return
+            alert("Please enter valid daily stock");
+            return;
         }
 
         try {
-            await axios.post('/api/daily-input', {
+            await axios.post("/api/daily-input", {
                 material_id: item.id,
                 date: selectedDate.value,
-                daily_stock: Number(item.daily_stock)
-            })
-            alert('Entry submitted successfully')
-            await fetchData()
+                daily_stock: Number(item.daily_stock),
+            });
+            await fetchData();
         } catch (err) {
-            console.error('submitDailyStock error', err)
-            alert('Failed to submit')
+            console.error("submitDailyStock error", err);
         }
-    }
+    };
 
     const deleteInput = async (item) => {
-        if (!confirm('Delete this entry?')) return
-
         try {
-            await axios.delete(`/api/daily-input/delete/${item.id}`)
-            alert('Entry deleted successfully')
-            await fetchData()
+            await axios.delete(`/api/daily-input/delete/${item.id}`);
+            await fetchData();
         } catch (error) {
-            console.error('Failed to delete entry:', error)
-            alert('Failed to delete entry')
+            console.error("Failed to delete entry:", error);
         }
-    }
+    };
 
     // Watchers
-    watch(selectedDate, fetchData)
-    watch([searchTerm, selectedPIC], () => {
-        currentPage.value = 1
-    })
+    watch(selectedDate, fetchData);
+    watch([searchTerm, selectedPIC, selectedLocation, selectedUsage], () => {
+        currentPage.value = 1;
+    });
 
     return {
         // State
+
         reportData,
         searchTerm,
         selectedDate,
         selectedPIC,
+        selectedLocation,
+        selectedUsage,
         currentPage,
         itemsPerPage,
         isLoading,
         error,
 
         // Computed
-        allItems,
+
+        usages,
         filteredItems,
         uniquePICs,
+        allItems,
+        locations,
         uncheckedCount,
         paginatedItems,
         totalItems,
@@ -210,11 +282,13 @@ export function useDailyInput() {
         startItem,
         endItem,
         visiblePages,
+        sortOrder,
+        paginatedItems,
 
         // Methods
         fetchData,
         clearFilters,
         submitDailyStock,
-        deleteInput
-    }
+        deleteInput,
+    };
 }

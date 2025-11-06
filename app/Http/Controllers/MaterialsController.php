@@ -30,6 +30,7 @@ class MaterialsController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'vendor_number' => 'required|exists:vendor,vendor_number',
             'material_number' => 'required|unique:materials',
             'description' => 'required|string',
             'stock_minimum' => 'required|integer|min:0',
@@ -37,9 +38,8 @@ class MaterialsController extends Controller
             'unit_of_measure' => 'required|string',
             'pic_name' => 'required|string',
             'rack_address' => 'sometimes|string',
-            'vendor_name' => 'sometimes|string',
-            'emails' => 'sometimes|array',
-            'phone_number' => 'sometimes|string'
+            'usage' => 'required|enum',
+            'location' => 'required|string',
         ]);
 
         $materials = Materials::create($validated);
@@ -63,9 +63,8 @@ class MaterialsController extends Controller
             'unit_of_measure' => 'sometimes|string',
             'pic_name' => 'sometimes|string',
             'rack_address' => 'sometimes|string',
-            'vendor_name' => 'sometimes|string',
-            'emails' => 'sometimes|array',
-            'phone_number' => 'sometimes|string'
+            'location' => 'sometimes|string',
+            'usage' => 'sometimes|enum'
         ]);
 
         $materials->update($validated);

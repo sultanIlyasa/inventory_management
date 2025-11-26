@@ -237,6 +237,11 @@ const menuItems = [
                 name: 'Status Change',
                 route: 'warehouse-monitoring.status-change'
             },
+            {
+                name: 'Overdue Days',
+                route: 'warehouse-monitoring.overdue-days'
+            },
+
 
         ]
     },

@@ -20,7 +20,8 @@ class Materials extends Model
         'unit_of_measure',
         'rack_address',
         'usage',
-        'location'
+        'location',
+        'gentani'
     ];
 
     /**

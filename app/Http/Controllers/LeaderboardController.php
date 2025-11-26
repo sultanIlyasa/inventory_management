@@ -6,6 +6,7 @@ use Inertia\Inertia;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Services\MaterialReportService;
+use Illuminate\Support\Facades\Cache;
 
 class LeaderboardController extends Controller
 {
@@ -16,83 +17,70 @@ class LeaderboardController extends Controller
         $this->reportService = $reportService;
     }
 
-    //Get all leaderboard
+    /**
+     * Get all leaderboard - with caching
+     */
     public function index(Request $request)
     {
         $request->validate([
             'location' => 'nullable|in:SUNTER_1,SUNTER_2',
             'usage' => 'nullable|in:DAILY,WEEKLY,MONTHLY',
-            'month' => 'nullable|date_format:Y-m'
+            'month' => 'nullable|date_format:Y-m',
+            'gentani' => 'nullable|in:GENTAN-I,NON_GENTAN-I'
         ]);
+
         $filters = $this->getFilters($request);
-        $allLeaderboards = $this->reportService->getAllLeaderboards($filters);
+        $activeTab = $request->get('tab', 'CAUTION');
+
+        // Create cache key based on filters
+        $cacheKey = 'leaderboard_' . md5(json_encode($filters));
+
+        // Cache for 5 minutes
+        $leaderboards = Cache::remember($cacheKey, 300, function () use ($filters) {
+            return $this->reportService->getAllLeaderboards($filters);
+        });
 
         return Inertia::render('WarehouseMonitoring/Leaderboard', [
-            'cautionData' => $this->paginateAndFormat($allLeaderboards['CAUTION'], $request, 'CAUTION'),
-            'shortageData' => $this->paginateAndFormat($allLeaderboards['SHORTAGE'], $request, 'SHORTAGE'),
-            'activeTab' => $request->get('tab', 'CAUTION'),
+            'cautionData' => $this->paginateAndFormat($leaderboards['CAUTION'], $request, 'CAUTION'),
+            'shortageData' => $this->paginateAndFormat($leaderboards['SHORTAGE'], $request, 'SHORTAGE'),
+            'activeTab' => $activeTab,
             'filters' => $filters,
         ]);
     }
 
     /**
-     * Dedicated caution leaderboard page
-     */
-    public function caution(Request $request)
-    {
-        $filters = $this->getFilters($request);
-        $leaderboard = $this->reportService->getCautionLeaderboard($filters);
-        $data = $this->paginateAndFormat($leaderboard, $request, 'CAUTION');
-
-        return Inertia::render('Leaderboard/Caution', [
-            'initialLeaderboard' => $data['leaderboard'],
-            'initialStatistics' => $data['statistics'],
-            'initialPagination' => $data['pagination'],
-            'filters' => $filters,
-        ]);
-    }
-
-    /**
-     * Dedicated shortage leaderboard page
-     */
-    public function shortage(Request $request)
-    {
-        $filters = $this->getFilters($request);
-        $leaderboard = $this->reportService->getShortageLeaderboard($filters);
-        $data = $this->paginateAndFormat($leaderboard, $request, 'SHORTAGE');
-
-        return Inertia::render('Leaderboard/Shortage', [
-            'initialLeaderboard' => $data['leaderboard'],
-            'initialStatistics' => $data['statistics'],
-            'initialPagination' => $data['pagination'],
-            'filters' => $filters,
-        ]);
-    }
-
-    /**
-     * API: Caution leaderboard
+     * API: Caution leaderboard - for AJAX requests
      */
     public function cautionApi(Request $request)
     {
         $filters = $this->getFilters($request);
-        $leaderboard = $this->reportService->getCautionLeaderboard($filters);
+        $cacheKey = 'caution_' . md5(json_encode($filters));
+
+        $leaderboard = Cache::remember($cacheKey, 300, function () use ($filters) {
+            return $this->reportService->getCautionLeaderboard($filters);
+        });
+
         $data = $this->paginateAndFormat($leaderboard, $request, 'CAUTION');
 
         return response()->json(['success' => true, ...$data]);
     }
 
     /**
-     * API: Shortage leaderboard
+     * API: Shortage leaderboard - for AJAX requests
      */
     public function shortageApi(Request $request)
     {
         $filters = $this->getFilters($request);
-        $leaderboard = $this->reportService->getShortageLeaderboard($filters);
+        $cacheKey = 'shortage_' . md5(json_encode($filters));
+
+        $leaderboard = Cache::remember($cacheKey, 300, function () use ($filters) {
+            return $this->reportService->getShortageLeaderboard($filters);
+        });
+
         $data = $this->paginateAndFormat($leaderboard, $request, 'SHORTAGE');
 
         return response()->json(['success' => true, ...$data]);
     }
-
 
     /**
      * Helper: Get filters from request
@@ -104,14 +92,25 @@ class LeaderboardController extends Controller
             'month' => $request->month,
             'usage' => $request->usage,
             'location' => $request->location,
+            'gentani' => $request->gentani
         ];
     }
 
+    /**
+     * Helper: Paginate and format data
+     */
     private function paginateAndFormat($leaderboard, Request $request, string $type)
     {
         $perPage = (int) $request->get('per_page', 10);
         $page = (int) $request->get('page', 1);
         $total = $leaderboard->count();
+
+        // Ensure page is valid
+        $lastPage = (int) ceil($total / $perPage);
+        if ($page > $lastPage && $lastPage > 0) {
+            $page = $lastPage;
+        }
+
         $paged = $leaderboard->forPage($page, $perPage)->values();
 
         return [
@@ -125,7 +124,7 @@ class LeaderboardController extends Controller
             'leaderboard' => $paged,
             'pagination' => [
                 'current_page' => $page,
-                'last_page' => (int) ceil($total / $perPage),
+                'last_page' => max(1, $lastPage),
                 'per_page' => $perPage,
                 'total' => $total,
             ]

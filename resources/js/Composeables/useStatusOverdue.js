@@ -7,11 +7,18 @@ export function useStatusOverdue() {
     const searchTerm = ref("");
     const selectedDate = ref(new Date().toISOString().split("T")[0]);
     const selectedPIC = ref("");
+    const selectedUsage = ref("");
+    const selectedLocation = ref("");
+    const selectedGentani = ref("");
     const itemsPerPage = 15;
     const currentPage = ref(1);
     const isLoading = ref(false);
     const error = ref(null);
     const selectedStatus = ref("");
+
+    // Sorting state
+    const sortField = ref("status"); // 'status' or 'days'
+    const sortDirection = ref("desc"); // 'asc' or 'desc'
 
     // Fetch Data
     const fetchDataCurrent = async () => {
@@ -22,32 +29,35 @@ export function useStatusOverdue() {
             reportData.value = {
                 reports: res.data || [],
             };
-            console.log("Report Data:", reportData.value);
         } catch (err) {
-            console.error("Failed to load report data:", err);
             error.value = err.message;
         } finally {
             isLoading.value = false;
         }
     };
+
     // Computed
     const allReports = computed(() => {
         const items = [];
         reportData.value.reports.forEach((report, index) => {
             items.push({
-                key: `report-${report.id}`,
-                id: report.id,
+                key: `report-${index}`,
+                id: report.id || index,
                 number: index + 1,
                 material_number: report.material_number,
                 description: report.description,
                 pic_name: report.pic,
                 instock: report.instock,
                 status: report.current_status,
-                days: report.days,
+                days: report.days || 0,
+                location: report.location,
+                usage: report.usage,
+                gentani: report.gentani,
             });
         });
         return items;
     });
+    const gentaniItems = ["GENTAN-I", "NON_GENTAN-I"];
 
     const filteredReports = computed(() => {
         let filtered = allReports.value;
@@ -61,6 +71,23 @@ export function useStatusOverdue() {
         if (selectedPIC.value) {
             filtered = filtered.filter(
                 (it) => it.pic_name === selectedPIC.value
+            );
+        }
+
+        if (selectedLocation.value) {
+            filtered = filtered.filter(
+                (it) => it.location === selectedLocation.value
+            );
+        }
+
+        if (selectedUsage.value) {
+            filtered = filtered.filter(
+                (it) => it.usage === selectedUsage.value
+            );
+        }
+        if (selectedGentani.value) {
+            filtered = filtered.filter(
+                (it) => it.gentani === selectedGentani.value
             );
         }
 
@@ -83,6 +110,7 @@ export function useStatusOverdue() {
         }
         return filtered;
     });
+
     const uniquePICs = computed(() => {
         const pics = new Set();
         allReports.value.forEach((item) => {
@@ -91,7 +119,66 @@ export function useStatusOverdue() {
         return Array.from(pics).sort();
     });
 
-    const totalReports = computed(() => filteredReports.value.length);
+    const locations = computed(() => {
+        const locations = new Set();
+        allReports.value.forEach((item) => {
+            if (item.location) locations.add(item.location);
+        });
+        return Array.from(locations).sort();
+    });
+
+    const usages = computed(() => {
+        const usages = new Set();
+        allReports.value.forEach((item) => {
+            if (item.usage) usages.add(item.usage);
+        });
+        return Array.from(usages).sort();
+    });
+
+    // Status priority for sorting
+    const statusPriority = {
+        SHORTAGE: 1,
+        CAUTION: 2,
+        OVERFLOW: 3,
+        OK: 4,
+        UNCHECKED: 5,
+    };
+
+    // Sorted reports
+    const sortedReports = computed(() => {
+        const reports = [...filteredReports.value];
+
+        return reports.sort((a, b) => {
+            let compareValue = 0;
+
+            if (sortField.value === "status") {
+                // Sort by status priority
+                const aPriority = statusPriority[a.status] || 999;
+                const bPriority = statusPriority[b.status] || 999;
+                compareValue = aPriority - bPriority;
+
+                // Secondary sort by days if same status
+                if (compareValue === 0) {
+                    compareValue = b.days - a.days;
+                }
+            } else if (sortField.value === "days") {
+                // Sort by days
+                compareValue = b.days - a.days;
+
+                // Secondary sort by status if same days
+                if (compareValue === 0) {
+                    const aPriority = statusPriority[a.status] || 999;
+                    const bPriority = statusPriority[b.status] || 999;
+                    compareValue = aPriority - bPriority;
+                }
+            }
+
+            // Apply sort direction
+            return sortDirection.value === "asc" ? -compareValue : compareValue;
+        });
+    });
+
+    const totalReports = computed(() => sortedReports.value.length);
     const totalPages = computed(() =>
         Math.ceil(totalReports.value / itemsPerPage)
     );
@@ -99,7 +186,7 @@ export function useStatusOverdue() {
     const paginatedItems = computed(() => {
         const start = (currentPage.value - 1) * itemsPerPage;
         const end = start + itemsPerPage;
-        return filteredReports.value.slice(start, end);
+        return sortedReports.value.slice(start, end);
     });
 
     const startItem = computed(() => {
@@ -131,19 +218,23 @@ export function useStatusOverdue() {
 
     const clearFilters = () => {
         searchTerm.value = "";
-        selectedPIC = "";
+        selectedPIC.value = "";
+        selectedLocation.value = "";
+        selectedUsage.value = "";
         currentPage.value = 1;
     };
 
+    const handleSortChange = ({ field, direction }) => {
+        sortField.value = field;
+        sortDirection.value = direction;
+        currentPage.value = 1; // Reset to first page when sorting
+    };
+
+    // Watchers
     watch(selectedDate, fetchDataCurrent);
-    watch([searchTerm, selectedPIC], () => {
+    watch([searchTerm, selectedPIC, selectedUsage, selectedLocation], () => {
         currentPage.value = 1;
     });
-    watch(reportData, () => {
-        console.log("Reports updated:", allReports.value);
-    });
-
-    // Process Items
 
     return {
         // State
@@ -163,12 +254,19 @@ export function useStatusOverdue() {
         endItem,
         visiblePages,
         itemsPerPage,
-        totalReports,
         uniquePICs,
-        clearFilters,
-        // Pagination
+        selectedStatus,
+        selectedLocation,
+        locations,
+        selectedUsage,
+        usages,
+        sortField,
+        sortDirection,
+        selectedGentani,
+        gentaniItems,
         // Methods
         fetchDataCurrent,
-        selectedStatus,
+        clearFilters,
+        handleSortChange,
     };
 }

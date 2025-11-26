@@ -388,6 +388,9 @@ class ReportController extends Controller
                     'instock' => null,
                     'current_status' => 'N/A',
                     'days' => 0,
+                    'location' => $material->location,
+                    'usage' => $material->usage,
+                    'gentani' => $material->gentani
                 ];
             }
 
@@ -401,6 +404,10 @@ class ReportController extends Controller
                 'instock' => $latestInput->daily_stock,
                 'current_status' => $latestInput->status,
                 'days' => $consecutiveDays,
+                'location' => $material->location,
+                'usage' => $material->usage,
+                'gentani' => $material->gentani
+
             ];
         });
 
@@ -706,4 +713,6 @@ class ReportController extends Controller
 
         return $changes;
     }
+
+
 }

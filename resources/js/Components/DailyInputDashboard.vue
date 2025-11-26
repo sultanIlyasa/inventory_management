@@ -5,7 +5,8 @@
             <DatePicker v-model:selectedDate="selectedDate" />
             <PICSwitch v-model:selectedPIC="selectedPIC" :picOptions="uniquePICs"
                 v-model:selectedLocation="selectedLocation" :locationOptions="locations"
-                v-model:selectedUsage="selectedUsage" :usageOptions="usages" />
+                v-model:selectedUsage="selectedUsage" :usageOptions="usages" v-model:selectedGentani="selectedGentani"
+                :gentaniOptions="gentaniItems" />
         </div>
         <DailyInputTable :items="paginatedItems" :uncheckedCount="uncheckedCount" v-model:sortOrder="sortOrder"
             @submit="submitDailyStock" @delete="deleteInput" />
@@ -45,6 +46,8 @@ const {
     submitDailyStock,
     deleteInput,
     sortOrder,
+    gentaniItems,
+    selectedGentani
 } = useDailyInput()
 
 let intervalId = null
@@ -53,12 +56,6 @@ let intervalId = null
 // In DailyInputDashboard.vue
 onMounted(async () => {
     await fetchData()  // Wait for data to load
-
-    // Now log after data is loaded
-    console.log('locations:', locations.value)
-    console.log('usages:', usages.value)
-    console.log('uniquePICs:', uniquePICs.value)
-    console.log('allItems:', filteerd.value)
 
     intervalId = setInterval(fetchData, 10000)
 })

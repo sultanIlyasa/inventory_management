@@ -10,6 +10,7 @@ export function useDailyInput() {
     const selectedPIC = ref("");
     const selectedUsage = ref("");
     const selectedLocation = ref("");
+    const selectedGentani = ref("");
     const currentPage = ref(1);
     const itemsPerPage = 25;
     const isLoading = ref(false);
@@ -52,8 +53,9 @@ export function useDailyInput() {
                 rack_address: item.material.rack_address,
                 daily_stock: item.daily_stock,
                 status: item.status,
-                location: item.material.location, // ✅ Fixed
-                usage: item.material.usage, // ✅ Fixed
+                location: item.material.location,
+                usage: item.material.usage,
+                gentani: item.material.gentani,
             });
         });
 
@@ -73,6 +75,7 @@ export function useDailyInput() {
                 status: "UNCHECKED",
                 location: item.location, // This should already be correct for missing items
                 usage: item.usage, // This should already be correct for missing items
+                gentani: item.gentani,
             });
         });
 
@@ -92,6 +95,10 @@ export function useDailyInput() {
         }
         if (selectedUsage.value) {
             items = items.filter((it) => it.usage === selectedUsage.value);
+        }
+
+        if (selectedGentani.value) {
+            items = items.filter((it) => it.gentani === selectedGentani.value);
         }
 
         if (searchTerm.value) {
@@ -137,13 +144,10 @@ export function useDailyInput() {
         });
         return Array.from(usages).sort();
     });
-
     const uncheckedCount = computed(() => reportData.value.missing.length);
+    const gentaniItems = ["GENTAN-I", "NON_GENTAN-I"];
 
-    // Add sorting state
-    const sortBy = ref(""); // e.g., 'material_number', 'status', 'pic_name'
     const sortOrder = ref("default");
-
     const filteredAndSortedItems = computed(() => {
         let items = filteredItems.value;
 
@@ -218,6 +222,7 @@ export function useDailyInput() {
         selectedPIC.value = "";
         selectedLocation.value = "";
         selectedUsage.value = "";
+        selectedGentani.value = "";
         currentPage.value = 1;
     };
 
@@ -250,9 +255,18 @@ export function useDailyInput() {
 
     // Watchers
     watch(selectedDate, fetchData);
-    watch([searchTerm, selectedPIC, selectedLocation, selectedUsage], () => {
-        currentPage.value = 1;
-    });
+    watch(
+        [
+            searchTerm,
+            selectedPIC,
+            selectedLocation,
+            selectedUsage,
+            selectedGentani,
+        ],
+        () => {
+            currentPage.value = 1;
+        }
+    );
 
     return {
         // State
@@ -263,6 +277,7 @@ export function useDailyInput() {
         selectedPIC,
         selectedLocation,
         selectedUsage,
+        selectedGentani,
         currentPage,
         itemsPerPage,
         isLoading,
@@ -275,6 +290,7 @@ export function useDailyInput() {
         uniquePICs,
         allItems,
         locations,
+        gentaniItems,
         uncheckedCount,
         paginatedItems,
         totalItems,

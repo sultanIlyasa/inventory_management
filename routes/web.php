@@ -4,6 +4,11 @@ use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PushNotificationController;
 use App\Http\Controllers\RecoveryDaysController;
+use App\Http\Controllers\StatusChangeController;
+use App\Http\Controllers\WarehouseMonitoringController;
+
+
+
 use App\Models\DailyInput;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -33,22 +38,26 @@ Route::get('/daily-input', function () {
 })->name('daily-input.index');
 
 Route::prefix('/warehouse-monitoring')->group(function () {
-    Route::get('/', function () {
-        return Inertia::render('WarehouseMonitoring/index');
-    })->name('warehouse-monitoring.index');
+    Route::get('/', [WarehouseMonitoringController::class, 'index'])->name('warehouse-monitoring.index');
+
+    Route::get('/overdue-days', function () {
+        return Inertia::render('WarehouseMonitoring/OverdueDays');
+    })->name('warehouse-monitoring.overdue-days');
 
     Route::get('/leaderboard', [LeaderboardController::class, 'index'])
         ->name('warehouse-monitoring.leaderboard');
     Route::get('/recovery-days', [RecoveryDaysController::class, 'index'])
         ->name('warehouse-monitoring.recovery-days');
-
-    Route::get('/status-change', function () {
-        return Inertia::render('WarehouseMonitoring/StatusChange');
-    })->name('warehouse-monitoring.status-change');
-
+    Route::get('/status-change', [StatusChangeController::class, 'index'])
+        ->name('warehouse-monitoring.status-change');
     Route::prefix('api')->name('warehouse-monitoring.api.')->group(function () {
         Route::get('/caution', [LeaderboardController::class, 'cautionApi'])->name('caution');
         Route::get('/shortage', [LeaderboardController::class, 'shortageApi'])->name('shortage');
+        Route::get('/recovery-days', [RecoveryDaysController::class, 'recoveryApi'])->name('recovery-days');
+        Route::get('/status-change-api', [StatusChangeController::class, 'statusChangeApi'])
+            ->name('status-change-api');
+        Route::get('/dashboard', [WarehouseMonitoringController::class, 'dashboardApi'])
+            ->name('dashboard');
     });
 });
 

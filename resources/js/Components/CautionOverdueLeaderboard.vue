@@ -29,14 +29,14 @@
         </div>
 
         <!-- Compact View (List) -->
-        <div v-if="isCompact" class="p-2 sm:p-3">
+        <div v-if="isCompact" class="p-1">
             <div class="space-y-2">
                 <div v-for="(item, index) in limitedItems" :key="item.material_id"
-                    class="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded hover:bg-gray-100 transition">
+                    class="flex items-center justify-between p-1 bg-gray-50 rounded hover:bg-gray-100 transition">
                     <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                         <span class="text-base sm:text-lg lg:text-xl">{{ getRankEmoji(index) }}</span>
                         <div class="min-w-0 flex-1">
-                            <div class="font-semibold text-xs sm:text-sm lg:text-base truncate">
+                            <div class="font-semibold text-xs truncate">
                                 {{ item.description }}
                             </div>
                             <div class="text-[10px] sm:text-xs text-gray-600 truncate">
@@ -50,7 +50,7 @@
                             <div class="text-sm font-semibold">{{ item.current_stock }}</div>
                         </div>
                         <div class="text-right">
-                            <div class="text-base sm:text-lg lg:text-xl font-bold" :class="getDaysColor(item.days)">
+                            <div class="text-base font-bold" :class="getDaysColor(item.days)">
                                 {{ item.days }}
                             </div>
                             <div class="text-[10px] sm:text-xs text-gray-500">days</div>
@@ -160,7 +160,6 @@
 
         <!-- Pagination - Only in full mode -->
 
-
         <!-- Footer - Refresh button -->
         <div v-if="!hideRefresh" class="p-2 sm:p-3 border-t"
             :class="isCompact ? 'flex justify-center' : 'flex justify-end'">
@@ -253,7 +252,7 @@ const isCompact = computed(() => props.size === 'compact' || props.size === 'min
 
 const containerClass = computed(() => {
     if (props.size === 'mini') return 'max-h-80 overflow-hidden'
-    if (props.size === 'compact') return 'max-h-96 overflow-y-auto'
+    if (props.size === 'compact') return 'max-h-82 max-w-sm overflow-y-auto'
     return ''
 });
 
@@ -335,19 +334,19 @@ const getRankEmoji = (index) => {
 };
 
 // ✅ Fixed onMounted
-onMounted(() => {
-    // Only fetch if no initial data provided
-    if (props.initialLeaderboard.length === 0) {
-        fetchLeaderboard();
-    }
+// onMounted(() => {
+//     // Only fetch if no initial data provided
+//     if (props.initialLeaderboard.length === 0) {
+//         fetchLeaderboard();
+//     }
 
-    // Setup auto-refresh
-    if (props.autoRefresh) {
-        intervalId = setInterval(() => {
-            fetchLeaderboard(currentPagination.value.current_page);
-        }, props.refreshInterval);
-    }
-});
+//     // Setup auto-refresh
+//     if (props.autoRefresh) {
+//         intervalId = setInterval(() => {
+//             fetchLeaderboard(currentPagination.value.current_page);
+//         }, props.refreshInterval);
+//     }
+// });
 
 onUnmounted(() => {
     if (intervalId) {

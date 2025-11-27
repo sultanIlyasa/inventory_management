@@ -493,9 +493,9 @@ class MaterialReportService
         if ($gentani !== null && $gentani !== '') {
             if (is_array($gentani)) {
                 $materialsQuery->whereIn('gentani', $gentani);
-            } elseif (strpos($location, ',') !== false) {
+            } elseif (strpos($gentani, ',') !== false) {
                 $vals = array_map('trim', explode(',', $gentani));
-                $materialsQuery->whereIn('gentani', $gentani);
+                $materialsQuery->whereIn('gentani', $vals);
             } else {
                 $materialsQuery->where('gentani', $gentani);
             }
@@ -762,9 +762,9 @@ class MaterialReportService
         if ($gentani !== null && $gentani !== '') {
             if (is_array($gentani)) {
                 $materialsQuery->whereIn('gentani', $gentani);
-            } elseif (strpos($location, ',') !== false) {
+            } elseif (strpos($gentani, ',') !== false) {
                 $vals = array_map('trim', explode(',', $gentani));
-                $materialsQuery->whereIn('gentani', $gentani);
+                $materialsQuery->whereIn('gentani', $vals);
             } else {
                 $materialsQuery->where('gentani', $gentani);
             }
@@ -825,6 +825,8 @@ class MaterialReportService
 
         $filteredReport = $report->filter(fn($item) => $item['current_status'] !== 'OK')->values();
 
-        return response()->json($filteredReport);
+        return [
+            'data' => $filteredReport,
+        ];
     }
 }

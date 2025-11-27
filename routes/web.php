@@ -3,6 +3,7 @@
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PushNotificationController;
+use App\Http\Controllers\OverdueDaysController;
 use App\Http\Controllers\RecoveryDaysController;
 use App\Http\Controllers\StatusChangeController;
 use App\Http\Controllers\WarehouseMonitoringController;
@@ -40,9 +41,8 @@ Route::get('/daily-input', function () {
 Route::prefix('/warehouse-monitoring')->group(function () {
     Route::get('/', [WarehouseMonitoringController::class, 'index'])->name('warehouse-monitoring.index');
 
-    Route::get('/overdue-days', function () {
-        return Inertia::render('WarehouseMonitoring/OverdueDays');
-    })->name('warehouse-monitoring.overdue-days');
+    Route::get('/overdue-days', [OverdueDaysController::class, 'index'])
+        ->name('warehouse-monitoring.overdue-days');
 
     Route::get('/leaderboard', [LeaderboardController::class, 'index'])
         ->name('warehouse-monitoring.leaderboard');

@@ -111,7 +111,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 
 const props = defineProps({
     items: {
@@ -122,35 +122,31 @@ const props = defineProps({
     variant: {
         type: String,
         default: 'FULL'
+    },
+    sortField: {
+        type: String,
+        default: 'status'
+    },
+    sortDirection: {
+        type: String,
+        default: 'desc'
     }
 })
 
 const emit = defineEmits(['sort-change'])
 
-// Sorting state
-const sortField = ref('status') // 'status' or 'days'
-const sortDirection = ref('desc') // 'asc' or 'desc'
-
-// Status priority order (lower number = higher priority)
-const statusPriority = {
-    'SHORTAGE': 1,
-    'CAUTION': 2,
-    'OVERFLOW': 3,
-    'OK': 4,
-    'UNCHECKED': 5
-}
+const sortField = computed(() => props.sortField)
+const sortDirection = computed(() => props.sortDirection)
 
 const toggleSort = (field) => {
-    if (sortField.value === field) {
+    if (props.sortField === field) {
         // Toggle direction if clicking same field
-        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+        const direction = props.sortDirection === 'asc' ? 'desc' : 'asc'
+        emit('sort-change', { field, direction })
     } else {
         // Change field and set to descending by default
-        sortField.value = field
-        sortDirection.value = 'desc'
+        emit('sort-change', { field, direction: 'desc' })
     }
-
-    emit('sort-change', { field: sortField.value, direction: sortDirection.value })
 }
 
 const sortedItems = computed(() => {
@@ -158,35 +154,6 @@ const sortedItems = computed(() => {
         return []
     }
 
-    const itemsCopy = [...props.items]
-
-    return itemsCopy.sort((a, b) => {
-        let compareValue = 0
-
-        if (sortField.value === 'status') {
-            // Sort by status priority
-            const aPriority = statusPriority[a.status] || 999
-            const bPriority = statusPriority[b.status] || 999
-            compareValue = aPriority - bPriority
-
-            // If same status, sort by days as secondary sort
-            if (compareValue === 0) {
-                compareValue = b.days - a.days
-            }
-        } else if (sortField.value === 'days') {
-            // Sort by days
-            compareValue = b.days - a.days
-
-            // If same days, sort by status priority as secondary sort
-            if (compareValue === 0) {
-                const aPriority = statusPriority[a.status] || 999
-                const bPriority = statusPriority[b.status] || 999
-                compareValue = aPriority - bPriority
-            }
-        }
-
-        // Apply sort direction
-        return sortDirection.value === 'asc' ? -compareValue : compareValue
-    })
+    return props.items
 })
 </script>

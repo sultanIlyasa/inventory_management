@@ -15,10 +15,6 @@ Route::put('/materials/{id}', [MaterialsController::class, 'update']);
 Route::delete('/materials/{id}', [MaterialsController::class, 'destroy']);
 Route::get('/materials/{id}', [MaterialsController::class, 'show']);
 
-// Admin Routes
-Route::get('/admin/vendor/all', [AdminDashboardController::class, 'getAllVendorsAdminApi'])->name('admin-vendor-api');
-
-
 // Daily Input Routes
 Route::get('/daily-input', [DailyInputController::class, 'index']);
 Route::post('/daily-input', [DailyInputController::class, 'store']);

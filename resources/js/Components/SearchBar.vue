@@ -36,7 +36,8 @@ const formattedDate = currentDate.toLocaleDateString('en-US', {
 const props = defineProps({
     searchTerm: {
         type: String,
-        required: true
+        required: true,
+        default: "null"
     },
 
 })

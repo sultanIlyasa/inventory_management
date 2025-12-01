@@ -40,6 +40,7 @@ class MaterialsController extends Controller
             'rack_address' => 'sometimes|string',
             'usage' => 'required|enum',
             'location' => 'required|string',
+            'gentani' => 'required|string'
         ]);
 
         $materials = Materials::create($validated);
@@ -64,7 +65,10 @@ class MaterialsController extends Controller
             'pic_name' => 'sometimes|string',
             'rack_address' => 'sometimes|string',
             'location' => 'sometimes|string',
-            'usage' => 'sometimes|enum'
+            'usage' => 'sometimes|enum',
+            'gentani' => 'required|string'
+
+
         ]);
 
         $materials->update($validated);

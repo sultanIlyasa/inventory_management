@@ -22,7 +22,6 @@ class VendorController extends Controller
         $validated = $request->validate([
             'vendor_number' => 'required|unique:vendor',
             'vendor_name' => 'required|string',
-            'contact_person' => 'somtimes|string',
             'phone_number' => 'somtimes|string',
             'emails' => 'sometimes|email',
         ]);
@@ -61,7 +60,6 @@ class VendorController extends Controller
         }
         $validated = $request->validate([
             'vendor_name' => 'sometimes|string',
-            'contact_person' => 'sometimes|string',
             'phone_number' => 'sometimes|string',
             'emails' => 'sometimes|email',
         ]);

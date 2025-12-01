@@ -245,6 +245,10 @@ const menuItems = [
 
         ]
     },
+    {
+        name: 'Login',
+        route: 'login'
+    }
 
 ]
 </script>

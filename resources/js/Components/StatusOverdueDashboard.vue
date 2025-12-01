@@ -52,7 +52,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { router } from '@inertiajs/vue3'
 import Pagination from '@/Components/Pagination.vue'
 import SearchBar from './SearchBar.vue'
@@ -89,16 +89,16 @@ const defaultPagination = () => ({
     total: 0
 })
 
-const defaultFilters = () => ({
-    search: '',
-    pic: '',
-    location: '',
-    usage: '',
-    gentani: '',
-    status: '',
-    sortField: 'status',
-    sortDirection: 'desc',
-    month: ''
+const sanitizeFilters = (incoming = {}) => ({
+    search: incoming.search ?? '',
+    pic: incoming.pic ?? '',
+    location: incoming.location ?? '',
+    usage: incoming.usage ?? '',
+    gentani: incoming.gentani ?? '',
+    status: incoming.status ?? '',
+    sortField: incoming.sortField ?? 'status',
+    sortDirection: incoming.sortDirection ?? 'desc',
+    month: incoming.month ?? ''
 })
 
 const reports = ref(props.overdueReports.data || [])
@@ -111,9 +111,10 @@ const filterOptions = ref({
     gentani: props.filterOptions.gentani || []
 })
 
-const localFilters = ref({ ...defaultFilters(), ...props.filters })
+const localFilters = ref(sanitizeFilters(props.filters))
 const currentPage = ref(pagination.value.current_page || 1)
 const isLoading = ref(false)
+const isSyncingFromServer = ref(false)
 let searchDebounce = null
 
 const counterScale = computed(() => props.variant === 'COMPACT' ? 'hidden' : 'scale-100 my-4')
@@ -152,6 +153,7 @@ const visiblePages = computed(() => {
 })
 
 const syncFromPageProps = (pageProps) => {
+    isSyncingFromServer.value = true
     reports.value = pageProps.overdueReports?.data || []
     pagination.value = pageProps.overdueReports?.pagination || defaultPagination()
     statistics.value = pageProps.statistics || {}
@@ -162,7 +164,10 @@ const syncFromPageProps = (pageProps) => {
         gentani: pageProps.filterOptions?.gentani || []
     }
     currentPage.value = pagination.value.current_page || 1
-    localFilters.value = { ...defaultFilters(), ...pageProps.filters }
+    localFilters.value = sanitizeFilters(pageProps.filters)
+    nextTick(() => {
+        isSyncingFromServer.value = false
+    })
 }
 
 const fetchData = (page = 1) => {
@@ -227,6 +232,7 @@ watch(
         localFilters.value.status
     ],
     () => {
+        if (isSyncingFromServer.value) return
         currentPage.value = 1
         fetchData(1)
     }
@@ -235,6 +241,7 @@ watch(
 watch(
     () => localFilters.value.search,
     () => {
+        if (isSyncingFromServer.value) return
         clearTimeout(searchDebounce)
         searchDebounce = setTimeout(() => {
             currentPage.value = 1
@@ -276,7 +283,11 @@ watch(
 watch(
     () => props.filters,
     (newVal) => {
-        localFilters.value = { ...defaultFilters(), ...(newVal || {}) }
+        isSyncingFromServer.value = true
+        localFilters.value = sanitizeFilters(newVal)
+        nextTick(() => {
+            isSyncingFromServer.value = false
+        })
     }
 )
 </script>

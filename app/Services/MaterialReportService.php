@@ -56,6 +56,7 @@ class MaterialReportService
             }
         }
 
+        // semua materials yang diperluin
         $materials = $materialsQuery
             ->select(['id', 'material_number', 'description', 'pic_name', 'usage', 'location', 'gentani'])
             ->with(['dailyInputs' => function ($query) use ($month, $dateFilter) {
@@ -75,6 +76,7 @@ class MaterialReportService
 
         $reports = [];
 
+        // semua materials satuannya material
         foreach ($materials as $material) {
             $dailyInputs = $material->dailyInputs;
 

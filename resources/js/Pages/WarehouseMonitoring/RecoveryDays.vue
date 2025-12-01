@@ -64,9 +64,10 @@
                         </div>
                     </div>
 
-                    <RecoveryDaysReportContent :initialRecoveryData="recoveryData.data" :initialStatistics="statistics"
-                        :initialTrendData="trendData" :initialPagination="recoveryData.pagination"
-                        :filters="localFilters" @refresh="fetchData" @page-change="handlePageChange" :showChart=true />
+                    <RecoveryDaysReportContent :recoveryData="recoveryData?.data || []"
+                        :statistics="statistics || {}" :trendData="trendData || []"
+                        :pagination="recoveryData?.pagination || defaultPagination" size="full" :showChart="true"
+                        @refresh="applyFilters" @page-change="handlePageChange" />
                 </div>
             </div>
         </div>
@@ -74,7 +75,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 import MainAppLayout from '@/Layouts/MainAppLayout.vue'
 import RecoveryDaysReportContent from '@/Components/RecoveryDaysReportContent.vue'
@@ -106,16 +107,17 @@ const localFilters = ref({
     gentani: props.filters.gentani || ''
 })
 
-// Cache data locally
-const recoveryData = ref(props.recoveryData)
-const statistics = ref(props.statistics)
-const trendData = ref(props.trendData)
-const pagination = ref(props.recoveryData.pagination || {
+const defaultPagination = {
     current_page: 1,
     last_page: 1,
     per_page: 10,
     total: 0
-})
+}
+
+const recoveryData = ref(props.recoveryData)
+const statistics = ref(props.statistics)
+const trendData = ref(props.trendData)
+const pagination = ref(props.recoveryData.pagination || defaultPagination)
 
 // Debounce timer
 let debounceTimer = null
@@ -187,7 +189,31 @@ const handlePageChange = (page) => {
     )
 }
 
-const fetchData = () => {
-    applyFilters()
-}
+watch(
+    () => props.recoveryData,
+    (newVal) => {
+        if (newVal) {
+            recoveryData.value = newVal
+            pagination.value = newVal.pagination || defaultPagination
+        }
+    }
+)
+
+watch(
+    () => props.statistics,
+    (newVal) => {
+        if (newVal) {
+            statistics.value = newVal
+        }
+    }
+)
+
+watch(
+    () => props.trendData,
+    (newVal) => {
+        if (newVal) {
+            trendData.value = newVal
+        }
+    }
+)
 </script>

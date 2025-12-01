@@ -93,14 +93,20 @@
                     <!-- Keep both components mounted but toggle visibility -->
                     <div :class="{ 'hidden': currentTab !== 'CAUTION' }">
                         <CautionOverdueLeaderboard v-if="cautionData" size="full"
-                            :initialLeaderboard="cautionData.leaderboard" :initialStatistics="cautionData.statistics"
-                            :initialPagination="cautionData.pagination" :autoRefresh="false" :hideRefresh="false" />
+                            :initialLeaderboard="cautionData.leaderboard || []"
+                            :initialStatistics="cautionData.statistics || {}"
+                            :initialPagination="cautionData.pagination || {}" :viewAllUrl="viewAllUrls.CAUTION"
+                            @page-change="page => handlePageChange('CAUTION', page)"
+                            @refresh="() => handleRefresh('CAUTION')" />
                     </div>
 
                     <div :class="{ 'hidden': currentTab !== 'SHORTAGE' }">
                         <ShortageOverdueLeaderboard v-if="shortageData" size="full"
-                            :initialLeaderboard="shortageData.leaderboard" :initialStatistics="shortageData.statistics"
-                            :initialPagination="shortageData.pagination" :autoRefresh="false" :hideRefresh="false" />
+                            :initialLeaderboard="shortageData.leaderboard || []"
+                            :initialStatistics="shortageData.statistics || {}"
+                            :initialPagination="shortageData.pagination || {}" :viewAllUrl="viewAllUrls.SHORTAGE"
+                            @page-change="page => handlePageChange('SHORTAGE', page)"
+                            @refresh="() => handleRefresh('SHORTAGE')" />
                     </div>
                 </div>
             </div>
@@ -109,8 +115,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
+import { route } from 'ziggy-js'
 import MainAppLayout from '@/Layouts/MainAppLayout.vue'
 import CautionOverdueLeaderboard from '@/Components/CautionOverdueLeaderboard.vue'
 import ShortageOverdueLeaderboard from '@/Components/ShortageOverdueLeaderboard.vue'
@@ -148,10 +155,29 @@ const localFilters = ref({
 const cautionData = ref(props.cautionData)
 const shortageData = ref(props.shortageData)
 
+watch(
+    () => props.cautionData,
+    (newVal) => {
+        if (newVal) cautionData.value = newVal
+    }
+)
+
+watch(
+    () => props.shortageData,
+    (newVal) => {
+        if (newVal) shortageData.value = newVal
+    }
+)
+
 const tabs = [
     { id: 'CAUTION', label: 'Caution', color: 'orange' },
     { id: 'SHORTAGE', label: 'Shortage', color: 'red' },
 ]
+
+const viewAllUrls = {
+    CAUTION: route('warehouse-monitoring.leaderboard', { tab: 'CAUTION' }),
+    SHORTAGE: route('warehouse-monitoring.leaderboard', { tab: 'SHORTAGE' })
+}
 
 const getTabCount = (tabId) => {
     switch (tabId) {
@@ -193,7 +219,8 @@ const applyFilters = () => {
         route('warehouse-monitoring.leaderboard'),
         {
             tab: currentTab.value,
-            ...localFilters.value
+            ...localFilters.value,
+            page: 1
         },
         {
             preserveState: true,
@@ -217,4 +244,56 @@ const clearFilters = () => {
     localFilters.value = { date: '', month: '', usage: '', location: '', gentani: '' }
     applyFilters()
 }
+
+const handlePageChange = (tab, page) => {
+    fetchTabData(tab, page)
+}
+
+const handleRefresh = (tab) => {
+    const currentPage = tab === 'CAUTION'
+        ? (cautionData.value?.pagination?.current_page || 1)
+        : (shortageData.value?.pagination?.current_page || 1)
+    fetchTabData(tab, currentPage)
+}
+
+const fetchTabData = (tab, page = 1) => {
+    if (isLoading.value) return
+    isLoading.value = true
+
+    const resourceKey = tab === 'CAUTION' ? 'cautionData' : 'shortageData'
+
+    router.get(
+        route('warehouse-monitoring.leaderboard'),
+        {
+            tab,
+            ...localFilters.value,
+            page
+        },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            only: [resourceKey],
+            onSuccess: (pageData) => {
+                if (tab === 'CAUTION') {
+                    cautionData.value = pageData.props.cautionData
+                } else {
+                    shortageData.value = pageData.props.shortageData
+                }
+
+                currentTab.value = tab
+                isLoading.value = false
+            },
+            onError: () => {
+                isLoading.value = false
+            }
+        }
+    )
+}
+watch(
+    () => props.activeTab,
+    (newVal) => {
+        if (newVal) currentTab.value = newVal
+    }
+)
+
 </script>

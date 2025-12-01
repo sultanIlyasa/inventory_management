@@ -51,18 +51,17 @@ class OverdueDaysController extends Controller
             'filters' => $filters,
         ]);
     }
-
     private function getFilters(Request $request): array
     {
         return [
-            'date' => $request->date,
-            'month' => $request->month,
-            'usage' => $request->usage,
-            'location' => $request->location,
-            'gentani' => $request->gentani,
-            'search' => $request->search,
-            'pic' => $request->pic,
-            'status' => $request->status,
+            'date' => $request->date ?? '',
+            'month' => $request->month ?? '',
+            'usage' => $request->usage ?? '',
+            'location' => $request->location ?? '',
+            'gentani' => $request->gentani ?? '',
+            'search' => $request->search ?? '',
+            'pic' => $request->pic ?? '',
+            'status' => $request->status ?? '',
             'sortField' => $request->get('sortField', 'status'),
             'sortDirection' => $request->get('sortDirection', 'desc'),
         ];

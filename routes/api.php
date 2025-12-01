@@ -5,6 +5,8 @@ use App\Http\Controllers\DailyInputController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\MaterialsController;
 use App\Http\Controllers\VendorController;
+use App\Http\Controllers\AdminDashboardController;
+
 use Illuminate\Support\Facades\Route;
 // Material Routes
 Route::get('/materials', [MaterialsController::class, 'index']);
@@ -13,7 +15,9 @@ Route::put('/materials/{id}', [MaterialsController::class, 'update']);
 Route::delete('/materials/{id}', [MaterialsController::class, 'destroy']);
 Route::get('/materials/{id}', [MaterialsController::class, 'show']);
 
-// Reports Routes
+// Admin Routes
+Route::get('/admin/vendor/all', [AdminDashboardController::class, 'getAllVendorsAdminApi'])->name('admin-vendor-api');
+
 
 // Daily Input Routes
 Route::get('/daily-input', [DailyInputController::class, 'index']);

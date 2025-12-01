@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PushNotificationController;
@@ -7,6 +8,7 @@ use App\Http\Controllers\OverdueDaysController;
 use App\Http\Controllers\RecoveryDaysController;
 use App\Http\Controllers\StatusChangeController;
 use App\Http\Controllers\WarehouseMonitoringController;
+
 
 
 
@@ -24,9 +26,20 @@ Route::get('/', function () {
     ]);
 })->name('homepage.index');
 
-Route::get('/dashboard', function () {
-    return Inertia::render('DashboardAdmin');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/admin-dashboard', [AdminDashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/admin/vendor/all', [AdminDashboardController::class, 'getAllVendorsAdminApi'])->middleware(['auth', 'verified'])->name('admin-vendor-api');
+Route::post('/admin/vendors', [AdminDashboardController::class, 'vendorStore'])->name('admin.vendors.store');
+Route::patch('/admin/vendors/{id}', [AdminDashboardController::class, 'updateVendor'])->name('admin.vendors.update');
+Route::delete('/admin/vendors/{id}', [AdminDashboardController::class, 'destroyVendor'])->name('admin.vendors.destroy');
+Route::post('/admin/vendors/{vendorId}/materials', [AdminDashboardController::class, 'materialStore'])->name('admin.materials.store');
+Route::patch('/admin/materials/{id}', [AdminDashboardController::class, 'update'])->name('admin.materials.update');
+Route::patch('/admin/materials/{id}/remove', [AdminDashboardController::class, 'removeMaterials'])->name('admin.materials.remove');
+Route::patch('/admin/materials/{id}/attach', [AdminDashboardController::class, 'attachMaterialToVendor'])->name('admin.materials.attach');
+
+// vendorless materials list (search + pagination)
+Route::get('/admin/materials/vendorless', [AdminDashboardController::class, 'vendorlessMaterials'])->name('materials.vendorless');
+
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

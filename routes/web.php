@@ -29,7 +29,7 @@ Route::get('/', function () {
 Route::get('/admin-dashboard', [AdminDashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 Route::get('/admin/vendor/all', [AdminDashboardController::class, 'getAllVendorsAdminApi'])->middleware(['auth', 'verified'])->name('admin-vendor-api');
 Route::post('/admin/vendors', [AdminDashboardController::class, 'vendorStore'])->name('admin.vendors.store');
-Route::patch('/admin/vendors/{id}', [AdminDashboardController::class, 'updateVendor'])->name('admin.vendors.update');
+Route::patch('/admin/vendors/{id}', [AdminDashboardController::class, 'updateVendorz'])->name('admin.vendors.update');
 Route::delete('/admin/vendors/{id}', [AdminDashboardController::class, 'destroyVendor'])->name('admin.vendors.destroy');
 Route::post('/admin/vendors/{vendorId}/materials', [AdminDashboardController::class, 'materialStore'])->name('admin.materials.store');
 Route::patch('/admin/materials/{id}', [AdminDashboardController::class, 'update'])->name('admin.materials.update');
@@ -50,6 +50,11 @@ Route::middleware('auth')->group(function () {
 Route::get('/daily-input', function () {
     return Inertia::render('DailyInput/index');
 })->name('daily-input.index');
+
+Route::get('/test-page', function () {
+    return Inertia::render('Testing/index');
+})->name('test-page.index');
+
 
 Route::prefix('/warehouse-monitoring')->group(function () {
     Route::get('/', [WarehouseMonitoringController::class, 'index'])->name('warehouse-monitoring.index');

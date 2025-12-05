@@ -17,8 +17,7 @@ return new class extends Migration
                 ->constrained('vendors')
                 ->onDelete('cascade');
             $table->string('pic_name');
-            $table->string('material_number')->unique();
-            $table->string('description');
+            $table->string('material_number');
             $table->integer("stock_minimum");
             $table->integer("stock_maximum");
             $table->string('unit_of_measure');

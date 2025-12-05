@@ -8,7 +8,7 @@
                         <h1 class="text-2xl font-semibold text-gray-900">Warehouse Performance Monitoring</h1>
                         <p class="mt-1 text-sm text-gray-500">Track caution, shortage, status changes, and recovery health.</p>
                     </div>
-                    <button class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm lg:hidden"
+                    <button class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm "
                         @click="showMobileFilters = !showMobileFilters">
                         <span>{{ showMobileFilters ? 'Hide Filters' : 'Show Filters' }}</span>
                         <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -25,8 +25,8 @@
 
                 <div class="mt-6 flex flex-col items-center gap-6">
                     <section class="w-full">
-                        <div :class="['w-full rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 sm:p-6', showMobileFilters ? 'block' : 'hidden lg:block']">
-                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <div :class="['w-full rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 sm:p-6', showMobileFilters ? 'block' : 'hidden']">
+                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
                                 <div>
                                     <label class="mb-1 block text-sm font-medium text-gray-700">Select Date</label>
                                     <input type="date" v-model="localFilters.date" :min="minDate" :max="maxDate"

@@ -52,6 +52,7 @@ export function useDailyInput() {
                 stock_maximum: item.material.stock_maximum,
                 rack_address: item.material.rack_address,
                 daily_stock: item.daily_stock,
+                created_at: item.created_at,
                 status: item.status,
                 location: item.material.location,
                 usage: item.material.usage,
@@ -267,6 +268,13 @@ export function useDailyInput() {
             currentPage.value = 1;
         }
     );
+
+    watch(totalPages, (newTotal) => {
+        const safeTotal = Math.max(1, newTotal || 1);
+        if (currentPage.value > safeTotal) {
+            currentPage.value = safeTotal;
+        }
+    });
 
     return {
         // State

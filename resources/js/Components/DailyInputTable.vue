@@ -1,5 +1,5 @@
 <template>
-    <div class="w-full">
+    <div class="">
         <!-- Unchecked Count Badge & Sort Controls -->
         <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center justify-between my-2">
             <div
@@ -42,13 +42,13 @@
                                 </svg>
                             </div>
                         </th>
-                        <th class="p-2 border text-xs lg:text-sm">Daily Stock</th>
+                        <th class="p-2 border text-xs lg:text-sm">SoH</th>
                         <th class="p-2 border text-xs lg:text-sm">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="(item, index) in items" :key="item.key" class="text-center hover:bg-gray-50">
-                        <td class="border p-2 font-semibold bg-gray-100 text-xs lg:text-sm">{{ index + 1 }}</td>
+                        <td class="border p-2 font-semibold bg-gray-100 text-xs lg:text-sm">{{ startItem + index }}</td>
                         <td class="border p-2 bg-yellow-200 text-xs lg:text-sm">{{ item.material_number }}</td>
                         <td class="border p-2 bg-yellow-100 text-xs lg:text-sm">{{ item.description }}</td>
                         <td class="border p-2 bg-red-100 text-xs lg:text-sm">{{ item.pic_name }}</td>
@@ -79,16 +79,21 @@
                             <div v-if="item.status === 'UNCHECKED'" class="flex items-center gap-1 justify-center">
                                 <input v-model.number="item.daily_stock" type="number" min="0"
                                     :placeholder="placeholder"
-                                    class="w-20 px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    class="w-10 px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     @keypress.enter="openSubmitModal(item)" />
-                                <button @click="openSubmitModal(item)"
-                                    class="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition whitespace-nowrap">
-                                    Submit
+
+                            </div>
+                            <div v-else>
+                                <button @click="openTimeStampModal(item)" class="hover:underline text-blue-600 font-bold">
+                                    {{ item.daily_stock }}
                                 </button>
                             </div>
-                            <div v-else>{{ item.daily_stock }}</div>
                         </td>
                         <td class="border p-2 text-xs lg:text-sm">
+                            <button v-if="item.status === 'UNCHECKED'" @click=" openSubmitModal(item)"
+                                class="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition whitespace-nowrap">
+                                Submit
+                            </button>
                             <button v-if="item.status !== 'UNCHECKED'" @click="openDeleteModal(item)"
                                 class="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition">
                                 Delete
@@ -109,7 +114,7 @@
                 <!-- Card Header -->
                 <div class="bg-gray-100 px-3 py-2 flex items-center justify-between border-b">
                     <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold text-gray-600">#{{ index + 1 }}</span>
+                        <span class="text-xs font-bold text-gray-600">#{{ startItem + index }}</span>
                         <span class="text-sm font-semibold text-gray-900">{{ item.material_number }}</span>
                     </div>
                     <div>
@@ -118,7 +123,7 @@
                             {{ item.status }}
                         </span>
                         <span v-else-if="item.status === 'CAUTION'"
-                            class="bg-yellow-200 font-semibold px-2 py-1 rounded-lg text-xs">
+                            class="bg-orange-400 font-semibold px-2 py-1 rounded-lg text-xs">
                             {{ item.status }}
                         </span>
                         <span v-else-if="item.status === 'SHORTAGE'"
@@ -173,11 +178,21 @@
                             </button>
                         </div>
                     </div>
-                    <div v-else class="bg-gray-50 px-2 py-2 rounded">
+                    <div v-else class="bg-gray-50 px-2 py-2 rounded space-y-1">
                         <p class="text-xs text-gray-600">Daily Stock</p>
-                        <p class="text-lg font-bold text-gray-900">{{ item.daily_stock }} <span
-                                class="text-sm text-gray-600">{{ item.unit_of_measure }}</span></p>
+                        <p class="text-lg font-bold text-gray-900">
+                            {{ item.daily_stock }}
+                            <span class="text-sm text-gray-600">{{ item.unit_of_measure }}</span>
+                        </p>
+                        <p v-if="item.created_at" class="text-[10px] sm:text-xs text-gray-500 font-medium italic">
+                            Last updated:
+                            {{ new Date(item.created_at).toLocaleString('id-ID', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short'
+                            }) }}
+                        </p>
                     </div>
+
                 </div>
 
                 <!-- Card Footer (Actions) -->
@@ -195,6 +210,51 @@
             </div>
         </div>
     </div>
+
+    <!-- Show Timestamp Modal -->
+    <Modal :show="showTimestampModal" @close="closeTimestampModal" max-width="md">
+        <div class="p-6 sm:p-8 space-y-6">
+
+            <!-- Header -->
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center shadow">
+                    <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">
+                        Last Stock Update
+                    </h2>
+                    <p class="text-xs text-gray-500">
+                        Timestamp information for this material
+                    </p>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="bg-gray-50 rounded-xl p-5 space-y-3 shadow-inner">
+                <div class="border-t border-gray-300 my-3"></div>
+                <div class="flex flex-col text-sm">
+                    <span class="text-gray-600 mb-1">Last Input Time:</span>
+                    <span class="text-lg font-bold text-blue-600">
+                        {{ formattedTimestamp }}
+                    </span>
+                </div>
+
+            </div>
+            <!-- Footer -->
+            <div class="flex justify-end">
+                <button @click="closeTimestampModal"
+                    class="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+                    Close
+                </button>
+            </div>
+
+        </div>
+    </Modal>
 
     <!-- Submit Confirmation Modal -->
     <Modal :show="showSubmitModal" @close="closeSubmitModal" max-width="md">
@@ -215,7 +275,7 @@
                 <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
                     <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ itemToSubmit?.material_number
-                        }}</span>
+                    }}</span>
                 </div>
                 <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span class="text-xs sm:text-sm text-gray-600">Description:</span>
@@ -291,7 +351,9 @@
 import { ref, computed } from 'vue'
 import Modal from './Modal.vue'
 
+
 const props = defineProps({
+
     items: {
         type: Array,
         required: true,
@@ -299,7 +361,7 @@ const props = defineProps({
     },
     placeholder: {
         type: String,
-        default: 'Stock'
+        default: 'Qty'
     },
     emptyMessage: {
         type: String,
@@ -312,7 +374,11 @@ const props = defineProps({
     sortOrder: {
         type: String,
         default: 'default'
-    }
+    },
+    startItem: {
+        type: Number,
+        required: true
+    },
 
 
 })
@@ -332,6 +398,8 @@ const toggleSort = () => {
 
 
 
+
+
 // Submit modal state
 const showSubmitModal = ref(false)
 const itemToSubmit = ref(null)
@@ -339,6 +407,27 @@ const itemToSubmit = ref(null)
 // Delete modal state
 const showDeleteModal = ref(false)
 const itemToDelete = ref(null)
+
+// Timestamp modal state
+const showTimestampModal = ref(false)
+const itemToCheckTimestamp = ref(null)
+const formattedDate = computed(() => {
+    if (item.value?.created_at)
+        return 'no timestamp available'
+    return new Date(item.value.created_at).toLocaleString('id-ID', {
+        dateStyle: 'full',
+        timeStyle: 'short'
+    })
+})
+const formattedTimestamp = computed(() => {
+    if (!itemToCheckTimestamp.value?.created_at)
+        return 'No timestamp available'
+
+    return new Date(itemToCheckTimestamp.value.created_at).toLocaleString('id-ID', {
+        dateStyle: 'full',
+        timeStyle: 'short'
+    })
+})
 
 const isValidInput = (value) => {
     return value !== null && value !== undefined && value !== '' && value >= 0
@@ -351,6 +440,20 @@ const openSubmitModal = (item) => {
     }
     itemToSubmit.value = item
     showSubmitModal.value = true
+}
+
+const openTimeStampModal = (item) => {
+    if (!item.created_at) {
+        alert('No Input')
+    }
+    itemToCheckTimestamp.value = item
+    showTimestampModal.value = true
+}
+
+const closeTimestampModal = () => {
+    showTimestampModal.value = false
+    itemToCheckTimestamp.value = null
+
 }
 
 const closeSubmitModal = () => {

@@ -5,19 +5,19 @@ import { createInertiaApp } from "@inertiajs/vue3";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { createApp, h } from "vue";
 import { ZiggyVue } from "../../vendor/tightenco/ziggy";
-import { registerSW } from "virtual:pwa-register";
+// import { registerSW } from "virtual:pwa-register";
 
 const appName = import.meta.env.VITE_APP_NAME || "Warehouse Inventory";
-const updateSW = registerSW({
-    onNeedRefresh() {
-        if (confirm("New content available. Reload?")) {
-            updateSW(true);
-        }
-    },
-    onOfflineReady() {
-        console.log("App ready to work offline");
-    },
-});
+// const updateSW = registerSW({
+//     onNeedRefresh() {
+//         if (confirm("New content available. Reload?")) {
+//             updateSW(true);
+//         }
+//     },
+//     onOfflineReady() {
+//         console.log("App ready to work offline");
+//     },
+// });
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,

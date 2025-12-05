@@ -1,5 +1,11 @@
 <template>
-    <div class="w-full px-2 sm:px-4">
+    <div v-if="isLoading" class="absolute inset-0 bg-white/70 flex items-center justify-center z-10 h-full">
+        <div class="text-center">
+            <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-3"></div>
+            <p class="text-sm text-gray-600 font-medium">Loading data...</p>
+        </div>
+    </div>
+    <div class="">
         <SearchBar v-model:searchTerm="searchTerm" @clear="clearFilters" />
         <div class="flex flex-col sm:flex-row gap-3">
             <DatePicker v-model:selectedDate="selectedDate" />
@@ -7,16 +13,19 @@
                 v-model:selectedLocation="selectedLocation" :locationOptions="locations"
                 v-model:selectedUsage="selectedUsage" :usageOptions="usages" v-model:selectedGentani="selectedGentani"
                 :gentaniOptions="gentaniItems" />
+            <button class="px-4 py-2 border bg-blue-500 rounded-lg text-white" @click="handleRefresh">
+                Refresh data
+            </button>
         </div>
         <DailyInputTable :items="paginatedItems" :uncheckedCount="uncheckedCount" v-model:sortOrder="sortOrder"
-            @submit="submitDailyStock" @delete="deleteInput" />
+            @submit="submitDailyStock" @delete="deleteInput" :startItem="startItem" />
         <Pagination v-if="totalPages > 1" v-model:currentPage="currentPage" :totalPages="totalPages"
             :startItem="startItem" :endItem="endItem" :totalItems="totalItems" :visiblePages="visiblePages" />
     </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import DatePicker from '@/Components/DatePicker.vue'
 import Pagination from '@/Components/Pagination.vue'
 import { useDailyInput, } from '@/Composeables/useDailyInput'
@@ -52,12 +61,21 @@ const {
 
 let intervalId = null
 
-// In DailyInputDashboard.vue, add this in onMounted
-// In DailyInputDashboard.vue
-onMounted(async () => {
-    await fetchData()  // Wait for data to load
+const isLoading = ref(false)
+const handleRefresh = async () => {
+    isLoading.value = true
+    try {
+        await fetchData()
+    } catch (error) {
+        console.log(error)
+    } finally {
+        isLoading.value = false
+    }
+}
 
-    intervalId = setInterval(fetchData, 10000)
+onMounted(async () => {
+    fetchData()  // Wait for data to load
+
 })
 onUnmounted(() => {
     if (intervalId) clearInterval(intervalId)

@@ -116,9 +116,8 @@
                                         <div class="mt-1 flex flex-wrap gap-2 text-[11px] sm:text-xs text-gray-500">
                                             <span>Usage: <span class="font-medium">{{ material.usage }}</span></span>
                                             <span>Location: <span class="font-medium">{{ material.location
-                                                    }}</span></span>
-                                            <span>Status: <span class="font-medium">{{ material.current_status
-                                                    }}</span></span>
+                                            }}</span></span>
+
                                         </div>
                                     </div>
 

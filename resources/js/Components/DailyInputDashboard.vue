@@ -56,7 +56,8 @@ const {
     deleteInput,
     sortOrder,
     gentaniItems,
-    selectedGentani
+    selectedGentani,
+
 } = useDailyInput()
 
 let intervalId = null

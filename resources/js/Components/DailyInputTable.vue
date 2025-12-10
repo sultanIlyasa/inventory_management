@@ -15,7 +15,8 @@
                     class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="default">Default Order</option>
                     <option value="priority">Priority (Problems First)</option>
-
+                    <option value="rack-asc">Rack Address (A → Z)</option>
+                    <option value="rack-desc">Rack Address (Z → A)</option>
                 </select>
             </div>
         </div>
@@ -30,7 +31,16 @@
                         <th class="p-2 border bg-yellow-300 text-xs lg:text-sm">Material Description</th>
                         <th class="p-2 border bg-red-400 text-white text-xs lg:text-sm">PIC</th>
                         <th class="p-2 border text-xs lg:text-sm">UoM</th>
-                        <th class="p-2 border text-xs lg:text-sm">Rack Address</th>
+                        <th class="p-2 border text-xs lg:text-sm cursor-pointer hover:bg-gray-300"
+                            @click="toggleSortRackAddress">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Rack Address</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                </svg>
+                            </div>
+                        </th>
                         <th class="p-2 border text-xs lg:text-sm">Min Stock</th>
                         <th class="p-2 border text-xs lg:text-sm">Max Stock</th>
                         <th class="p-2 border text-xs lg:text-sm cursor-pointer hover:bg-gray-300" @click="toggleSort">
@@ -84,7 +94,8 @@
 
                             </div>
                             <div v-else>
-                                <button @click="openTimeStampModal(item)" class="hover:underline text-blue-600 font-bold">
+                                <button @click="openTimeStampModal(item)"
+                                    class="hover:underline text-blue-600 font-bold">
                                     {{ item.daily_stock }}
                                 </button>
                             </div>
@@ -379,11 +390,15 @@ const props = defineProps({
         type: Number,
         required: true
     },
+    rackOrder: {
+        type: String,
+        default: 'rack-asc'
+    }
 
 
 })
 
-const emit = defineEmits(['submit', 'delete', 'update:sortOrder'])
+const emit = defineEmits(['submit', 'delete', 'update:sortOrder', 'update:rackOrder'])
 
 // Toggle sort handler
 const toggleSort = () => {
@@ -396,9 +411,14 @@ const toggleSort = () => {
     emit('update:sortOrder', newOrder)
 }
 
-
-
-
+const toggleSortRackAddress = () => {
+    let newOrder
+    if (props.sortOrder === 'rack-asc') {
+        newOrder = 'rack-desc'
+    } else {
+        newOrder = 'rack-asc'
+    } emit('update:sortOrder', newOrder)
+}
 
 // Submit modal state
 const showSubmitModal = ref(false)
@@ -411,14 +431,7 @@ const itemToDelete = ref(null)
 // Timestamp modal state
 const showTimestampModal = ref(false)
 const itemToCheckTimestamp = ref(null)
-const formattedDate = computed(() => {
-    if (item.value?.created_at)
-        return 'no timestamp available'
-    return new Date(item.value.created_at).toLocaleString('id-ID', {
-        dateStyle: 'full',
-        timeStyle: 'short'
-    })
-})
+
 const formattedTimestamp = computed(() => {
     if (!itemToCheckTimestamp.value?.created_at)
         return 'No timestamp available'

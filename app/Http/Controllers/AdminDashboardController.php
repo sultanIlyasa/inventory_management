@@ -49,6 +49,12 @@ class AdminDashboardController extends Controller
                             'usage' => $material->usage,
                             'location' => $material->location,
                             'current_status' => $material->current_status ?? null,
+                            'gentani' => $material->gentani,
+                            'stock_minimum' => $material->stock_minimum,
+                            'stock_maximum' => $material->stock_maximum,
+                            'rack_address' => $material->rack_address,
+                            'unit_of_measure' => $material->unit_of_measure,
+                            'pic_name' => $material->pic_name
                         ];
                     })->toArray(),
                 ];
@@ -76,6 +82,31 @@ class AdminDashboardController extends Controller
         return response()->json([
             'success' => true,
             'data' => $vendor
+        ]);
+    }
+
+    // UPDATE MATERIAL
+    public function update(Request $request, $id)
+    {
+        $material = Materials::findOrFail($id);
+
+        $validated = $request->validate([
+            'description' => 'sometimes|string',
+            'stock_minimum' => 'sometimes|integer|min:0',
+            'stock_maximum' => 'sometimes|integer|min:0',
+            'unit_of_measure' => 'sometimes|string',
+            'pic_name' => 'sometimes|string',
+            'rack_address' => 'sometimes|string',
+            'usage' => 'sometimes|in:DAILY,WEEKLY,MONTHLY',
+            'location' => 'sometimes|string',
+            'gentani' => 'sometimes|string',
+        ]);
+
+        $material->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'data' => $material
         ]);
     }
 

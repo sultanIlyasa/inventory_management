@@ -167,13 +167,14 @@ export function useDailyInput() {
                         (orderMap[b.status] || 999)
                     );
                 });
-            case "status-asc":
+            case "rack-asc":
                 return [...items].sort((a, b) =>
-                    a.status.localeCompare(b.status)
+                    a.rack_address.localeCompare(b.rack_address)
                 );
-            case "status-desc":
+
+            case "rack-desc":
                 return [...items].sort((a, b) =>
-                    b.status.localeCompare(a.status)
+                    b.rack_address.localeCompare(a.rack_address)
                 );
             default:
                 return items;

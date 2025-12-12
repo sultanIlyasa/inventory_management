@@ -49,6 +49,7 @@
             <table class="min-w-full border-collapse text-xs sm:text-sm">
                 <thead class="bg-gray-100 text-gray-700 uppercase text-[11px]">
                     <tr>
+                        <th class="border p-2 text-left">PIC</th>
                         <th class="border p-2 text-left">Material</th>
                         <th class="border p-2 text-left hidden md:table-cell">Description</th>
                         <th class="border p-2 text-left hidden lg:table-cell">Usage</th>
@@ -60,6 +61,8 @@
                 <tbody>
                     <tr v-for="(item, index) in currentLeaderboard" :key="item.material_number"
                         class="border-b hover:bg-gray-50">
+                        <td class="border p-2 hidden md:table-cell truncate">{{ item.pic }}</td>
+
                         <td class="border p-2">
                             <div class="font-semibold text-xs">{{ item.material_number }}</div>
                             <div class="text-[11px] text-gray-500 md:hidden truncate">{{ item.description }}</div>

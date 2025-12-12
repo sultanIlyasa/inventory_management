@@ -21,6 +21,7 @@ Route::post('/daily-input', [DailyInputController::class, 'store']);
 Route::get('/daily-input/missing', [DailyInputController::class, 'missing']);
 Route::get('/daily-input/status', [DailyInputController::class, 'dailyStatus']);
 Route::delete('/daily-input/delete/{id}', [DailyInputController::class, 'destroy']);
+Route::get('/daily-input/weekly-status',[DailyInputController::class,'weeklyStatus']);
 
 // Report Routes
 Route::prefix('reports')->group(function () {

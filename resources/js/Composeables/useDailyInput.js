@@ -1,4 +1,3 @@
-// composables/useSearchFilters.js
 import { ref, computed, watch } from "vue";
 import axios from "axios";
 
@@ -6,44 +5,51 @@ export function useDailyInput() {
     // State
     const reportData = ref({ checked: [], missing: [] });
     const searchTerm = ref("");
+
     const selectedDate = ref(new Date().toISOString().split("T")[0]);
+    const selectedUsage = ref("DAILY"); // default DAILY
     const selectedPIC = ref("");
-    const selectedUsage = ref("");
     const selectedLocation = ref("");
     const selectedGentani = ref("");
+
     const currentPage = ref(1);
     const itemsPerPage = 25;
+
     const isLoading = ref(false);
     const error = ref(null);
 
-    // Fetch data
-    const fetchData = async () => {
+    /* ---------------- FETCH LOGIC ---------------- */
+    const fetchDailyData = async () => {
         isLoading.value = true;
-        error.value = null;
         try {
-            const res = await axios.get(
-                `/api/daily-input/status?date=${selectedDate.value}`
-            );
+            const res = await axios.get("/api/daily-input/status", {
+                params: {
+                    date: selectedDate.value,
+                    usage: selectedUsage.value,
+                    location: selectedLocation.value || null,
+                },
+            });
+
             reportData.value = {
                 checked: res.data.checked || [],
                 missing: res.data.missing || [],
             };
         } catch (err) {
-            console.error("Failed to load report data:", err);
+            console.error("Load report failed:", err);
             error.value = err.message;
         } finally {
             isLoading.value = false;
         }
     };
 
+    /* ---------------- DATA MAPPING ---------------- */
     const allItems = computed(() => {
         const items = [];
 
-        reportData.value.checked.forEach((item, index) => {
+        reportData.value.checked.forEach((item) => {
             items.push({
                 key: `checked-${item.id}`,
                 id: item.id,
-                number: index + 1,
                 material_number: item.material.material_number,
                 description: item.material.description,
                 pic_name: item.material.pic_name,
@@ -60,11 +66,10 @@ export function useDailyInput() {
             });
         });
 
-        reportData.value.missing.forEach((item, index) => {
+        reportData.value.missing.forEach((item) => {
             items.push({
                 key: `missing-${item.id}`,
                 id: item.id,
-                number: reportData.value.checked.length + index + 1,
                 material_number: item.material_number,
                 description: item.description,
                 pic_name: item.pic_name,
@@ -74,8 +79,8 @@ export function useDailyInput() {
                 rack_address: item.rack_address,
                 daily_stock: null,
                 status: "UNCHECKED",
-                location: item.location, // This should already be correct for missing items
-                usage: item.usage, // This should already be correct for missing items
+                location: item.location,
+                usage: item.usage,
                 gentani: item.gentani,
             });
         });
@@ -83,237 +88,169 @@ export function useDailyInput() {
         return items;
     });
 
+    /* ---------------- FILTERS ---------------- */
     const filteredItems = computed(() => {
         let items = allItems.value;
 
-        if (selectedPIC.value) {
+        if (selectedPIC.value)
             items = items.filter((it) => it.pic_name === selectedPIC.value);
-        }
-        if (selectedLocation.value) {
+
+        if (selectedLocation.value)
             items = items.filter(
                 (it) => it.location === selectedLocation.value
             );
-        }
-        if (selectedUsage.value) {
-            items = items.filter((it) => it.usage === selectedUsage.value);
-        }
 
-        if (selectedGentani.value) {
+        if (selectedUsage.value)
+            items = items.filter((it) => it.usage === selectedUsage.value);
+
+        if (selectedGentani.value)
             items = items.filter((it) => it.gentani === selectedGentani.value);
-        }
 
         if (searchTerm.value) {
             const q = searchTerm.value.toLowerCase();
-            items = items.filter((it) => {
-                return (
-                    String(it.pic_name || "")
-                        .toLowerCase()
-                        .includes(q) ||
-                    String(it.material_number).toLowerCase().includes(q) ||
-                    String(it.description || "")
-                        .toLowerCase()
-                        .includes(q) ||
-                    String(it.status || "")
-                        .toLowerCase()
-                        .includes(q)
-                );
-            });
+            items = items.filter((it) =>
+                Object.values(it).join(" ").toLowerCase().includes(q)
+            );
         }
 
         return items;
     });
 
-    const uniquePICs = computed(() => {
-        const pics = new Set();
-        allItems.value.forEach((item) => {
-            if (item.pic_name) pics.add(item.pic_name);
-        });
-        return Array.from(pics).sort();
-    });
-
-    const locations = computed(() => {
-        const locations = new Set();
-        allItems.value.forEach((item) => {
-            if (item.location) locations.add(item.location);
-        });
-        return Array.from(locations).sort();
-    });
-    const usages = computed(() => {
-        const usages = new Set();
-        allItems.value.forEach((item) => {
-            if (item.usage) usages.add(item.usage);
-        });
-        return Array.from(usages).sort();
-    });
-    const uncheckedCount = computed(() => reportData.value.missing.length);
-    const gentaniItems = ["GENTAN-I", "NON_GENTAN-I"];
-
+    /* ---------------- SORT + PAGINATION ---------------- */
     const sortOrder = ref("default");
-    const filteredAndSortedItems = computed(() => {
-        let items = filteredItems.value;
 
-        switch (sortOrder.value) {
-            case "priority":
-                return [...items].sort((a, b) => {
-                    const orderMap = {
-                        SHORTAGE: 1,
-                        OVERFLOW: 2,
-                        CAUTION: 3,
-                        UNCHECKED: 4,
-                        OK: 5,
-                    };
-                    return (
-                        (orderMap[a.status] || 999) -
-                        (orderMap[b.status] || 999)
-                    );
-                });
-            case "rack-asc":
-                return [...items].sort((a, b) =>
-                    a.rack_address.localeCompare(b.rack_address)
-                );
+    const sortedItems = computed(() => {
+        let items = [...filteredItems.value];
 
-            case "rack-desc":
-                return [...items].sort((a, b) =>
-                    b.rack_address.localeCompare(a.rack_address)
-                );
-            default:
-                return items;
+        if (sortOrder.value === "priority") {
+            const map = {
+                SHORTAGE: 1,
+                OVERFLOW: 2,
+                CAUTION: 3,
+                UNCHECKED: 4,
+                OK: 5,
+            };
+            return items.sort(
+                (a, b) => (map[a.status] || 99) - (map[b.status] || 99)
+            );
         }
+
+        if (sortOrder.value === "rack-asc")
+            return items.sort((a, b) =>
+                a.rack_address.localeCompare(b.rack_address)
+            );
+
+        if (sortOrder.value === "rack-desc")
+            return items.sort((a, b) =>
+                b.rack_address.localeCompare(a.rack_address)
+            );
+
+        return items;
     });
-    // Pagination (now uses sortedItems instead of filteredItems)
-    const totalItems = computed(() => filteredAndSortedItems.value.length);
+
+    const totalItems = computed(() => sortedItems.value.length);
     const totalPages = computed(() =>
         Math.ceil(totalItems.value / itemsPerPage)
     );
 
     const paginatedItems = computed(() => {
         const start = (currentPage.value - 1) * itemsPerPage;
-        const end = start + itemsPerPage;
-        return filteredAndSortedItems.value.slice(start, end);
+        return sortedItems.value.slice(start, start + itemsPerPage);
     });
 
-    const startItem = computed(() => {
-        return totalItems.value === 0
-            ? 0
-            : (currentPage.value - 1) * itemsPerPage + 1;
-    });
-
-    const endItem = computed(() => {
-        return Math.min(currentPage.value * itemsPerPage, totalItems.value);
-    });
-
-    const visiblePages = computed(() => {
-        const pages = [];
-        const maxVisible = 5;
-        let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2));
-        let end = Math.min(totalPages.value, start + maxVisible - 1);
-
-        if (end - start + 1 < maxVisible) {
-            start = Math.max(1, end - maxVisible + 1);
-        }
-
-        for (let i = start; i <= end; i++) {
-            pages.push(i);
-        }
-
-        return pages;
-    });
-    // Methods
+    /* ---------------- RESET FILTERS ---------------- */
     const clearFilters = () => {
         searchTerm.value = "";
         selectedPIC.value = "";
         selectedLocation.value = "";
-        selectedUsage.value = "";
+        selectedUsage.value = "DAILY";
         selectedGentani.value = "";
         currentPage.value = 1;
     };
 
+    /* ---------------- SUBMIT + DELETE ---------------- */
     const submitDailyStock = async (item) => {
-        if (item.daily_stock < 0) {
-            alert("Please enter valid daily stock");
-            return;
-        }
-
         try {
             await axios.post("/api/daily-input", {
                 material_id: item.id,
                 date: selectedDate.value,
                 daily_stock: Number(item.daily_stock),
             });
-            await fetchData();
+
+            fetchDailyData();
         } catch (err) {
-            console.error("submitDailyStock error", err);
+            console.error("Submit failed:", err);
         }
     };
 
     const deleteInput = async (item) => {
         try {
             await axios.delete(`/api/daily-input/delete/${item.id}`);
-            await fetchData();
-        } catch (error) {
-            console.error("Failed to delete entry:", error);
+            fetchDailyData();
+        } catch (err) {
+            console.error("Delete failed:", err);
         }
     };
 
-    // Watchers
-    watch(selectedDate, fetchData);
-    watch(
-        [
-            searchTerm,
-            selectedPIC,
-            selectedLocation,
-            selectedUsage,
-            selectedGentani,
-        ],
-        () => {
-            currentPage.value = 1;
-        }
-    );
-
-    watch(totalPages, (newTotal) => {
-        const safeTotal = Math.max(1, newTotal || 1);
-        if (currentPage.value > safeTotal) {
-            currentPage.value = safeTotal;
-        }
-    });
+    /* ---------------- WATCHERS ---------------- */
+    watch([selectedDate, selectedUsage, selectedLocation], fetchDailyData);
 
     return {
-        // State
-
-        reportData,
         searchTerm,
         selectedDate,
         selectedPIC,
         selectedLocation,
         selectedUsage,
         selectedGentani,
-        currentPage,
-        itemsPerPage,
-        isLoading,
-        error,
+        uniquePICs: computed(() => [
+            ...new Set(allItems.value.map((i) => i.pic_name)),
+        ]),
+        usages: computed(() => [
+            ...new Set(allItems.value.map((i) => i.usage)),
+        ]),
+        locations: computed(() => [
+            ...new Set(allItems.value.map((i) => i.location)),
+        ]),
+        gentaniItems: ["GENTAN-I", "NON_GENTAN-I"],
 
-        // Computed
-
-        usages,
-        filteredItems,
-        uniquePICs,
-        allItems,
-        locations,
-        gentaniItems,
-        uncheckedCount,
         paginatedItems,
-        totalItems,
         totalPages,
-        startItem,
-        endItem,
-        visiblePages,
-        sortOrder,
-        paginatedItems,
+        totalItems,
+        startItem: computed(() =>
+            totalItems.value ? (currentPage.value - 1) * itemsPerPage + 1 : 0
+        ),
+        endItem: computed(() =>
+            Math.min(currentPage.value * itemsPerPage, totalItems.value)
+        ),
 
-        // Methods
-        fetchData,
+        visiblePages: computed(() => {
+            const pages = [];
+            const total = totalPages.value;
+            const current = currentPage.value;
+            const delta = 2;
+            let start = Math.max(1, current - delta);
+            let end = Math.min(total, current + delta);
+
+            if (current <= delta) {
+                end = Math.min(total, end + (delta - current + 1));
+            }
+            if (current + delta >= total) {
+                start = Math.max(1, start - (current + delta - total));
+            }
+
+            for (let i = start; i <= end; i++) {
+                pages.push(i);
+            }
+            return pages;
+        }),
+        currentPage,
+        sortOrder,
+        uncheckedCount: computed(() => reportData.value.missing.length),
+
+        fetchDailyData,
         clearFilters,
         submitDailyStock,
         deleteInput,
+        isLoading,
     };
 }

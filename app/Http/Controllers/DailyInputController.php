@@ -92,18 +92,123 @@ class DailyInputController extends Controller
     public function dailyStatus(Request $request)
     {
         $date = $request->query('date', Carbon::today()->toDateString());
-        $usage = $request->query('usage');
+        $usage = strtoupper($request->query('usage', 'DAILY')); // DAILY | WEEKLY | MONTHLY
+        $location = $request->query('location');
+
+        // Normalize date into Carbon instance
+        $carbonDate = Carbon::parse($date)->locale('id');
+
+        /*
+    |--------------------------------------------------------------------------
+    | PICK FILTER RANGE BASED ON USAGE
+    |--------------------------------------------------------------------------
+    */
+
+        if ($usage === 'DAILY') {
+            $start = $carbonDate->copy()->startOfDay();
+            $end   = $carbonDate->copy()->endOfDay();
+        } elseif ($usage === 'WEEKLY') {
+            $start = $carbonDate->copy()->startOfWeek();
+            $end   = $carbonDate->copy()->endOfWeek();
+        } elseif ($usage === 'MONTHLY') {
+            $start = $carbonDate->copy()->startOfMonth();
+            $end   = $carbonDate->copy()->endOfMonth();
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid usage type'
+            ], 400);
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | BASE QUERY FOR CHECKED INPUTS
+    |--------------------------------------------------------------------------
+    */
+
+        $dailyInputsQuery = DailyInput::with('material')
+            ->whereBetween('date', [$start, $end]);
+
+        // Filter by location
+        if (!empty($location)) {
+            $locations = is_array($location)
+                ? $location
+                : array_map('trim', explode(',', $location));
+
+            $dailyInputsQuery->whereHas('material', function ($query) use ($locations) {
+                $query->whereIn('location', $locations);
+            });
+        }
+
+        // Filter by usage (material usage, not mode)
+        $dailyInputsQuery->whereHas('material', function ($query) use ($usage) {
+            $query->where('usage', $usage);
+        });
+
+        $checked = $dailyInputsQuery->get();
+        $checkedIds = $checked->pluck('material_id')->toArray();
+
+        /*
+    |--------------------------------------------------------------------------
+    | FIND MISSING MATERIALS BASED ON SAME FILTERS
+    |--------------------------------------------------------------------------
+    */
+
+        $missing = Materials::query()
+            ->where('usage', $usage)
+            ->when(!empty($location), function ($query) use ($location) {
+                $locations = is_array($location)
+                    ? $location
+                    : array_map('trim', explode(',', $location));
+                $query->whereIn('location', $locations);
+            })
+            ->whereNotIn('id', $checkedIds)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'usage_mode' => $usage,
+            'date_range' => [
+                'start' => $start->toDateString(),
+                'end'   => $end->toDateString(),
+            ],
+            'filters' => [
+                'usage' => $usage,
+                'location' => $location,
+            ],
+            'checked' => $checked,
+            'missing' => $missing,
+        ]);
+    }
+
+
+    //delete /api/daily-input/{id}
+    public function destroy($id)
+    {
+        $dailyInput = DailyInput::findOrFail($id);
+        $dailyInput->delete();
+        return response()->json([
+            'success' => true,
+            'message' => 'Daily input deleted successfully'
+        ]);
+    }
+
+    public function weeklyStatus(Request $request)
+    {
+        $week = $request->query('date', Carbon::now()->toDateString());
+        $endOfWeek = Carbon::parse($week)->endOfWeek()->toDateString();
+        $startOfWeek = Carbon::parse($week)->startOfWeek()->toDateString();
         $location = $request->query('location');
 
         // Build query with optional filters
         $dailyInputsQuery = DailyInput::with('material')
-            ->whereDate('date', $date);
-
+            ->whereBetween('date', [$startOfWeek, $endOfWeek])
+            ->whereHas('material', function ($query) {
+                $query->where('usage', 'WEEKLY');
+            });
         // Filter by usage (supports single, comma-separated, or array)
         if (!empty($usage)) {
-            $usages = is_array($usage)
-                ? $usage
-                : array_map('trim', explode(',', $usage));
+            $usages = is_array($usage) ? $usage : array_map('trim', explode(',', $usage));
             $dailyInputsQuery->whereHas('material', function ($query) use ($usages) {
                 $query->whereIn('usage', $usages);
             });
@@ -111,9 +216,7 @@ class DailyInputController extends Controller
 
         // Filter by location (supports single, comma-separated, or array)
         if (!empty($location)) {
-            $locations = is_array($location)
-                ? $location
-                : array_map('trim', explode(',', $location));
+            $locations = is_array($location) ? $location : array_map('trim', explode(',', $location));
             $dailyInputsQuery->whereHas('material', function ($query) use ($locations) {
                 $query->whereIn('location', $locations);
             });
@@ -127,12 +230,7 @@ class DailyInputController extends Controller
 
         // Get missing materials (apply same filters)
         $missing = Materials::query()
-            ->when(!empty($usage), function ($query) use ($usage) {
-                $usages = is_array($usage)
-                    ? $usage
-                    : array_map('trim', explode(',', $usage));
-                $query->whereIn('usage', $usages);
-            })
+            ->where('usage', 'WEEKLY')
             ->when(!empty($location), function ($query) use ($location) {
                 $locations = is_array($location)
                     ? $location
@@ -144,24 +242,13 @@ class DailyInputController extends Controller
 
         return response()->json([
             'success' => true,
-            'date' => $date,
+            'start_week' => $startOfWeek,
+            'end_week' => $endOfWeek,
             'filters' => [
-                'usage' => $usage,
                 'location' => $location,
             ],
             'checked' => $checked,
             'missing' => $missing,
-        ]);
-    }
-
-    //delete /api/daily-input/{id}
-    public function destroy($id)
-    {
-        $dailyInput = DailyInput::findOrFail($id);
-        $dailyInput->delete();
-        return response()->json([
-            'success' => true,
-            'message' => 'Daily input deleted successfully'
         ]);
     }
 }

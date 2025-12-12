@@ -18,7 +18,7 @@
                 OVERFLOW: {{ statusCounts.OVERFLOW }}
             </div>
 
-            <PICSwitch v-model:selectedPIC="localFilters.pic" :picOptions="filterOptions.pics"
+            <Filterbar v-model:selectedPIC="localFilters.pic" :picOptions="filterOptions.pics"
                 v-model:selectedLocation="localFilters.location" :locationOptions="filterOptions.locations"
                 v-model:selectedUsage="localFilters.usage" :usageOptions="filterOptions.usages"
                 v-model:selectedGentani="localFilters.gentani" :gentaniOptions="gentaniItems" />
@@ -56,9 +56,8 @@ import { computed, ref, watch, nextTick } from 'vue'
 import { router } from '@inertiajs/vue3'
 import Pagination from '@/Components/Pagination.vue'
 import SearchBar from './SearchBar.vue'
-import PICSwitch from '@/Components/PICSwitch.vue'
 import ReportsStatusTrackerTable from './ReportsStatusTrackerTable.vue'
-
+import Filterbar from './Filterbar.vue'
 const props = defineProps({
     overdueReports: {
         type: Object,

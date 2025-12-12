@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
         $this->call(VendorSeeder::class);
-        // $this->call(MaterialSeeder::class);
+        $this->call(MaterialSeeder::class);
         // $this->call(DailyInputSeeder::class);
     }
 }

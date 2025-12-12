@@ -16,62 +16,13 @@
                 <section class="w-full">
                     <div
                         :class="['w-full rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 sm:p-6', showMobileFilters ? 'block' : 'hidden']">
-                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                            <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Select Date</label>
-                                <input type="date" v-model="localFilters.date" :min="minDate" :max="maxDate"
-                                    @change="onDateChange"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" />
-                                <p v-if="isWeekendSelected" class="mt-1 text-xs text-red-600">
-                                    Weekend is disabled – please select a weekday.
-                                </p>
-                            </div>
-
-                            <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Month</label>
-                                <input v-model="localFilters.month" type="month" @change="debouncedApplyFilters"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" />
-                            </div>
-                            <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Usage</label>
-                                <select v-model="localFilters.usage" @change="debouncedApplyFilters"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
-                                    <option value="">All</option>
-                                    <option value="DAILY">Daily</option>
-                                    <option value="WEEKLY">Weekly</option>
-                                    <option value="MONTHLY">Monthly</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Location</label>
-                                <select v-model="localFilters.location" @change="debouncedApplyFilters"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
-                                    <option value="">All</option>
-                                    <option value="SUNTER_1">Sunter 1</option>
-                                    <option value="SUNTER_2">Sunter 2</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700">Gentan-I & Non
-                                    Gentan-I</label>
-                                <select v-model="localFilters.gentani" @change="debouncedApplyFilters"
-                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
-                                    <option value="">All</option>
-                                    <option value="GENTAN-I">Gentan-I</option>
-                                    <option value="NON_GENTAN-I">Non Gentan-I</option>
-                                </select>
-                            </div>
-                            <div class="flex flex-wrap items-end gap-3 sm:col-span-2 xl:col-span-1">
-                                <button @click="applyFilters" :disabled="isLoading"
-                                    class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
-                                    {{ isLoading ? 'Loading...' : 'Apply' }}
-                                </button>
-                                <button @click="clearFilters" :disabled="isLoading"
-                                    class="flex-1 rounded-lg border border-gray-200 bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60">
-                                    Clear
-                                </button>
-                            </div>
-                        </div>
+                        <Filterbar v-model:selectedPIC="localFilters.pic_name" :picOptions="uniquePICs"
+                            v-model:selectedLocation="localFilters.location" v-model:selectedUsage="localFilters.usage"
+                            :usageOptions="usages" v-model:selectedGentani="localFilters.gentani" />
+                        <button @click="applyFilters" :disabled="isLoading"
+                            class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+                            {{ isLoading ? 'Loading...' : 'Apply' }}
+                        </button>
                     </div>
                 </section>
             </div>
@@ -147,7 +98,7 @@ import { route } from 'ziggy-js'
 import MainAppLayout from '@/Layouts/MainAppLayout.vue'
 import CautionOverdueLeaderboard from '@/Components/CautionOverdueLeaderboard.vue'
 import ShortageOverdueLeaderboard from '@/Components/ShortageOverdueLeaderboard.vue'
-
+import Filterbar from '@/Components/Filterbar.vue'
 const props = defineProps({
     cautionData: {
         type: Object,
@@ -174,7 +125,8 @@ const localFilters = ref({
     month: props.filters.month || '',
     usage: props.filters.usage || '',
     location: props.filters.location || '',
-    gentani: props.filters.gentani || ''
+    gentani: props.filters.gentani || '',
+    pic_name: props.filters.pic_name || ''
 })
 
 // Cache for data
@@ -267,8 +219,16 @@ const applyFilters = () => {
 
 }
 
+const uniquePICs = [
+    "ADE N", "AKBAR", "ANWAR", "BAHTIYAR", "DEDHI",
+    "EKA S", "EKO P", "FAHRI", "IBNU", "IRPANDI",
+    "IRVAN", "MIKS", "RACHMAT", "ZAINAL A."
+];
+
+const usages = ['DAILY', 'WEEKLY', 'MONTHLY']
+
 const clearFilters = () => {
-    localFilters.value = { date: '', month: '', usage: '', location: '', gentani: '' }
+    localFilters.value = { date: '', month: '', usage: '', location: '', gentani: '', pic_name: "" }
     applyFilters()
 }
 

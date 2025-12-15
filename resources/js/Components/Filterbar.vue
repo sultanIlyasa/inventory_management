@@ -32,7 +32,7 @@
 
         <!-- DAILY -->
         <div v-if="selectedUsage === 'DAILY'">
-            <FlatPickr :model-value="selectedDate" :config="{ dateFormat: 'Y-m-d' }" @update:modelValue="emitDate"
+            <FlatPickr :value="selectedDate" @change="$emit('update:selectedDate', $event.target.value)"
                 class="picker" />
         </div>
 
@@ -45,15 +45,16 @@
                     Week</button>
             </div>
 
-            <FlatPickr :model-value="selectedDate" :config="{ dateFormat: 'Y-m-d', weekNumbers: true }"
-                @update:modelValue="emitDate" class="picker" />
+            <FlatPickr :model-value="selectedDate" @change="$emit('update:selectedDate', $event.target.value)"
+                class="picker" />
 
             <p v-if="weekLabel" class="text-xs text-gray-500 italic">{{ weekLabel }}</p>
         </div>
 
         <!-- MONTHLY -->
         <div v-else-if="selectedUsage === 'MONTHLY'">
-            <FlatPickr :model-value="selectedDate" :config="monthConfig" @update:modelValue="emitDate" class="picker" />
+            <FlatPickr :model-value="selectedDate" @change="$emit('update:selectedDate', $event.target.value)"
+                class="picker" />
 
             <p v-if="monthLabel" class="text-xs text-gray-500 italic">{{ monthLabel }}</p>
         </div>
@@ -86,39 +87,6 @@ const emit = defineEmits([
     "update:selectedDate",
 ]);
 
-/* ---------------- NORMALIZER ---------------- */
-function normalizeDate(value) {
-    if (!value) return null;
-
-    // If Flatpickr returns an array
-    if (Array.isArray(value)) value = value[0];
-
-    // If it's already Date → return
-    if (value instanceof Date) return value;
-
-    // If it's a string (mobile case)
-    if (typeof value === "string") {
-        const d = new Date(value);
-        if (!isNaN(d)) return d;
-    }
-
-    // If it's something else, ignore
-    return new Date();
-}
-
-/* ---------------- EMITTER ---------------- */
-const emitDate = (value) => {
-    const normalized = normalizeDate(value);
-    emit("update:selectedDate", normalized);
-};
-
-const emitMonth = (value) => {
-    const d = normalizeDate(value);
-    const normalized = new Date(d.getFullYear(), d.getMonth(), 1);
-    emit("update:selectedDate", normalized);
-};
-
-/* ---------------- QUICK BUTTONS ---------------- */
 const setThisWeek = () => emit("update:selectedDate", new Date());
 const setLastWeek = () => {
     const d = new Date();
@@ -126,7 +94,6 @@ const setLastWeek = () => {
     emit("update:selectedDate", d);
 };
 
-/* ---------------- LABELS ---------------- */
 const weekLabel = computed(() => {
     if (!props.selectedDate) return "";
     const date = new Date(props.selectedDate);
@@ -148,7 +115,6 @@ const monthLabel = computed(() => {
     });
 });
 
-/* ---------------- MONTH CONFIG ---------------- */
 const monthConfig = {
     plugins: [
         monthSelectPlugin({

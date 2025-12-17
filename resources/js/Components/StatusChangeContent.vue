@@ -121,7 +121,7 @@
                                 OK
                             </span>
                             <span v-else-if="item.current_status === 'CAUTION'"
-                                class="bg-yellow-200 px-2 py-1 rounded-lg text-xs font-semibold">
+                                class="bg-orange-400 px-2 py-1 rounded-lg text-xs font-semibold">
                                 CAUTION
                             </span>
                             <span v-else-if="item.current_status === 'SHORTAGE'"

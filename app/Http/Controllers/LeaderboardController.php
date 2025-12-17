@@ -3,131 +3,101 @@
 namespace App\Http\Controllers;
 
 use Inertia\Inertia;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
-use App\Services\MaterialReportService;
+use App\Services\LeaderboardService;
+use App\Http\Requests\LeaderboardRequest;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * Skinny Controller for Inertia.js
+ * Single Responsibility: Handle HTTP requests and return Inertia responses
+ */
 class LeaderboardController extends Controller
 {
-    protected $reportService;
+    protected LeaderboardService $leaderboardService;
 
-    public function __construct(MaterialReportService $reportService)
+    public function __construct(LeaderboardService $leaderboardService)
     {
-        $this->reportService = $reportService;
+        $this->leaderboardService = $leaderboardService;
     }
 
     /**
-     * Get all leaderboard - with caching
+     * Main Inertia page - handles both initial load and pagination
      */
-    public function index(Request $request)
+    public function index(LeaderboardRequest $request)
     {
-        $request->validate([
-            'location' => 'nullable|in:SUNTER_1,SUNTER_2',
-            'usage' => 'nullable|in:DAILY,WEEKLY,MONTHLY',
-            'month' => 'nullable|date_format:Y-m',
-            'gentani' => 'nullable|in:GENTAN-I,NON_GENTAN-I'
-        ]);
+        $filters = $request->getFilters();
+        $activeTab = $request->input('tab', 'CAUTION');
+        $page = (int) $request->input('page', 1);
+        $perPage = (int) $request->input('per_page', 10);
 
-        $filters = $this->getFilters($request);
-        $activeTab = $request->get('tab', 'CAUTION');
-
-        // Create cache key based on filters
-        $cacheKey = 'leaderboard_' . md5(json_encode($filters));
-
-        // Cache for 5 minutes
-        $leaderboards = Cache::remember($cacheKey, 300, function () use ($filters) {
-            return $this->reportService->getAllLeaderboards($filters);
-        });
+        // Get both leaderboards with pagination
+        $cautionData = $this->getCachedLeaderboard('CAUTION', $filters, $perPage, $page);
+        $shortageData = $this->getCachedLeaderboard('SHORTAGE', $filters, $perPage, $page);
 
         return Inertia::render('WarehouseMonitoring/Leaderboard', [
-            'cautionData' => $this->paginateAndFormat($leaderboards['CAUTION'], $request, 'CAUTION'),
-            'shortageData' => $this->paginateAndFormat($leaderboards['SHORTAGE'], $request, 'SHORTAGE'),
+            'cautionData' => $cautionData,
+            'shortageData' => $shortageData,
             'activeTab' => $activeTab,
             'filters' => $filters,
         ]);
     }
 
     /**
-     * API: Caution leaderboard - for AJAX requests
+     * API endpoint for AJAX calls (if you still need it)
+     * Returns JSON instead of Inertia response
      */
-    public function cautionApi(Request $request)
+    public function cautionApi(LeaderboardRequest $request)
     {
-        $filters = $this->getFilters($request);
-        $cacheKey = 'caution_' . md5(json_encode($filters));
+        $filters = $request->getFilters();
+        $page = (int) $request->input('page', 1);
+        $perPage = (int) $request->input('per_page', 10);
 
-        $leaderboard = Cache::remember($cacheKey, 300, function () use ($filters) {
-            return $this->reportService->getCautionLeaderboard($filters);
+        $data = $this->getCachedLeaderboard('CAUTION', $filters, $perPage, $page);
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
+
+    /**
+     * API endpoint for SHORTAGE
+     */
+    public function shortageApi(LeaderboardRequest $request)
+    {
+        $filters = $request->getFilters();
+        $page = (int) $request->input('page', 1);
+        $perPage = (int) $request->input('per_page', 10);
+
+        $data = $this->getCachedLeaderboard('SHORTAGE', $filters, $perPage, $page);
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
+
+    /**
+     * Get cached leaderboard data
+     */
+    private function getCachedLeaderboard(string $type, array $filters, int $perPage, int $page): array
+    {
+        // Include page in cache key!
+        $cacheKey = sprintf(
+            'leaderboard_%s_%s_page_%d_per_%d',
+            $type,
+            md5(json_encode($filters)),
+            $page,  // ← IMPORTANT: Page must be in cache key
+            $perPage
+        );
+
+        // Cache for 5 minutes
+        return Cache::remember($cacheKey, 300, function () use ($type, $filters, $perPage, $page) {
+            if ($type === 'CAUTION') {
+                return $this->leaderboardService->getCautionLeaderboard($filters, $perPage, $page);
+            } else {
+                return $this->leaderboardService->getShortageLeaderboard($filters, $perPage, $page);
+            }
         });
-
-        $data = $this->paginateAndFormat($leaderboard, $request, 'CAUTION');
-
-        return response()->json(['success' => true, ...$data]);
-    }
-
-    /**
-     * API: Shortage leaderboard - for AJAX requests
-     */
-    public function shortageApi(Request $request)
-    {
-        $filters = $this->getFilters($request);
-        $cacheKey = 'shortage_' . md5(json_encode($filters));
-
-        $leaderboard = Cache::remember($cacheKey, 300, function () use ($filters) {
-            return $this->reportService->getShortageLeaderboard($filters);
-        });
-
-        $data = $this->paginateAndFormat($leaderboard, $request, 'SHORTAGE');
-
-        return response()->json(['success' => true, ...$data]);
-    }
-
-    /**
-     * Helper: Get filters from request
-     */
-    private function getFilters(Request $request): array
-    {
-        return [
-            'date' => $request->date,
-            'month' => $request->month,
-            'usage' => $request->usage,
-            'location' => $request->location,
-            'gentani' => $request->gentani
-        ];
-    }
-
-    /**
-     * Helper: Paginate and format data
-     */
-    private function paginateAndFormat($leaderboard, Request $request, string $type)
-    {
-        $perPage = (int) $request->get('per_page', 10);
-        $page = (int) $request->get('page', 1);
-        $total = $leaderboard->count();
-
-        // Ensure page is valid
-        $lastPage = (int) ceil($total / $perPage);
-        if ($page > $lastPage && $lastPage > 0) {
-            $page = $lastPage;
-        }
-
-        $paged = $leaderboard->forPage($page, $perPage)->values();
-
-        return [
-            'statistics' => [
-                'total' => $total,
-                'average_days' => round($leaderboard->avg('days') ?? 0, 1),
-                'max_days' => $leaderboard->max('days') ?? 0,
-                'min_days' => $leaderboard->min('days') ?? 0,
-                'type' => $type,
-            ],
-            'leaderboard' => $paged,
-            'pagination' => [
-                'current_page' => $page,
-                'last_page' => max(1, $lastPage),
-                'per_page' => $perPage,
-                'total' => $total,
-            ]
-        ];
     }
 }

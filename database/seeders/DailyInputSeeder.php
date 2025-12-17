@@ -9,45 +9,62 @@ use Carbon\Carbon;
 
 class DailyInputSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $materials = Materials::all();
+        $materials = Materials::select(
+            'id',
+            'stock_minimum',
+            'stock_maximum'
+        )->get();
+
+        $batch = [];
+        $batchSize = 500;
 
         foreach ($materials as $material) {
-            $previousStock = rand(30, 70); // Starting stock
+            $previousStock = rand(30, 70);
 
-            // Create daily inputs for the last 30 days
-            for ($day = 30; $day >= 0; $day--) {
+            for ($day = 180 ; $day >= 0; $day--) {
                 $date = Carbon::now()->subDays($day);
 
-                // Stock fluctuates slightly from previous day (more realistic)
                 $change = rand(-5, 5);
-                $daily_stock = max(0, min(20, $previousStock + $change));
+                $daily_stock = max(0, min(
+                    $material->stock_maximum + 10,
+                    $previousStock + $change
+                ));
 
-                // Determine status based on stock levels
-                $status = 'OK';
+                // Status logic
                 if ($daily_stock > $material->stock_maximum) {
                     $status = 'OVERFLOW';
-                } elseif ($daily_stock == 0) {
+                } elseif ($daily_stock === 0) {
                     $status = 'SHORTAGE';
                 } elseif ($daily_stock < $material->stock_minimum) {
                     $status = 'CAUTION';
+                } else {
+                    $status = 'OK';
                 }
 
-                DB::table('daily_inputs')->insert([
+                $batch[] = [
                     'material_id' => $material->id,
                     'daily_stock' => $daily_stock,
                     'status' => $status,
                     'date' => $date->toDateString(),
                     'created_at' => $date,
                     'updated_at' => $date,
-                ]);
+                ];
+
+                // Insert batch
+                if (count($batch) >= $batchSize) {
+                    DB::table('daily_inputs')->insert($batch);
+                    $batch = []; // free memory
+                }
 
                 $previousStock = $daily_stock;
             }
+        }
+
+        // Insert leftovers
+        if (!empty($batch)) {
+            DB::table('daily_inputs')->insert($batch);
         }
     }
 }

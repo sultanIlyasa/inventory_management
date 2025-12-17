@@ -82,7 +82,7 @@
                         <tr v-for="(item, index) in sortedRecoveryData" :key="item.material_number"
                             class="border-b hover:bg-gray-50">
                             <td class="border p-3 text-center text-gray-600">
-                                {{ startEntry + index }}
+                                {{ index + 1 }}
                             </td>
                             <td class="border p-3 text-xs">
                                 <div class="font-semibold">{{ item.material_number }}</div>

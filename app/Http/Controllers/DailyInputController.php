@@ -92,70 +92,48 @@ class DailyInputController extends Controller
     public function dailyStatus(Request $request)
     {
         $date = $request->query('date', Carbon::today()->toDateString());
-        $usage = strtoupper($request->query('usage', 'DAILY')); // DAILY | WEEKLY | MONTHLY
+        $usage = $request->query('usage');
+        $usage = $usage ? strtoupper($usage) : null;
         $location = $request->query('location');
 
-        // Normalize date into Carbon instance
         $carbonDate = Carbon::parse($date)->locale('id');
 
-        /*
-    |--------------------------------------------------------------------------
-    | PICK FILTER RANGE BASED ON USAGE
-    |--------------------------------------------------------------------------
-    */
-
-        if ($usage === 'DAILY') {
-            $start = $carbonDate->copy()->startOfDay();
-            $end   = $carbonDate->copy()->endOfDay();
-        } elseif ($usage === 'WEEKLY') {
+        if ($usage === 'WEEKLY') {
             $start = $carbonDate->copy()->startOfWeek();
             $end   = $carbonDate->copy()->endOfWeek();
         } elseif ($usage === 'MONTHLY') {
             $start = $carbonDate->copy()->startOfMonth();
             $end   = $carbonDate->copy()->endOfMonth();
         } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid usage type'
-            ], 400);
+            $start = $carbonDate->copy()->startOfDay();
+            $end   = $carbonDate->copy()->endOfDay();
         }
-
-        /*
-    |--------------------------------------------------------------------------
-    | BASE QUERY FOR CHECKED INPUTS
-    |--------------------------------------------------------------------------
-    */
 
         $dailyInputsQuery = DailyInput::with('material')
-            ->whereBetween('date', [$start, $end]);
-
-        // Filter by location
-        if (!empty($location)) {
-            $locations = is_array($location)
-                ? $location
-                : array_map('trim', explode(',', $location));
-
-            $dailyInputsQuery->whereHas('material', function ($query) use ($locations) {
-                $query->whereIn('location', $locations);
+            ->whereBetween('date', [$start, $end])
+            ->when($usage, function ($query) use ($usage) {
+                $query->whereHas(
+                    'material',
+                    fn($q) =>
+                    $q->where('usage', $usage)
+                );
+            })
+            ->when(!empty($location), function ($query) use ($location) {
+                $locations = is_array($location)
+                    ? $location
+                    : array_map('trim', explode(',', $location));
+                $query->whereHas(
+                    'material',
+                    fn($q) =>
+                    $q->whereIn('location', $locations)
+                );
             });
-        }
-
-        // Filter by usage (material usage, not mode)
-        $dailyInputsQuery->whereHas('material', function ($query) use ($usage) {
-            $query->where('usage', $usage);
-        });
 
         $checked = $dailyInputsQuery->get();
         $checkedIds = $checked->pluck('material_id')->toArray();
 
-        /*
-    |--------------------------------------------------------------------------
-    | FIND MISSING MATERIALS BASED ON SAME FILTERS
-    |--------------------------------------------------------------------------
-    */
-
         $missing = Materials::query()
-            ->where('usage', $usage)
+            ->when($usage, fn($q) => $q->where('usage', $usage))
             ->when(!empty($location), function ($query) use ($location) {
                 $locations = is_array($location)
                     ? $location
@@ -167,14 +145,10 @@ class DailyInputController extends Controller
 
         return response()->json([
             'success' => true,
-            'usage_mode' => $usage,
+            'usage_mode' => $usage ?? 'ALL',
             'date_range' => [
                 'start' => $start->toDateString(),
                 'end'   => $end->toDateString(),
-            ],
-            'filters' => [
-                'usage' => $usage,
-                'location' => $location,
             ],
             'checked' => $checked,
             'missing' => $missing,

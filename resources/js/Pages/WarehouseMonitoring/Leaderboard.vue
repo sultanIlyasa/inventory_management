@@ -16,13 +16,70 @@
                 <section class="w-full">
                     <div
                         :class="['w-full rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 sm:p-6', showMobileFilters ? 'block' : 'hidden']">
-                        <Filterbar v-model:selectedPIC="localFilters.pic_name" :picOptions="uniquePICs"
-                            v-model:selectedLocation="localFilters.location" v-model:selectedUsage="localFilters.usage"
-                            :usageOptions="usages" v-model:selectedGentani="localFilters.gentani" />
-                        <button @click="applyFilters" :disabled="isLoading"
-                            class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
-                            {{ isLoading ? 'Loading...' : 'Apply' }}
-                        </button>
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-gray-700">Select Date</label>
+                                <input type="date" v-model="localFilters.date" 
+                                    @change="onDateChange"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" />
+                                <p v-if="isWeekendSelected" class="mt-1 text-xs text-red-600">
+                                    Weekend is disabled – please select a weekday.
+                                </p>
+                            </div>
+
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-gray-700">Month</label>
+                                <input v-model="localFilters.month" type="month" @change="debouncedApplyFilters"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" />
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-gray-700">PIC</label>
+                                <select v-model="localFilters.pic_name" @change="debouncedApplyFilters"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                                    <option value="">All PICs</option>
+                                    <option v-for="pic in uniquePICs" :key="pic" :value="pic">{{ pic }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-gray-700">Usage</label>
+                                <select v-model="localFilters.usage" @change="debouncedApplyFilters"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                                    <option value="">All</option>
+                                    <option value="DAILY">Daily</option>
+                                    <option value="WEEKLY">Weekly</option>
+                                    <option value="MONTHLY">Monthly</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-gray-700">Location</label>
+                                <select v-model="localFilters.location" @change="debouncedApplyFilters"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                                    <option value="">All</option>
+                                    <option value="SUNTER_1">Sunter 1</option>
+                                    <option value="SUNTER_2">Sunter 2</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-gray-700">Gentan-I & Non
+                                    Gentan-I</label>
+                                <select v-model="localFilters.gentani" @change="debouncedApplyFilters"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                                    <option value="">All</option>
+                                    <option value="GENTAN-I">Gentan-I</option>
+                                    <option value="NON_GENTAN-I">Non Gentan-I</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-wrap items-end gap-3 sm:col-span-2 xl:col-span-1">
+                                <button @click="applyFilters" :disabled="isLoading"
+                                    class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+                                    {{ isLoading ? 'Loading...' : 'Apply' }}
+                                </button>
+                                <button @click="clearFilters" :disabled="isLoading"
+                                    class="flex-1 rounded-lg border border-gray-200 bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60">
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -67,22 +124,21 @@
                         </div>
                     </div>
 
-                    <!-- Keep both components mounted but toggle visibility -->
-                    <div :class="{ 'hidden': currentTab !== 'CAUTION' }">
-                        <CautionOverdueLeaderboard v-if="cautionData" size="full"
-                            :initialLeaderboard="cautionData.leaderboard || []"
-                            :initialStatistics="cautionData.statistics || {}"
-                            :initialPagination="cautionData.pagination || {}" :viewAllUrl="viewAllUrls.CAUTION"
-                            @page-change="page => handlePageChange('CAUTION', page)"
+                    <!-- CAUTION Tab -->
+                    <div v-show="currentTab === 'CAUTION'">
+                        <CautionOverdueLeaderboard size="full" :initialLeaderboard="cautionData?.data || []"
+                            :initialStatistics="cautionData?.statistics || {}"
+                            :initialPagination="cautionData?.pagination || {}" :viewAllUrl="viewAllUrls.CAUTION"
+                            @page-change="(page) => handlePageChange('CAUTION', page)"
                             @refresh="() => handleRefresh('CAUTION')" />
                     </div>
 
-                    <div :class="{ 'hidden': currentTab !== 'SHORTAGE' }">
-                        <ShortageOverdueLeaderboard v-if="shortageData" size="full"
-                            :initialLeaderboard="shortageData.leaderboard || []"
-                            :initialStatistics="shortageData.statistics || {}"
-                            :initialPagination="shortageData.pagination || {}" :viewAllUrl="viewAllUrls.SHORTAGE"
-                            @page-change="page => handlePageChange('SHORTAGE', page)"
+                    <!-- SHORTAGE Tab -->
+                    <div v-show="currentTab === 'SHORTAGE'">
+                        <ShortageOverdueLeaderboard size="full" :initialLeaderboard="shortageData?.data || []"
+                            :initialStatistics="shortageData?.statistics || {}"
+                            :initialPagination="shortageData?.pagination || {}" :viewAllUrl="viewAllUrls.SHORTAGE"
+                            @page-change="(page) => handlePageChange('SHORTAGE', page)"
                             @refresh="() => handleRefresh('SHORTAGE')" />
                     </div>
                 </div>
@@ -92,13 +148,14 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import MainAppLayout from '@/Layouts/MainAppLayout.vue'
 import CautionOverdueLeaderboard from '@/Components/CautionOverdueLeaderboard.vue'
 import ShortageOverdueLeaderboard from '@/Components/ShortageOverdueLeaderboard.vue'
 import Filterbar from '@/Components/Filterbar.vue'
+
 const props = defineProps({
     cautionData: {
         type: Object,
@@ -118,8 +175,14 @@ const props = defineProps({
     }
 })
 
+// Use computed to always get fresh props
+const cautionData = computed(() => props.cautionData)
+const shortageData = computed(() => props.shortageData)
+
 const currentTab = ref(props.activeTab)
 const isLoading = ref(false)
+const showMobileFilters = ref(false)
+
 const localFilters = ref({
     date: props.filters.date || '',
     month: props.filters.month || '',
@@ -128,25 +191,6 @@ const localFilters = ref({
     gentani: props.filters.gentani || '',
     pic_name: props.filters.pic_name || ''
 })
-
-// Cache for data
-const cautionData = ref(props.cautionData)
-const shortageData = ref(props.shortageData)
-
-watch(
-    () => props.cautionData,
-    (newVal) => {
-        if (newVal) cautionData.value = newVal
-    }
-)
-
-watch(
-    () => props.shortageData,
-    (newVal) => {
-        if (newVal) shortageData.value = newVal
-    }
-)
-const showMobileFilters = ref(false)
 
 const tabs = [
     { id: 'CAUTION', label: 'Caution', color: 'orange' },
@@ -157,6 +201,14 @@ const viewAllUrls = {
     CAUTION: route('warehouse-monitoring.leaderboard', { tab: 'CAUTION' }),
     SHORTAGE: route('warehouse-monitoring.leaderboard', { tab: 'SHORTAGE' })
 }
+
+const uniquePICs = [
+    "ADE N", "AKBAR", "ANWAR", "BAHTIYAR", "DEDHI",
+    "EKA S", "EKO P", "FAHRI", "IBNU", "IRPANDI",
+    "IRVAN", "MIKS", "RACHMAT", "ZAINAL A."
+]
+
+const usages = ['DAILY', 'WEEKLY', 'MONTHLY']
 
 const getTabCount = (tabId) => {
     switch (tabId) {
@@ -169,118 +221,108 @@ const getTabCount = (tabId) => {
     }
 }
 
-// Debounce timer
-let debounceTimer = null
-const debouncedApplyFilters = () => {
-    clearTimeout(debounceTimer)
-    debounceTimer = setTimeout(() => {
-        applyFilters()
-    }, 500) // Wait 500ms after user stops typing/selecting
-}
-
 const switchTab = (tabId) => {
     if (isLoading.value || currentTab.value === tabId) return
-
     currentTab.value = tabId
 
-    // Update URL without reload
-    const url = new URL(window.location)
-    url.searchParams.set('tab', tabId)
-    window.history.pushState({}, '', url)
+    // Update URL without reload using Inertia
+    router.get(
+        route('warehouse-monitoring.leaderboard'),
+        {
+            tab: tabId,
+            ...localFilters.value,
+            page: 1  // Reset to page 1 when switching tabs
+        },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['cautionData', 'shortageData', 'activeTab'],
+            onStart: () => { isLoading.value = true },
+            onFinish: () => { isLoading.value = false }
+        }
+    )
 }
 
 const applyFilters = () => {
     if (isLoading.value) return
-
-    isLoading.value = true
 
     router.get(
         route('warehouse-monitoring.leaderboard'),
         {
             tab: currentTab.value,
             ...localFilters.value,
-            page: 1
+            page: 1  // Reset to page 1 when applying filters
         },
         {
             preserveState: true,
             preserveScroll: true,
-            only: ['cautionData', 'shortageData'], // Only reload data, not entire page
-            onSuccess: (page) => {
-                // Update local data refs
-                cautionData.value = page.props.cautionData
-                shortageData.value = page.props.shortageData
-                isLoading.value = false
-            },
-            onError: () => {
-                isLoading.value = false
-            }
+            only: ['cautionData', 'shortageData'],
+            onStart: () => { isLoading.value = true },
+            onFinish: () => { isLoading.value = false }
         }
     )
-
 }
 
-const uniquePICs = [
-    "ADE N", "AKBAR", "ANWAR", "BAHTIYAR", "DEDHI",
-    "EKA S", "EKO P", "FAHRI", "IBNU", "IRPANDI",
-    "IRVAN", "MIKS", "RACHMAT", "ZAINAL A."
-];
-
-const usages = ['DAILY', 'WEEKLY', 'MONTHLY']
-
 const clearFilters = () => {
-    localFilters.value = { date: '', month: '', usage: '', location: '', gentani: '', pic_name: "" }
+    localFilters.value = {
+        date: '',
+        month: '',
+        usage: '',
+        location: '',
+        gentani: '',
+        pic_name: ""
+    }
     applyFilters()
 }
 
+/**
+ * Handle page change from child component
+ *
+ */
 const handlePageChange = (tab, page) => {
-    fetchTabData(tab, page)
-}
-
-const handleRefresh = (tab) => {
-    const currentPage = tab === 'CAUTION'
-        ? (cautionData.value?.pagination?.current_page || 1)
-        : (shortageData.value?.pagination?.current_page || 1)
-    fetchTabData(tab, currentPage)
-}
-
-const fetchTabData = (tab, page = 1) => {
     if (isLoading.value) return
-    isLoading.value = true
 
-    const resourceKey = tab === 'CAUTION' ? 'cautionData' : 'shortageData'
+    console.log(`Changing to page ${page} for ${tab}`) // Debug log
 
     router.get(
         route('warehouse-monitoring.leaderboard'),
         {
-            tab,
+            tab: tab,
             ...localFilters.value,
-            page
+            page: page,  // ← THIS IS THE KEY! Pass the page number
+            per_page: 10
         },
         {
             preserveState: true,
             preserveScroll: true,
-            only: [resourceKey],
-            onSuccess: (pageData) => {
-                if (tab === 'CAUTION') {
-                    cautionData.value = pageData.props.cautionData
-                } else {
-                    shortageData.value = pageData.props.shortageData
-                }
-
-                currentTab.value = tab
-                isLoading.value = false
+            only: ['cautionData', 'shortageData'],  // Only reload data
+            onStart: () => {
+                isLoading.value = true
+                console.log('Starting page load...') // Debug
             },
-            onError: () => {
+            onSuccess: (page) => {
+                console.log('Page loaded successfully', page.props) // Debug
+                currentTab.value = tab
+            },
+            onFinish: () => {
                 isLoading.value = false
+                console.log('Page load finished') // Debug
+            },
+            onError: (errors) => {
+                console.error('Error loading page:', errors) // Debug
             }
         }
     )
 }
-watch(
-    () => props.activeTab,
-    (newVal) => {
-        if (newVal) currentTab.value = newVal
-    }
-)
 
+/**
+ * Handle refresh from child component
+ */
+const handleRefresh = (tab) => {
+    const currentPage = tab === 'CAUTION'
+        ? (cautionData.value?.pagination?.current_page || 1)
+        : (shortageData.value?.pagination?.current_page || 1)
+
+    handlePageChange(tab, currentPage)
+}
 </script>

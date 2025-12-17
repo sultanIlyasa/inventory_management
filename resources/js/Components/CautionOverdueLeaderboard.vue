@@ -53,7 +53,6 @@
                         <th class="border p-2 text-left">Material</th>
                         <th class="border p-2 text-left hidden md:table-cell">Description</th>
                         <th class="border p-2 text-left hidden lg:table-cell">Usage</th>
-                        <th class="border p-2 text-center">Status</th>
                         <th class="border p-2 text-center">SOH</th>
                         <th class="border p-2 text-center">Days</th>
                     </tr>
@@ -61,7 +60,7 @@
                 <tbody>
                     <tr v-for="(item, index) in currentLeaderboard" :key="item.material_number"
                         class="border-b hover:bg-gray-50">
-                        <td class="border p-2 hidden md:table-cell truncate">{{ item.pic }}</td>
+                        <td class="border p-2 hidden md:table-cell truncate">{{ item.pic_name }}</td>
 
                         <td class="border p-2">
                             <div class="font-semibold text-xs">{{ item.material_number }}</div>
@@ -69,11 +68,6 @@
                         </td>
                         <td class="border p-2 hidden md:table-cell truncate">{{ item.description }}</td>
                         <td class="border p-2 hidden lg:table-cell">{{ item.usage }}</td>
-                        <td class="border p-2 text-center">
-                            <span class="inline-flex rounded px-2 py-1 text-xs font-semibold bg-orange-500 text-white">
-                                {{ item.current_status }}
-                            </span>
-                        </td>
                         <td class="border p-2 text-center font-semibold">{{ item.current_stock }}</td>
                         <td class="border p-2 text-center">
                             <div class="text-lg font-bold" :class="getDaysColor(item.days)">{{ item.days }}</div>

@@ -5,9 +5,8 @@ export function useDailyInput() {
     // State
     const reportData = ref({ checked: [], missing: [] });
     const searchTerm = ref("");
-
     const selectedDate = ref(new Date().toISOString().split("T")[0]);
-    const selectedUsage = ref("DAILY"); // default DAILY
+    const selectedUsage = ref(""); // default DAILY
     const selectedPIC = ref("");
     const selectedLocation = ref("");
     const selectedGentani = ref("");
@@ -25,7 +24,7 @@ export function useDailyInput() {
             const res = await axios.get("/api/daily-input/status", {
                 params: {
                     date: selectedDate.value,
-                    usage: selectedUsage.value,
+                    usage: selectedUsage.value || null,
                     location: selectedLocation.value || null,
                 },
             });
@@ -163,7 +162,7 @@ export function useDailyInput() {
         searchTerm.value = "";
         selectedPIC.value = "";
         selectedLocation.value = "";
-        selectedUsage.value = "DAILY";
+        selectedUsage.value = "";
         selectedGentani.value = "";
         currentPage.value = 1;
     };

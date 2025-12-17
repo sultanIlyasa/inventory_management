@@ -2,145 +2,116 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\MaterialReportService;
-use Illuminate\Http\Request;
+use App\Http\Requests\RecoveryDaysRequest;
+use App\Services\RecoveryDaysService;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
 class RecoveryDaysController extends Controller
 {
-    protected $reportService;
-
-    public function __construct(MaterialReportService $reportService)
-    {
-        $this->reportService = $reportService;
+    public function __construct(
+        protected RecoveryDaysService $recoveryDaysService
+    ) {
     }
 
-    /**
-     * Main recovery days page
-     */
-    public function index(Request $request)
+    public function index(RecoveryDaysRequest $request)
     {
-        $request->validate([
-            'location' => 'nullable|in:SUNTER_1,SUNTER_2',
-            'usage' => 'nullable|in:DAILY,WEEKLY,MONTHLY',
-            'month' => 'nullable|date_format:Y-m',
-            'gentani' => 'nullable|in:GENTAN-I,NON_GENTAN-I'
-        ]);
+        $filters = $request->getFilters();
+        $pagination = $request->getPaginationParams();
 
-        $filters = $this->getFilters($request);
+        $cacheKey = sprintf(
+            'recovery_days_%s_page_%d_per_%d',
+            md5(json_encode($filters)),
+            $pagination['page'],
+            $pagination['per_page']
+        );
 
-        // Create cache key based on filters
-        $cacheKey = 'recovery_days_' . md5(json_encode($filters));
-
-        // Cache for 5 minutes
-        $recoveryData = Cache::remember($cacheKey, 300, function () use ($filters) {
-            return $this->reportService->getRecoveryDays($filters);
+        $recoveryData = Cache::remember($cacheKey, 300, function () use ($filters, $pagination) {
+            return $this->recoveryDaysService->getRecoveryReport(
+                $filters,
+                $pagination['per_page'],
+                $pagination['page']
+            );
         });
 
-        // Get year for trend data
-        $year = $filters['month'] ? date('Y', strtotime($filters['month'])) : date('Y');
+        $year = $request->getTrendYear();
         $trendCacheKey = 'recovery_trend_' . $year;
 
         $trendData = Cache::remember($trendCacheKey, 300, function () use ($year) {
-            return $this->reportService->getRecoveryTrend($year);
+            return $this->recoveryDaysService->getRecoveryTrend($year);
         });
 
         return Inertia::render('WarehouseMonitoring/RecoveryDays', [
-            'recoveryData' => $this->formatRecoveryData($recoveryData['data'], $request),
+            'recoveryData' => [
+                'data' => $recoveryData['data'],
+                'pagination' => $recoveryData['pagination'],
+            ],
             'statistics' => $recoveryData['statistics'],
             'trendData' => $trendData,
-            'filters' => $filters,
+            'filters' => $this->withDefaultFilters($filters),
         ]);
     }
 
-    /**
-     * API: Get recovery days data (for AJAX requests)
-     */
-    public function recoveryApi(Request $request)
+    public function recoveryApi(RecoveryDaysRequest $request)
     {
-        $filters = $this->getFilters($request);
-        $cacheKey = 'recovery_days_' . md5(json_encode($filters));
+        $filters = $request->getFilters();
+        $pagination = $request->getPaginationParams();
 
-        $recoveryData = Cache::remember($cacheKey, 300, function () use ($filters) {
-            return $this->reportService->getRecoveryDays($filters);
+        $cacheKey = sprintf(
+            'recovery_days_%s_page_%d_per_%d',
+            md5(json_encode($filters)),
+            $pagination['page'],
+            $pagination['per_page']
+        );
+
+        $recoveryData = Cache::remember($cacheKey, 300, function () use ($filters, $pagination) {
+            return $this->recoveryDaysService->getRecoveryReport(
+                $filters,
+                $pagination['per_page'],
+                $pagination['page']
+            );
         });
-        $year = $filters['month'] ? date('Y', strtotime($filters['month'])) : date('Y');
+
+        $year = $request->getTrendYear();
         $trendCacheKey = 'recovery_trend_' . $year;
         $trendData = Cache::remember($trendCacheKey, 300, function () use ($year) {
-            return $this->reportService->getRecoveryTrend($year);
+            return $this->recoveryDaysService->getRecoveryTrend($year);
         });
-
-        $formattedData = $this->formatRecoveryData($recoveryData['data'], $request);
 
         return response()->json([
             'success' => true,
-            'recoveryData' => $formattedData['data'],
+            'recoveryData' => $recoveryData['data'],
             'statistics' => $recoveryData['statistics'],
             'trendData' => $trendData,
-            'pagination' => $formattedData['pagination']
+            'pagination' => $recoveryData['pagination'],
         ]);
     }
 
-    /**
-     * API: Get recovery trend data
-     */
-    public function trendApi(Request $request)
+    public function trendApi(RecoveryDaysRequest $request)
     {
-        $year = $request->get('year', date('Y'));
+        $year = $request->getTrendYear();
         $cacheKey = 'recovery_trend_' . $year;
 
         $trendData = Cache::remember($cacheKey, 300, function () use ($year) {
-            return $this->reportService->getRecoveryTrend($year);
+            return $this->recoveryDaysService->getRecoveryTrend($year);
         });
 
         return response()->json([
             'success' => true,
-            'data' => $trendData
+            'data' => $trendData,
         ]);
     }
 
-    /**
-     * Helper: Get filters from request
-     */
-    private function getFilters(Request $request): array
+    private function withDefaultFilters(array $filters): array
     {
-        return [
-            'date' => $request->date,
-            'month' => $request->month,
-            'usage' => $request->usage,
-            'location' => $request->location,
-            'gentani' => $request->gentani
+        $defaults = [
+            'date' => '',
+            'month' => '',
+            'usage' => '',
+            'location' => '',
+            'gentani' => '',
         ];
-    }
 
-    /**
-     * Helper: Format and paginate recovery data
-     */
-    private function formatRecoveryData($data, Request $request)
-    {
-        $collection = collect($data);
-
-        $perPage = (int) $request->get('per_page', 10);
-        $page = (int) $request->get('page', 1);
-        $total = $collection->count();
-
-        // Ensure page is valid
-        $lastPage = (int) ceil($total / $perPage);
-        if ($page > $lastPage && $lastPage > 0) {
-            $page = $lastPage;
-        }
-
-        $paged = $collection->forPage($page, $perPage)->values();
-
-        return [
-            'data' => $paged,
-            'pagination' => [
-                'current_page' => $page,
-                'last_page' => max(1, $lastPage),
-                'per_page' => $perPage,
-                'total' => $total,
-            ]
-        ];
+        return array_merge($defaults, $filters);
     }
 }

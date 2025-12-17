@@ -91,7 +91,7 @@
                     </div>
 
                     <RecoveryDaysReportContent :recoveryData="recoveryData?.data || []" :statistics="statistics || {}"
-                        :trendData="trendData || []" :pagination="recoveryData?.pagination || defaultPagination"
+                        :trendData="trendData || []" :pagination="recoveryData?.data.pagination || defaultPagination"
                         size="full" :showChart="true" @refresh="applyFilters" @page-change="handlePageChange" />
                 </div>
             </div>

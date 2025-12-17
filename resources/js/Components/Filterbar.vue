@@ -31,8 +31,8 @@
     <div class="space-y-2">
 
         <!-- DAILY -->
-        <div v-if="selectedUsage === 'DAILY'">
-            <FlatPickr :value="selectedDate" @change="$emit('update:selectedDate', $event.target.value)"
+        <div v-if="selectedUsage === 'DAILY' || selectedUsage === ''">
+            <FlatPickr :model-value="selectedDate" @change="$emit('update:selectedDate', $event.target.value)"
                 class="picker" />
         </div>
 

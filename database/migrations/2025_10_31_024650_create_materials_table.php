@@ -26,12 +26,6 @@ return new class extends Migration
             $table->enum('location', ['SUNTER_1', 'SUNTER_2']);
             $table->string('gentani')->default("NON_GENTAN-I");
             $table->timestamps();
-
-            // Add indexes
-            $table->index('usage');
-            $table->index('location');
-            $table->index(['usage', 'location']);
-            $table->index('pic_name');
         });
     }
 

@@ -4,16 +4,20 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use Illuminate\Http\Request;
+use App\Services\LeaderboardService;
 use App\Services\MaterialReportService;
+use App\Services\RecoveryDaysService;
+use App\Services\StatusChangeService;
 use Illuminate\Support\Facades\Cache;
 
 class WarehouseMonitoringController extends Controller
 {
-    protected $reportService;
-
-    public function __construct(MaterialReportService $reportService)
-    {
-        $this->reportService = $reportService;
+    public function __construct(
+        protected MaterialReportService $reportService,
+        protected LeaderboardService $leaderboardService,
+        protected RecoveryDaysService $recoveryDaysService,
+        protected StatusChangeService $statusChangeService
+    ) {
     }
 
     /**
@@ -92,112 +96,53 @@ class WarehouseMonitoringController extends Controller
 
     private function getStatusChangeData($filters, $perPage = 5)
     {
-        $statusChangeData = $this->reportService->getStatusChangeFrequency($filters);
+        $statusChangeData = $this->statusChangeService->getStatusChangeReport($filters, $perPage, 1);
 
-        $paginated = $this->paginateData($statusChangeData, 1, $perPage);
         return [
-            'data' => $paginated['data'],
-            'statistics' => $this->calculateStatistics($statusChangeData),
-            'pagination' => $paginated['pagination']
+            'data' => $statusChangeData['data'],
+            'statistics' => $statusChangeData['statistics'],
+            'pagination' => $statusChangeData['pagination'],
         ];
     }
 
-    /**
-     * Get Caution Leaderboard data
-     */
     private function getCautionData($filters, $perPage = 5)
     {
-        $leaderboard = $this->reportService->getCautionLeaderboard($filters);
-
-        $paginated = $this->paginateData($leaderboard, 1, $perPage);
+        $leaderboard = $this->leaderboardService->getCautionLeaderboard($filters, $perPage, 1);
 
         return [
-            'statistics' => [
-                'total' => $leaderboard->count(),
-                'average_days' => round($leaderboard->avg('days') ?? 0, 1),
-                'max_days' => $leaderboard->max('days') ?? 0,
-                'min_days' => $leaderboard->min('days') ?? 0,
-                'type' => 'CAUTION',
-            ],
-            'leaderboard' => $paginated['data'],
-            'pagination' => $paginated['pagination']
+            'statistics' => $leaderboard['statistics'],
+            'leaderboard' => $leaderboard['data'],
+            'pagination' => $leaderboard['pagination'],
         ];
     }
 
-    /**
-     * Get Shortage Leaderboard data
-     */
     private function getShortageData($filters, $perPage = 5)
     {
-        $leaderboard = $this->reportService->getShortageLeaderboard($filters);
-
-        $paginated = $this->paginateData($leaderboard, 1, $perPage);
+        $leaderboard = $this->leaderboardService->getShortageLeaderboard($filters, $perPage, 1);
 
         return [
-            'statistics' => [
-                'total' => $leaderboard->count(),
-                'average_days' => round($leaderboard->avg('days') ?? 0, 1),
-                'max_days' => $leaderboard->max('days') ?? 0,
-                'min_days' => $leaderboard->min('days') ?? 0,
-                'type' => 'SHORTAGE',
-            ],
-            'leaderboard' => $paginated['data'],
-            'pagination' => $paginated['pagination']
+            'statistics' => $leaderboard['statistics'],
+            'leaderboard' => $leaderboard['data'],
+            'pagination' => $leaderboard['pagination'],
         ];
     }
 
-    /**
-     * Get Recovery Days data
-     */
     private function getRecoveryData($filters, $perPage = 5)
     {
-        $recoveryResult = $this->reportService->getRecoveryDays($filters);
-        $recoveryData = collect($recoveryResult['data']);
+        $recoveryResult = $this->recoveryDaysService->getRecoveryReport($filters, $perPage, 1);
 
-        $year = $filters['month'] ? date('Y', strtotime($filters['month'])) : date('Y');
+        $year = !empty($filters['month']) ? date('Y', strtotime($filters['month'])) : date('Y');
         $trendCacheKey = 'recovery_trend_' . $year;
 
         $trendData = Cache::remember($trendCacheKey, 300, function () use ($year) {
-            return $this->reportService->getRecoveryTrend($year);
+            return $this->recoveryDaysService->getRecoveryTrend($year);
         });
 
-        $paginated = $this->paginateData($recoveryData, 1, $perPage);
-
         return [
-            'statistics' => [
-                'total_recovered' => $recoveryResult['statistics']['total_recovered'],
-                'average_recovery_days' => $recoveryResult['statistics']['average_recovery_days'],
-                'fastest_recovery' => $recoveryResult['statistics']['fastest_recovery'],
-                'slowest_recovery' => $recoveryResult['statistics']['slowest_recovery'],
-            ],
-            'data' => $paginated['data'],
-            'pagination' => $paginated['pagination'],
-            'trendData' => $trendData
-        ];
-    }
-
-    /**
-     * Helper: Paginate data
-     */
-    private function paginateData($collection, $page = 1, $perPage = 5)
-    {
-        $total = $collection->count();
-        $lastPage = (int) ceil($total / $perPage);
-
-        if ($page > $lastPage && $lastPage > 0) {
-            $page = $lastPage;
-        }
-
-        $paged = $collection->forPage($page, $perPage)->values();
-
-        return [
-            'data' => $paged,
-            'pagination' => [
-                'current_page' => $page,
-                'last_page' => max(1, $lastPage),
-                'per_page' => $perPage,
-                'total' => $total,
-            ]
+            'statistics' => $recoveryResult['statistics'],
+            'data' => $recoveryResult['data'],
+            'pagination' => $recoveryResult['pagination'],
+            'trendData' => $trendData,
         ];
     }
 
@@ -211,21 +156,7 @@ class WarehouseMonitoringController extends Controller
             'month' => $request->month,
             'usage' => $request->usage,
             'location' => $request->location,
-            'gentani' => $request->gentani
-        ];
-    }
-
-    private function calculateStatistics($data)
-    {
-        $collection = collect($data);
-
-        return [
-            'total_materials' => $collection->count(),
-            'total_to_caution' => $collection->sum('frequency_changes.ok_to_caution'),
-            'total_to_shortage' => $collection->sum('frequency_changes.ok_to_shortage'),
-            'total_to_overflow' => $collection->sum('frequency_changes.ok_to_overflow'),
-            'total_recovered' => $collection->sum('frequency_changes.total_to_ok'),
-            'total_changes' => $collection->sum('frequency_changes.total_from_ok'),
+            'gentani' => $request->gentani,
         ];
     }
 }

@@ -36,7 +36,7 @@ class Materials extends Model
     // each material belongs to one vendor
     public function vendor()
     {
-        return $this->belongsTo(Vendors::class, 'vendor_number');
+        return $this->belongsTo(Vendors::class, 'vendor_id');
     }
     /**
      * Scope: Apply usage filter

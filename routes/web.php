@@ -8,6 +8,7 @@ use App\Http\Controllers\OverdueDaysController;
 use App\Http\Controllers\RecoveryDaysController;
 use App\Http\Controllers\StatusChangeController;
 use App\Http\Controllers\WarehouseMonitoringController;
+use App\Http\Controllers\MaterialBulkController;
 
 
 
@@ -26,7 +27,8 @@ Route::get('/', function () {
     ]);
 })->name('homepage.index');
 
-Route::get('/admin-dashboard', [AdminDashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/admin/materials-bulk', [AdminDashboardController::class, 'materialBulk'])->middleware(['auth', 'verified'])->name('material-bulk');
 Route::get('/admin/vendor/all', [AdminDashboardController::class, 'getAllVendorsAdminApi'])->middleware(['auth', 'verified'])->name('admin-vendor-api');
 Route::post('/admin/vendors', [AdminDashboardController::class, 'vendorStore'])->name('admin.vendors.store');
 Route::patch('/admin/vendors/{id}', [AdminDashboardController::class, 'updateVendorz'])->name('admin.vendors.update');
@@ -39,6 +41,12 @@ Route::patch('/admin/materials/{id}/attach', [AdminDashboardController::class, '
 // vendorless materials list (search + pagination)
 Route::get('/admin/materials/vendorless', [AdminDashboardController::class, 'vendorlessMaterials'])->name('materials.vendorless');
 
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/admin/materials/export', [MaterialBulkController::class, 'export'])->name('admin.materials.export');
+    Route::post('/admin/materials/import', [MaterialBulkController::class, 'import'])->name('admin.materials.import');
+    Route::get('/materials/search', [AdminDashboardController::class, 'searchMaterials'])
+        ->name('admin.materials.search');
+});
 
 
 Route::middleware('auth')->group(function () {

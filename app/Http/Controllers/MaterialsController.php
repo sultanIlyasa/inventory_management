@@ -6,25 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\MaterialResource;
 use App\Models\Materials;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MaterialsController extends Controller
 {
     // GET /api/materials (list all materials)
     public function index()
     {
-        $materials = Materials::all();
+        $materials = DB::table('materials')->orderBy('id')->paginate(15);
         return response()->json([
             'success' => true,
-            'data' => $materials
+            'message' => 'All materials data',
+            'data' => $materials,
         ]);
     }
 
-    // GET /api/materials/{id} (show single material)
-    public function show($id)
-    {
-        $materials = Materials::findOrFail($id);
-        return new MaterialResource($materials);
-    }
+    public function show($id) {}
 
     // POST /api/materials (create new material)
     public function store(Request $request)

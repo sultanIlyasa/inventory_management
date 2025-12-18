@@ -4,19 +4,40 @@ namespace App\Http\Controllers;
 
 use App\Models\Materials;
 use App\Models\Vendors;
+use App\Services\AdminDashboardService;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AdminDashboardController extends Controller
 {
+
+    public function __construct(
+        protected AdminDashboardService $adminDashboardService
+    ) {}
+
+
     public function index()
     {
         return Inertia::render('Admin/index', [
-            'initialVendorData' => $this->buildVendorData(),
+            'initialVendorData' => $this->adminDashboardService->buildVendorData(),
         ]);
     }
 
+    public function materialBulk()
+    {
+        return Inertia::render('Admin/MaterialBulk', ['initialMaterialsData' => $this->adminDashboardService->buildMaterialData()]);
+    }
+    public function searchMaterials(Request $request)
+    {
+        $search = $request->query('search');
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->adminDashboardService
+                ->searchMaterials($search, 15),
+        ]);
+    }
 
     public function getAllVendorsAdminApi()
     {
@@ -25,6 +46,13 @@ class AdminDashboardController extends Controller
             'data' => $this->buildVendorData()
         ]);
     }
+
+    private function buildMaterialsData(): array
+    {
+        return  DB::table('materials')->orderBy('id')->paginate(15)->values()
+            ->toArray();;
+    }
+
 
 
     private function buildVendorData(): array

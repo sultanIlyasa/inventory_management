@@ -9,7 +9,7 @@ use App\Http\Controllers\AdminDashboardController;
 
 use Illuminate\Support\Facades\Route;
 // Material Routes
-Route::get('/materials', [MaterialsController::class, 'index']);
+Route::get('/materials', [MaterialsController::class, 'index'])->name('api-get-materials');;
 Route::post('/materials', [MaterialsController::class, 'store']);
 Route::put('/materials/{id}', [MaterialsController::class, 'update']);
 Route::delete('/materials/{id}', [MaterialsController::class, 'destroy']);

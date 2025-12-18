@@ -27,6 +27,60 @@
                     </button>
                 </div>
 
+                <!-- Bulk Material Maintenance -->
+                <section class="mb-10 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-900">Bulk Material Maintenance</h2>
+                            <p class="text-sm text-gray-500">
+                                Download the current snapshot, edit it in Excel, then upload it back. Keep the Material
+                                ID column intact so existing daily inputs remain linked.
+                            </p>
+                        </div>
+                        <div class="flex gap-2">
+                            <a :href="route('admin.materials.export')"
+                                class="rounded-lg border border-blue-200 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">
+                                Download XLSX
+                            </a>
+                            <button type="button"
+                                class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100"
+                                @click="clearBulkFile">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex flex-col gap-3 md:flex-row md:items-center">
+                        <input ref="bulkFileInput" type="file" accept=".xlsx,.xls"
+                            class="w-full rounded border px-3 py-2 text-sm file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700"
+                            @change="handleBulkFileChange" />
+                        <button type="button"
+                            class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                            @click="submitBulkUpload" :disabled="!bulkFile || isUploadingBulk">
+                            {{ isUploadingBulk ? 'Uploading...' : 'Upload & Sync' }}
+                        </button>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500">
+                        • Leave Material ID blank to create a new entry. • Keep Vendor ID to avoid breaking vendor
+                        assignments.
+                    </p>
+                    <div v-if="bulkResult" class="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+                        <p>
+                            <span class="font-semibold text-emerald-600">{{ bulkResult.created || 0 }}</span>
+                            created,
+                            <span class="font-semibold text-blue-600">{{ bulkResult.updated || 0 }}</span>
+                            updated.
+                        </p>
+                        <p v-if="bulkResult.skipped" class="mt-1 text-xs text-orange-600">
+                            {{ bulkResult.skipped }} row(s) skipped.
+                        </p>
+                    </div>
+                    <ul v-if="bulkErrors.length" class="mt-3 list-disc space-y-1 pl-5 text-xs text-red-600">
+                        <li v-for="(error, idx) in bulkErrors" :key="idx">
+                            {{ error }}
+                        </li>
+                    </ul>
+                </section>
+
                 <!-- No Results -->
                 <div v-if="!filteredVendors.length && !isLoading"
                     class="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
@@ -441,6 +495,11 @@ const PIC_NAMES = [
 const vendorData = ref(props.initialVendorData)
 const searchTerm = ref('')
 const isLoading = ref(false)
+const bulkFileInput = ref(null)
+const bulkFile = ref(null)
+const bulkResult = ref(null)
+const bulkErrors = ref([])
+const isUploadingBulk = ref(false)
 
 // ---- vendor modals state ----
 const showCreateVendor = ref(false)
@@ -734,6 +793,61 @@ const submitRemoveMaterial = async () => {
         console.error('Remove material failed', e)
     } finally {
         isSubmittingMaterial.value = false
+    }
+}
+
+// ---- bulk material upload ----
+const resetBulkFileInput = () => {
+    if (bulkFileInput.value) {
+        bulkFileInput.value.value = ''
+    }
+}
+
+const handleBulkFileChange = (event) => {
+    const file = event?.target?.files?.[0] || null
+    bulkFile.value = file
+    bulkResult.value = null
+    bulkErrors.value = []
+}
+
+const clearBulkFile = () => {
+    bulkFile.value = null
+    bulkResult.value = null
+    bulkErrors.value = []
+    resetBulkFileInput()
+}
+
+const submitBulkUpload = async () => {
+    if (!bulkFile.value) return
+
+    isUploadingBulk.value = true
+    bulkErrors.value = []
+
+    try {
+        const formData = new FormData()
+        formData.append('file', bulkFile.value)
+
+        const response = await axios.post(route('admin.materials.import'), formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+
+        const summary = response.data?.data || null
+        bulkResult.value = summary
+        bulkErrors.value = Array.isArray(summary?.errors) ? summary.errors : []
+        bulkFile.value = null
+        resetBulkFileInput()
+        await fetchVendorData()
+    } catch (error) {
+        if (error.response?.data?.errors) {
+            const messages = Object.values(error.response.data.errors)
+                .reduce((carry, item) => carry.concat(item), [])
+                .map((msg) => String(msg))
+            bulkErrors.value = messages.length ? messages : ['Bulk upload failed.']
+        } else {
+            bulkErrors.value = ['Bulk upload failed.']
+        }
+    } finally {
+        isUploadingBulk.value = false
     }
 }
 

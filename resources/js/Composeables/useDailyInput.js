@@ -17,7 +17,6 @@ export function useDailyInput() {
     const isLoading = ref(false);
     const error = ref(null);
 
-    /* ---------------- FETCH LOGIC ---------------- */
     const fetchDailyData = async () => {
         isLoading.value = true;
         try {
@@ -41,7 +40,7 @@ export function useDailyInput() {
         }
     };
 
-    /* ---------------- DATA MAPPING ---------------- */
+    // Data Mapping
     const allItems = computed(() => {
         const items = [];
 
@@ -87,10 +86,9 @@ export function useDailyInput() {
         return items;
     });
 
-    /* ---------------- FILTERS ---------------- */
+    // Filters
     const filteredItems = computed(() => {
         let items = allItems.value;
-
         if (selectedPIC.value)
             items = items.filter((it) => it.pic_name === selectedPIC.value);
 
@@ -98,7 +96,6 @@ export function useDailyInput() {
             items = items.filter(
                 (it) => it.location === selectedLocation.value
             );
-
         if (selectedUsage.value)
             items = items.filter((it) => it.usage === selectedUsage.value);
 
@@ -115,9 +112,8 @@ export function useDailyInput() {
         return items;
     });
 
-    /* ---------------- SORT + PAGINATION ---------------- */
+    // Sort and Pagination
     const sortOrder = ref("default");
-
     const sortedItems = computed(() => {
         let items = [...filteredItems.value];
 
@@ -157,7 +153,17 @@ export function useDailyInput() {
         return sortedItems.value.slice(start, start + itemsPerPage);
     });
 
-    /* ---------------- RESET FILTERS ---------------- */
+    // Statistics based on filtered items
+    const stats = computed(() => {
+        const items = filteredItems.value;
+        return {
+            unchecked: items.filter(item => item.status === 'UNCHECKED').length,
+            shortage: items.filter(item => item.status === 'SHORTAGE').length,
+            caution: items.filter(item => item.status === 'CAUTION').length,
+            overflow: items.filter(item => item.status === 'OVERFLOW').length,
+        };
+    });
+
     const clearFilters = () => {
         searchTerm.value = "";
         selectedPIC.value = "";
@@ -167,7 +173,6 @@ export function useDailyInput() {
         currentPage.value = 1;
     };
 
-    /* ---------------- SUBMIT + DELETE ---------------- */
     const submitDailyStock = async (item) => {
         try {
             await axios.post("/api/daily-input", {
@@ -191,7 +196,7 @@ export function useDailyInput() {
         }
     };
 
-    /* ---------------- WATCHERS ---------------- */
+    // Watchers
     watch([selectedDate, selectedUsage, selectedLocation], fetchDailyData);
 
     return {
@@ -245,7 +250,7 @@ export function useDailyInput() {
         currentPage,
         sortOrder,
         uncheckedCount: computed(() => reportData.value.missing.length),
-
+        stats,
         fetchDailyData,
         clearFilters,
         submitDailyStock,

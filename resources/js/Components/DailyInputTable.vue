@@ -1,23 +1,51 @@
 <template>
-    <div class="">
-        <!-- Unchecked Count Badge & Sort Controls -->
-        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center justify-between my-2">
-            <div
-                class="px-3 py-2 bg-red-100 text-red-700 rounded border text-sm flex items-center justify-center gap-2 hover:bg-red-200 transition">
-                <span>Unchecked Items:</span>
-                <span class="font-semibold bg-red-600 text-white px-2 py-0.5 rounded">{{ uncheckedCount }}</span>
-            </div>
-
-            <!-- Sort Dropdown -->
-            <div class="flex items-center gap-2">
-                <label class="text-sm font-medium text-gray-700">Sort by Status:</label>
-                <select :value="sortOrder" @change="$emit('update:sortOrder', $event.target.value)"
-                    class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="default">Default Order</option>
-                    <option value="priority">Priority (Problems First)</option>
-                    <option value="rack-asc">Rack Address (A → Z)</option>
-                    <option value="rack-desc">Rack Address (Z → A)</option>
-                </select>
+    <div class="w-full overflow-hidden">
+        <!-- Statistics & Sort Controls -->
+        <div class="flex flex-col gap-3 my-2 sm:my-3">
+            <!-- Statistics Badges - Grid on mobile, flex on larger screens -->
+            <div class="grid grid-cols-2 sm:flex sm:flex-row gap-2 sm:gap-2 md:gap-3 lg:gap-4">
+                <div
+                    class="px-2 sm:px-3 md:px-4 lg:px-5 py-2 md:py-3 bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 rounded-lg md:rounded-xl border border-gray-300 text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2 md:gap-3 hover:shadow-md hover:from-gray-200 hover:to-gray-300 transition-all duration-200">
+                    <span class="hidden sm:inline font-medium">Unchecked:</span>
+                    <span class="sm:hidden font-medium">Uncheck:</span>
+                    <span
+                        class="font-bold bg-gray-600 text-white px-2 md:px-3 py-0.5 md:py-1 rounded-md md:rounded-lg text-xs md:text-sm shadow-sm">{{
+                        stats.unchecked }}</span>
+                </div>
+                <div
+                    class="px-2 sm:px-3 md:px-4 lg:px-5 py-2 md:py-3 bg-gradient-to-br from-red-100 to-red-200 text-red-700 rounded-lg md:rounded-xl border border-red-300 text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2 md:gap-3 hover:shadow-md hover:from-red-200 hover:to-red-300 transition-all duration-200">
+                    <span class="hidden sm:inline font-medium">Shortage:</span>
+                    <span class="sm:hidden font-medium">Short:</span>
+                    <span
+                        class="font-bold bg-red-600 text-white px-2 md:px-3 py-0.5 md:py-1 rounded-md md:rounded-lg text-xs md:text-sm shadow-sm">{{
+                        stats.shortage }}</span>
+                </div>
+                <div
+                    class="px-2 sm:px-3 md:px-4 lg:px-5 py-2 md:py-3 bg-gradient-to-br from-orange-100 to-orange-200 text-orange-700 rounded-lg md:rounded-xl border border-orange-300 text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2 md:gap-3 hover:shadow-md hover:from-orange-200 hover:to-orange-300 transition-all duration-200">
+                    <span class="hidden sm:inline font-medium">Critical:</span>
+                    <span class="sm:hidden font-medium">Crit:</span>
+                    <span
+                        class="font-bold bg-orange-600 text-white px-2 md:px-3 py-0.5 md:py-1 rounded-md md:rounded-lg text-xs md:text-sm shadow-sm">{{
+                        stats.caution }}</span>
+                </div>
+                <div
+                    class="px-2 sm:px-3 md:px-4 lg:px-5 py-2 md:py-3 bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 rounded-lg md:rounded-xl border border-blue-300 text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2 md:gap-3 hover:shadow-md hover:from-blue-200 hover:to-blue-300 transition-all duration-200">
+                    <span class="hidden sm:inline font-medium">Overflow:</span>
+                    <span class="sm:hidden font-medium">Over:</span>
+                    <span
+                        class="font-bold bg-blue-600 text-white px-2 md:px-3 py-0.5 md:py-1 rounded-md md:rounded-lg text-xs md:text-sm shadow-sm">{{
+                        stats.overflow }}</span>
+                </div>
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <label class="text-xs sm:text-sm font-medium text-gray-700">Sort by:</label>
+                    <select :value="sortOrder" @change="$emit('update:sortOrder', $event.target.value)"
+                        class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="default">Default Order</option>
+                        <option value="priority">Priority (Problems First)</option>
+                        <option value="rack-asc">Rack Address (A → Z)</option>
+                        <option value="rack-desc">Rack Address (Z → A)</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -28,8 +56,8 @@
                     <tr class="bg-gray-200">
                         <th class="p-2 border text-xs lg:text-sm">No</th>
                         <th class="p-2 border text-xs lg:text-sm">Material Number</th>
-                        <th class="p-2 border bg-yellow-300 text-xs lg:text-sm">Material Description</th>
-                        <th class="p-2 border bg-red-400 text-white text-xs lg:text-sm">PIC</th>
+                        <th class="p-2 border  text-xs lg:text-sm">Material Description</th>
+                        <th class="p-2 border  text-xs lg:text-sm">PIC</th>
                         <th class="p-2 border text-xs lg:text-sm">UoM</th>
                         <th class="p-2 border text-xs lg:text-sm cursor-pointer hover:bg-gray-300"
                             @click="toggleSortRackAddress">
@@ -58,10 +86,10 @@
                 </thead>
                 <tbody>
                     <tr v-for="(item, index) in items" :key="item.key" class="text-center hover:bg-gray-50">
-                        <td class="border p-2 font-semibold bg-gray-100 text-xs lg:text-sm">{{ startItem + index }}</td>
-                        <td class="border p-2 bg-yellow-200 text-xs lg:text-sm">{{ item.material_number }}</td>
-                        <td class="border p-2 bg-yellow-100 text-xs lg:text-sm">{{ item.description }}</td>
-                        <td class="border p-2 bg-red-100 text-xs lg:text-sm">{{ item.pic_name }}</td>
+                        <td class="border p-2 font-semibold  text-xs lg:text-sm">{{ startItem + index }}</td>
+                        <td class="border p-2 text-xs lg:text-sm">{{ item.material_number }}</td>
+                        <td class="border p-2  text-xs lg:text-sm">{{ item.description }}</td>
+                        <td class="border p-2  text-xs lg:text-sm">{{ item.pic_name }}</td>
                         <td class="border p-2 text-xs lg:text-sm">{{ item.unit_of_measure }}</td>
                         <td class="border p-2 text-xs lg:text-sm">{{ item.rack_address }}</td>
                         <td class="border p-2 text-xs lg:text-sm">{{ item.stock_minimum }}</td>
@@ -381,6 +409,15 @@ const props = defineProps({
     uncheckedCount: {
         type: Number,
         default: 0
+    },
+    stats: {
+        type: Object,
+        default: () => ({
+            unchecked: 0,
+            shortage: 0,
+            caution: 0,
+            overflow: 0
+        })
     },
     sortOrder: {
         type: String,

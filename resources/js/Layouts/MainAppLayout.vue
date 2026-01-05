@@ -179,7 +179,8 @@ const menuItems = [
             { name: "Leaderboard", route: "warehouse-monitoring.leaderboard" },
             { name: "Recovery Days", route: "warehouse-monitoring.recovery-days" },
             { name: "Status Change", route: "warehouse-monitoring.status-change" },
-            { name: "Overdue Days", route: "warehouse-monitoring.overdue-days" }
+            { name: "Overdue Days", route: "warehouse-monitoring.overdue-days" },
+            { name: "Compliance", route: "warehouse-monitoring.check-compliance" }
         ]
     },
     {

@@ -4,6 +4,12 @@
             Status Overdue Monitor
         </h1>
 
+        <Filterbar v-model:selectedPIC="localFilters.pic" :picOptions="filterOptions.pics"
+            v-model:selectedLocation="localFilters.location" :locationOptions="filterOptions.locations"
+            v-model:selectedUsage="localFilters.usage" :usageOptions="filterOptions.usages"
+            v-model:selectedGentani="localFilters.gentani" :gentaniOptions="gentaniItems" />
+
+
         <SearchBar v-model:searchTerm="localFilters.search" @clear="handleClear" :variant="variant" />
 
         <!-- Counters and Filters -->
@@ -17,11 +23,14 @@
             <div class="bg-blue-100 text-blue-700 px-4 py-2 rounded shadow font-bold">
                 OVERFLOW: {{ statusCounts.OVERFLOW }}
             </div>
+            <div class="bg-gray-200 text-gray-700 px-4 py-2 rounded shadow font-bold">
+                UNCHECKED: {{ statusCounts.UNCHECKED }}
+            </div>
 
-            <Filterbar v-model:selectedPIC="localFilters.pic" :picOptions="filterOptions.pics"
-                v-model:selectedLocation="localFilters.location" :locationOptions="filterOptions.locations"
-                v-model:selectedUsage="localFilters.usage" :usageOptions="filterOptions.usages"
-                v-model:selectedGentani="localFilters.gentani" :gentaniOptions="gentaniItems" />
+        </div>
+
+        <div class="flex gap-2 items-center my-2">
+
         </div>
 
         <!-- Sort Info Display -->
@@ -29,6 +38,14 @@
             <span class="font-medium">Sorting by:</span>
             <span class="capitalize">{{ localFilters.sortField }}</span>
             <span class="ml-1">({{ localFilters.sortDirection === 'desc' ? 'High to Low' : 'Low to High' }})</span>
+            <select id="status-filter" v-model="localFilters.status"
+                class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                <option value="">All Statuses</option>
+                <option value="SHORTAGE">SHORTAGE</option>
+                <option value="CAUTION">CAUTION</option>
+                <option value="OVERFLOW">OVERFLOW</option>
+                <option value="UNCHECKED">UNCHECKED</option>
+            </select>
         </div>
 
         <div class="relative">

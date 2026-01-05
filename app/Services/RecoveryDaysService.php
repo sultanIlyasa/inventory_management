@@ -14,19 +14,27 @@ class RecoveryDaysService
     public function getRecoveryReport(array $filters, int $perPage, int $page): array
     {
         $baseQuery = $this->buildBaseQuery($filters);
-        $total = (clone $baseQuery)->count();
 
-        $paginator = (clone $baseQuery)
+        // Wrap in subquery to handle pagination correctly with groupBy
+        $subquery = DB::query()->fromSub($baseQuery, 'recovery_base')
             ->orderByDesc('recovery_days')
-            ->orderBy('materials.material_number')
-            ->cursorPaginate($perPage);
+            ->orderBy('material_number');
 
-        $data = collect($paginator->items())->map(function ($item) {
+        $total = (clone $subquery)->count();
+
+        // Apply pagination with offset and limit
+        $offset = ($page - 1) * $perPage;
+        $items = (clone $subquery)
+            ->offset($offset)
+            ->limit($perPage)
+            ->get();
+
+        $data = collect($items)->map(function ($item) {
             return [
                 'material_number' => $item->material_number,
                 'description' => $item->description,
                 'pic' => $item->pic_name ?? '-',
-                'instock' => $item->instock,
+                'instock' => $item->instock ?? 0,
                 'current_status' => 'OK',
                 'recovery_days' => (int) $item->recovery_days,
                 'last_problem_date' => $item->last_problem_date,
@@ -57,45 +65,33 @@ class RecoveryDaysService
         ];
     }
 
-
     public function getRecoveryTrend(int $year): Collection
     {
-        $trendData = collect();
+        $subquery = $this->buildBaseQuery(['year' => $year]);
 
-        for ($month = 1; $month <= 12; $month++) {
-            $startOfMonth = Carbon::create($year, $month, 1)->startOfMonth();
-
-            if ($startOfMonth->isFuture()) {
-                break;
-            }
-
-            $monthKey = $startOfMonth->format('Y-m');
-            $monthlyQuery = $this->buildBaseQuery(['month' => $monthKey]);
-            $statsBase = DB::query()->fromSub($monthlyQuery, 'monthly_recovery');
-            $totalRecovered = (clone $statsBase)->count();
-            $averageDays = $totalRecovered > 0
-                ? (clone $statsBase)->avg('monthly_recovery.recovery_days')
-                : 0;
-
-            $trendData->push([
-                'month' => $month,
-                'average_recovery_days' => round((float) $averageDays, 1),
-                'total_recovered' => $totalRecovered,
-            ]);
-        }
-
-        return $trendData;
+        return DB::query()
+            ->fromSub($subquery, 'recovery')
+            ->select([
+                DB::raw('MONTH(recovery.recovery_date) as month'),
+                DB::raw('AVG(recovery.recovery_days) as average_recovery_days'),
+                DB::raw('COUNT(*) as total_recovered')
+            ])
+            ->groupBy(DB::raw('MONTH(recovery.recovery_date)'))
+            ->orderBy('month')
+            ->get();
     }
+
 
     private function buildBaseQuery(array $filters): Builder
     {
         $latestOk = DB::table('daily_inputs')
             ->select([
                 'material_id',
+                'daily_stock',
                 DB::raw('MAX(date) as recovery_date'),
             ])
             ->where('status', 'OK')
-            ->groupBy('material_id');
+            ->groupBy('material_id', 'daily_stock');
 
         $query = Materials::query()
             ->applyFilters($filters)
@@ -115,6 +111,7 @@ class RecoveryDaysService
                 'materials.location',
                 'materials.gentani',
                 DB::raw('ok.recovery_date'),
+                DB::raw('ok.daily_stock as instock'),
                 DB::raw('MAX(problem.date) as last_problem_date'),
                 DB::raw('DATEDIFF(ok.recovery_date, MAX(problem.date)) + 1 as recovery_days'),
             ])
@@ -126,7 +123,8 @@ class RecoveryDaysService
                 'materials.usage',
                 'materials.location',
                 'materials.gentani',
-                'ok.recovery_date'
+                'ok.recovery_date',
+                'ok.daily_stock'
             )
             ->havingNotNull('last_problem_date')
             ->having('recovery_days', '>', 0);

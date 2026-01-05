@@ -7,6 +7,11 @@ use App\Models\DailyInput;
 use App\Models\Materials;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\DailyInputExport;
+
+
 
 class DailyInputController extends Controller
 {
@@ -167,62 +172,17 @@ class DailyInputController extends Controller
         ]);
     }
 
-    public function weeklyStatus(Request $request)
+    public function export(Request $request)
     {
-        $week = $request->query('date', Carbon::now()->toDateString());
-        $endOfWeek = Carbon::parse($week)->endOfWeek()->toDateString();
-        $startOfWeek = Carbon::parse($week)->startOfWeek()->toDateString();
+        $date = $request->query('date', Carbon::today()->toDateString());
+        $usage = $request->query('usage');
         $location = $request->query('location');
 
-        // Build query with optional filters
-        $dailyInputsQuery = DailyInput::with('material')
-            ->whereBetween('date', [$startOfWeek, $endOfWeek])
-            ->whereHas('material', function ($query) {
-                $query->where('usage', 'WEEKLY');
-            });
-        // Filter by usage (supports single, comma-separated, or array)
-        if (!empty($usage)) {
-            $usages = is_array($usage) ? $usage : array_map('trim', explode(',', $usage));
-            $dailyInputsQuery->whereHas('material', function ($query) use ($usages) {
-                $query->whereIn('usage', $usages);
-            });
-        }
-
-        // Filter by location (supports single, comma-separated, or array)
-        if (!empty($location)) {
-            $locations = is_array($location) ? $location : array_map('trim', explode(',', $location));
-            $dailyInputsQuery->whereHas('material', function ($query) use ($locations) {
-                $query->whereIn('location', $locations);
-            });
-        }
-
-        // Get checked materials after applying filters
-        $checked = $dailyInputsQuery->get();
-
-        // Extract IDs of checked materials
-        $checkedIds = $checked->pluck('material_id')->toArray();
-
-        // Get missing materials (apply same filters)
-        $missing = Materials::query()
-            ->where('usage', 'WEEKLY')
-            ->when(!empty($location), function ($query) use ($location) {
-                $locations = is_array($location)
-                    ? $location
-                    : array_map('trim', explode(',', $location));
-                $query->whereIn('location', $locations);
-            })
-            ->whereNotIn('id', $checkedIds)
-            ->get();
-
-        return response()->json([
-            'success' => true,
-            'start_week' => $startOfWeek,
-            'end_week' => $endOfWeek,
-            'filters' => [
-                'location' => $location,
-            ],
-            'checked' => $checked,
-            'missing' => $missing,
-        ]);
+        $fileName = 'Inventory-' .
+            now()
+            ->locale('id')
+            ->translatedFormat('d-F-Y_H.i') .
+            '_WIB.xlsx';
+        return Excel::download(new DailyInputExport($date, $usage, $location), $fileName);
     }
 }

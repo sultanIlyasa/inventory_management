@@ -6,7 +6,7 @@
                     <!-- Main content -->
                     <div class="mx-auto w-full">
                         <h1 class="flex flex-col mx-auto text-2xl font-bold text-center my-10">
-                            Daily Input Dashboard
+                            Inventory Dashboard
                         </h1>
                         <!-- Table Section -->
                         <div class="bg-white rounded-2xl shadow-lg p-4 ">

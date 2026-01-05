@@ -1,6 +1,27 @@
 <template>
-    <MainAppLayout title="Overdue Days Monitor" subtitle="Track materials in problem status">
+    <MainAppLayout title="Check Compliance" subtitle="Materials that need checking today">
         <div class="max-w-7xl mx-auto p-4">
+            <!-- Header Info -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-blue-700">
+                            <strong>Today's Checklist:</strong> These materials need to be checked based on their
+                            schedule
+                            (Daily materials need daily checks, Weekly materials need checks once per week, Monthly
+                            materials need checks once per month).
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Filters Section -->
             <div class="mb-6">
                 <button
@@ -19,7 +40,8 @@
                         <!-- Search -->
                         <div>
                             <label class="mb-1 block text-sm font-medium text-gray-700">Search</label>
-                            <input v-model="localFilters.search" type="text" placeholder="Material number or description"
+                            <input v-model="localFilters.search" type="text"
+                                placeholder="Material number or description"
                                 class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" />
                         </div>
 
@@ -69,40 +91,6 @@
                             </select>
                         </div>
 
-                        <!-- Status -->
-                        <div>
-                            <label class="mb-1 block text-sm font-medium text-gray-700">Status</label>
-                            <select v-model="localFilters.status"
-                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
-                                <option value="">All Statuses</option>
-                                <option value="SHORTAGE">SHORTAGE</option>
-                                <option value="CAUTION">CAUTION</option>
-                                <option value="OVERFLOW">OVERFLOW</option>
-                                <option value="UNCHECKED">UNCHECKED</option>
-                            </select>
-                        </div>
-
-                        <!-- Sort Field -->
-                        <div>
-                            <label class="mb-1 block text-sm font-medium text-gray-700">Sort By</label>
-                            <select v-model="localFilters.sortField"
-                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
-                                <option value="status">Status</option>
-                                <option value="days">Overdue Days</option>
-                                <option value="last_updated">Last Updated</option>
-                            </select>
-                        </div>
-
-                        <!-- Sort Direction -->
-                        <div>
-                            <label class="mb-1 block text-sm font-medium text-gray-700">Sort Direction</label>
-                            <select v-model="localFilters.sortDirection"
-                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
-                                <option value="desc">High to Low</option>
-                                <option value="asc">Low to High</option>
-                            </select>
-                        </div>
-
                         <!-- Action Buttons -->
                         <div class="flex items-end gap-3 sm:col-span-2">
                             <button @click="applyFilters" :disabled="isLoading"
@@ -120,21 +108,21 @@
 
             <!-- Statistics Cards -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-red-100 text-red-700 px-4 py-3 rounded-lg shadow font-bold text-center">
-                    <div class="text-2xl">{{ statistics.SHORTAGE || 0 }}</div>
-                    <div class="text-sm">SHORTAGE</div>
-                </div>
-                <div class="bg-orange-100 text-orange-700 px-4 py-3 rounded-lg shadow font-bold text-center">
-                    <div class="text-2xl">{{ statistics.CAUTION || 0 }}</div>
-                    <div class="text-sm">CAUTION</div>
+                <div class="bg-green-100 text-green-700 px-4 py-3 rounded-lg shadow font-bold text-center">
+                    <div class="text-2xl">{{ statistics.DAILY || 0 }}</div>
+                    <div class="text-sm">DAILY Need Check</div>
                 </div>
                 <div class="bg-blue-100 text-blue-700 px-4 py-3 rounded-lg shadow font-bold text-center">
-                    <div class="text-2xl">{{ statistics.OVERFLOW || 0 }}</div>
-                    <div class="text-sm">OVERFLOW</div>
+                    <div class="text-2xl">{{ statistics.WEEKLY || 0 }}</div>
+                    <div class="text-sm">WEEKLY Need Check</div>
                 </div>
-                <div class="bg-gray-200 text-gray-700 px-4 py-3 rounded-lg shadow font-bold text-center">
-                    <div class="text-2xl">{{ statistics.UNCHECKED || 0 }}</div>
-                    <div class="text-sm">UNCHECKED</div>
+                <div class="bg-purple-100 text-purple-700 px-4 py-3 rounded-lg shadow font-bold text-center">
+                    <div class="text-2xl">{{ statistics.MONTHLY || 0 }}</div>
+                    <div class="text-sm">MONTHLY Need Check</div>
+                </div>
+                <div class="bg-orange-100 text-orange-700 px-4 py-3 rounded-lg shadow font-bold text-center">
+                    <div class="text-2xl">{{ statistics.TOTAL || 0 }}</div>
+                    <div class="text-sm">TOTAL Need Check</div>
                 </div>
             </div>
 
@@ -157,40 +145,47 @@
                                 <th class="p-3 border text-sm font-semibold text-left">Material Number</th>
                                 <th class="p-3 border text-sm font-semibold text-left">Description</th>
                                 <th class="p-3 border text-sm font-semibold text-left">PIC</th>
-                                <th class="p-3 border text-sm font-semibold text-center">Stock</th>
-                                <th class="p-3 border text-sm font-semibold text-center">Status</th>
-                                <th class="p-3 border text-sm font-semibold text-center">Overdue Days</th>
-                                <th class="p-3 border text-sm font-semibold text-center">Last Updated</th>
+                                <th class="p-3 border text-sm font-semibold text-center">Usage</th>
+                                <th class="p-3 border text-sm font-semibold text-center">Stock Range</th>
+                                <th class="p-3 border text-sm font-semibold text-center">Last Check Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="item in overdueReports.data" :key="item.key" class="hover:bg-gray-50">
+                            <tr v-for="item in complianceReports.data" :key="item.key" class="hover:bg-gray-50">
                                 <td class="border p-2 bg-yellow-200 text-sm font-bold">{{ item.material_number }}</td>
                                 <td class="border p-2 bg-yellow-100 text-sm">{{ item.description }}</td>
                                 <td class="border p-2 bg-red-100 text-sm">{{ item.pic_name }}</td>
-                                <td class="border p-2 text-sm text-center">{{ item.instock }}</td>
                                 <td class="border p-2 text-center">
-                                    <span :class="getStatusClass(item.status)" class="px-3 py-1 rounded text-xs font-bold">
-                                        {{ item.status }}
+                                    <span :class="getUsageBadgeClass(item.usage)"
+                                        class="px-3 py-1 rounded text-xs font-bold">
+                                        {{ item.usage }}
                                     </span>
                                 </td>
-                                <td class="border p-2 text-sm text-center font-semibold" :class="getDaysClass(item.days)">
-                                    {{ item.days }} days
+                                <td class="border p-2 text-sm text-center">{{ item.stock_min }} - {{ item.stock_max }}
                                 </td>
-                                <td class="border p-2 text-sm text-center" :class="{
-                                    'text-red-600 font-bold': !item.last_updated,
-                                    'text-gray-700': item.last_updated
-                                }">
-                                    <span v-if="item.last_updated">{{ formatDate(item.last_updated) }}</span>
-                                    <span v-else class="font-bold">Never Checked</span>
+                                <td class="border p-2 text-center" :class="getDaysClass(item.days_since_check)">
+                                    <div v-if="item.days_since_check === 999" class="font-bold">
+                                        <div class="text-sm">Never Checked</div>
+                                        <div class="text-xs text-red-500 mt-1">⚠️ No history</div>
+                                    </div>
+                                    <div v-else-if="item.last_check_date">
+                                        <div class="text-sm font-semibold">{{ formatDate(item.last_check_date) }}</div>
+                                        <div class="text-xs mt-1">
+                                            <span class="font-bold">({{ item.days_since_check }} days ago)</span>
+                                        </div>
+                                    </div>
+                                    <div v-else class="font-bold text-sm">
+                                        Due Today
+                                    </div>
                                 </td>
                             </tr>
 
                             <!-- Empty State -->
-                            <tr v-if="!overdueReports.data || overdueReports.data.length === 0">
-                                <td colspan="7" class="border p-8 text-center text-gray-500">
-                                    <div class="text-3xl mb-2">📊</div>
-                                    <div class="text-sm font-semibold">No Data Available</div>
+                            <tr v-if="!complianceReports.data || complianceReports.data.length === 0">
+                                <td colspan="6" class="border p-8 text-center text-gray-500">
+                                    <div class="text-3xl mb-2">✅</div>
+                                    <div class="text-sm font-semibold">All materials are up to date!</div>
+                                    <div class="text-xs text-gray-400 mt-1">No materials need checking right now</div>
                                 </td>
                             </tr>
                         </tbody>
@@ -198,28 +193,41 @@
                 </div>
 
                 <!-- Pagination -->
-                <div v-if="overdueReports.pagination && overdueReports.pagination.last_page > 1"
-                    class="border-t p-4 flex items-center justify-between">
+                <div v-if="complianceReports.pagination && complianceReports.pagination.last_page > 1"
+                    class="border-t p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div class="text-sm text-gray-600">
-                        Showing {{ (overdueReports.pagination.current_page - 1) * overdueReports.pagination.per_page + 1 }}
-                        to {{ Math.min(overdueReports.pagination.current_page * overdueReports.pagination.per_page,
-                            overdueReports.pagination.total) }}
-                        of {{ overdueReports.pagination.total }} results
+                        Showing {{ (complianceReports.pagination.current_page - 1) *
+                            complianceReports.pagination.per_page + 1 }}
+                        to {{ Math.min(complianceReports.pagination.current_page *
+                            complianceReports.pagination.per_page,
+                            complianceReports.pagination.total) }}
+                        of {{ complianceReports.pagination.total }} results
                     </div>
-                    <div class="flex gap-2">
-                        <button @click="changePage(overdueReports.pagination.current_page - 1)"
-                            :disabled="overdueReports.pagination.current_page === 1 || isLoading"
+                    <div class="flex items-center gap-2 flex-wrap justify-center">
+                        <button @click="changePage(complianceReports.pagination.current_page - 1)"
+                            :disabled="complianceReports.pagination.current_page === 1 || isLoading"
                             class="px-3 py-1 border rounded bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
                             Previous
                         </button>
-                        <span class="px-3 py-1">
-                            Page {{ overdueReports.pagination.current_page }} of {{ overdueReports.pagination.last_page }}
+                        <span class="px-3 py-1 text-sm">
+                            Page {{ complianceReports.pagination.current_page }} of {{
+                                complianceReports.pagination.last_page }}
                         </span>
-                        <button @click="changePage(overdueReports.pagination.current_page + 1)"
-                            :disabled="overdueReports.pagination.current_page === overdueReports.pagination.last_page || isLoading"
+                        <button @click="changePage(complianceReports.pagination.current_page + 1)"
+                            :disabled="complianceReports.pagination.current_page === complianceReports.pagination.last_page || isLoading"
                             class="px-3 py-1 border rounded bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
                             Next
                         </button>
+                        <div class="flex items-center gap-2 ml-4">
+                            <label for="jumpToPage" class="text-sm text-gray-600">Jump to:</label>
+                            <input id="jumpToPage" v-model="jumpToPageInput" type="number" min="1"
+                                :max="complianceReports.pagination.last_page" @keyup.enter="jumpToPage"
+                                class="w-16 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <button @click="jumpToPage" :disabled="isLoading"
+                                class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Go
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -234,7 +242,7 @@ import { route } from 'ziggy-js'
 import MainAppLayout from '@/Layouts/MainAppLayout.vue'
 
 const props = defineProps({
-    overdueReports: {
+    complianceReports: {
         type: Object,
         required: true
     },
@@ -254,23 +262,21 @@ const props = defineProps({
 
 const showFilters = ref(false)
 const isLoading = ref(false)
+const jumpToPageInput = ref('')
 
 const localFilters = ref({
     search: props.filters.search || '',
     pic: props.filters.pic || '',
     location: props.filters.location || '',
     usage: props.filters.usage || '',
-    gentani: props.filters.gentani || '',
-    status: props.filters.status || '',
-    sortField: props.filters.sortField || 'status',
-    sortDirection: props.filters.sortDirection || 'desc'
+    gentani: props.filters.gentani || ''
 })
 
 const applyFilters = () => {
     if (isLoading.value) return
 
     router.get(
-        route('warehouse-monitoring.overdue-days'),
+        route('warehouse-monitoring.check-compliance'),
         {
             ...localFilters.value,
             page: 1
@@ -278,7 +284,7 @@ const applyFilters = () => {
         {
             preserveState: true,
             preserveScroll: true,
-            only: ['overdueReports', 'statistics', 'filterOptions'],
+            only: ['complianceReports', 'statistics', 'filterOptions'],
             onStart: () => { isLoading.value = true },
             onFinish: () => { isLoading.value = false }
         }
@@ -291,10 +297,7 @@ const clearFilters = () => {
         pic: '',
         location: '',
         usage: '',
-        gentani: '',
-        status: '',
-        sortField: 'status',
-        sortDirection: 'desc'
+        gentani: ''
     }
     applyFilters()
 }
@@ -303,7 +306,7 @@ const changePage = (page) => {
     if (isLoading.value) return
 
     router.get(
-        route('warehouse-monitoring.overdue-days'),
+        route('warehouse-monitoring.check-compliance'),
         {
             ...localFilters.value,
             page: page
@@ -311,36 +314,44 @@ const changePage = (page) => {
         {
             preserveState: true,
             preserveScroll: true,
-            only: ['overdueReports'],
+            only: ['complianceReports'],
             onStart: () => { isLoading.value = true },
             onFinish: () => { isLoading.value = false }
         }
     )
 }
 
-const getStatusClass = (status) => {
-    switch (status) {
-        case 'SHORTAGE':
-            return 'bg-red-600 text-white'
-        case 'CAUTION':
-            return 'bg-orange-500 text-yellow-100'
-        case 'OVERFLOW':
-            return 'bg-gray-300 text-gray-700'
-        case 'UNCHECKED':
-            return 'bg-gray-400 text-white'
+const jumpToPage = () => {
+    const pageNum = parseInt(jumpToPageInput.value)
+    if (pageNum && pageNum >= 1 && pageNum <= props.complianceReports.pagination.last_page) {
+        changePage(pageNum)
+        jumpToPageInput.value = ''
+    }
+}
+
+const getUsageBadgeClass = (usage) => {
+    switch (usage) {
+        case 'DAILY':
+            return 'bg-green-500 text-white'
+        case 'WEEKLY':
+            return 'bg-blue-500 text-white'
+        case 'MONTHLY':
+            return 'bg-purple-500 text-white'
         default:
-            return 'bg-gray-200 text-gray-700'
+            return 'bg-gray-300 text-gray-700'
     }
 }
 
 const getDaysClass = (days) => {
-    if (days >= 15) return 'text-red-600'
-    if (days >= 7) return 'text-orange-600'
-    return 'text-yellow-600'
+    if (days === 999) return 'text-red-600'
+    if (days >= 30) return 'text-red-600'
+    if (days >= 14) return 'text-orange-600'
+    if (days >= 7) return 'text-yellow-600'
+    return 'text-gray-700'
 }
 
 const formatDate = (dateString) => {
-    if (!dateString) return 'Never'
+    if (!dateString) return 'N/A'
 
     const date = new Date(dateString)
     const today = new Date()

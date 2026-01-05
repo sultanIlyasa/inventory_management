@@ -1,7 +1,6 @@
 <template>
     <MainAppLayout>
         <div class="max-w-7xl mx-auto">
-
             <!-- Filters Section -->
             <div class=" mb-6">
                 <button

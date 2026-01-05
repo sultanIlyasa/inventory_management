@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\CheckComplianceController;
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PushNotificationController;
@@ -69,6 +70,9 @@ Route::prefix('/warehouse-monitoring')->group(function () {
 
     Route::get('/overdue-days', [OverdueDaysController::class, 'index'])
         ->name('warehouse-monitoring.overdue-days');
+
+    Route::get('/check-compliance', [CheckComplianceController::class, 'index'])
+        ->name('warehouse-monitoring.check-compliance');
 
     Route::get('/leaderboard', [LeaderboardController::class, 'index'])
         ->name('warehouse-monitoring.leaderboard');

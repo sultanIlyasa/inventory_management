@@ -17,8 +17,7 @@ class StatusChangeService
         $total = (clone $baseQuery)->count();
 
         $paginator = (clone $baseQuery)
-            ->orderByDesc('changes.total_from_ok')
-            ->cursorPaginate($perPage);
+            ->orderByDesc('changes.total_from_ok')->paginate($perPage, ['*'], 'page', $page);
 
         $data = collect($paginator->items())->map(function ($item) {
             return [

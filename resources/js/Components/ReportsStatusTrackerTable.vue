@@ -48,6 +48,23 @@
                             </svg>
                         </div>
                     </th>
+                    <th class="p-1 sm:p-2 border text-sm cursor-pointer hover:bg-gray-300" @click="toggleSort('last_updated')">
+                        <div class="flex items-center justify-center gap-1">
+                            <span>Last Updated</span>
+                            <svg v-if="sortField === 'last_updated'" class="w-4 h-4" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path v-if="sortDirection === 'asc'" stroke-linecap="round" stroke-linejoin="round"
+                                    stroke-width="2" d="M5 15l7-7 7 7" />
+                                <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7" />
+                            </svg>
+                            <svg v-else class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                            </svg>
+                        </div>
+                    </th>
                 </tr>
             </thead>
             <tbody>
@@ -96,11 +113,18 @@
                     }">
                         {{ item.days }} days
                     </td>
+                    <td class="border p-1 sm:p-2 text-sm" :class="{
+                        'text-red-600 font-bold': !item.last_updated,
+                        'text-gray-700': item.last_updated
+                    }">
+                        <span v-if="item.last_updated">{{ formatDate(item.last_updated) }}</span>
+                        <span v-else class="font-bold">Never Checked</span>
+                    </td>
                 </tr>
 
                 <!-- Empty State -->
                 <tr v-if="!sortedItems.length">
-                    <td colspan="6" class="border p-6 text-center text-gray-500">
+                    <td colspan="7" class="border p-6 text-center text-gray-500">
                         <div class="text-2xl mb-2">📊</div>
                         <div class="text-sm font-semibold">No Data Available</div>
                     </td>
@@ -146,6 +170,32 @@ const toggleSort = (field) => {
     } else {
         // Change field and set to descending by default
         emit('sort-change', { field, direction: 'desc' })
+    }
+}
+
+const formatDate = (dateString) => {
+    if (!dateString) return 'Never'
+
+    const date = new Date(dateString)
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    // Reset time part for comparison
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate())
+
+    if (dateOnly.getTime() === todayOnly.getTime()) {
+        return 'Today'
+    } else if (dateOnly.getTime() === yesterdayOnly.getTime()) {
+        return 'Yesterday'
+    } else {
+        // Format as DD/MM/YYYY
+        const day = String(date.getDate()).padStart(2, '0')
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const year = date.getFullYear()
+        return `${day}/${month}/${year}`
     }
 }
 

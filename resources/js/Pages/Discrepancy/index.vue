@@ -76,7 +76,7 @@
                                 <span class="block text-lg text-red-600 font-bold mb-1">Discrepancy Items (-)</span>
                                 <div class="flex items-baseline gap-1">
                                     <span class="text-lg font-bold text-red-800">{{ statistics.discrepancyCount
-                                        }}</span>
+                                    }}</span>
                                     <span class="text-xs text-red-400">items</span>
                                 </div>
                             </div>
@@ -101,7 +101,7 @@
                                 <span class="block text-lg text-green-600 font-bold mb-1">Discrepancy Amount (+)</span>
                                 <span class="text-lg font-bold text-gray-800">{{
                                     formatCurrency(statistics.surplusAmount)
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div class="bg-white p-3 rounded-lg shadow-sm border border-red-100">
                                 <span class="block text-lg text-red-600 font-bold mb-1">Discrepancy Amount (-)</span>
@@ -115,11 +115,7 @@
             </div>
 
             <!-- Search Bar -->
-            <SearchBar
-                :searchTerm="searchQuery"
-                @update:searchTerm="handleSearchUpdate"
-                @clear="clearSearch"
-            />
+            <SearchBar :searchTerm="searchQuery" @update:searchTerm="handleSearchUpdate" @clear="clearSearch" />
 
             <!-- Filters -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 p-4">
@@ -176,8 +172,7 @@
                                 class="px-4 py-3 w-28 bg-yellow-50/30 text-yellow-700 border-r border-yellow-100 align-bottom">
                                 Error <br><span class="text-[10px]">(Mvmt)</span></th>
 
-                            <th
-                                class="px-4 py-3 text-center sticky right-0 bg-gray-50 shadow-sm border-l border-gray-200 align-bottom cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                            <th class="px-4 py-3 text-center sticky right-0 bg-gray-50 shadow-sm border-l border-gray-200 align-bottom cursor-pointer hover:bg-gray-100 transition-colors select-none"
                                 @click="handleSort('final_qty')">
                                 <div class="flex items-center justify-center gap-1">
                                     <span>Final Qty</span>
@@ -195,8 +190,7 @@
                                     </div>
                                 </div>
                             </th>
-                            <th
-                                class="px-4 py-3 text-center sticky right-0 bg-gray-50 shadow-sm border-l border-gray-200 align-bottom cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                            <th class="px-4 py-3 text-center sticky right-0 bg-gray-50 shadow-sm border-l border-gray-200 align-bottom cursor-pointer hover:bg-gray-100 transition-colors select-none"
                                 @click="handleSort('final_amount')">
                                 <div class="flex items-center justify-center gap-1">
                                     <span>Final Amount</span>
@@ -240,7 +234,7 @@
                             class="group hover:bg-gray-50 transition-colors relative">
 
                             <td class="px-4 py-4 font-medium text-gray-900 border-r border-gray-100">{{ item.materialNo
-                            }}</td>
+                                }}</td>
                             <td class="px-4  border-r border-gray-100">
                                 <div class="text-gray-900 text-base">{{ item.name }}</div>
                                 <div class="text-xs text-gray-500 mt-0.5 inline-block bg-gray-100 px-1.5 rounded-sm">{{

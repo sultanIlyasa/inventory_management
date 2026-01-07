@@ -23,61 +23,80 @@
                     <!-- Daily Input -->
                     <Link href="/daily-input"
                         class="group hover:shadow-xl transition-all duration-300 rounded-xl bg-white border border-gray-200 p-6 flex flex-col items-center text-center cursor-pointer">
-                    <div class="rounded-full bg-emerald-100 p-3 mb-4 group-hover:bg-emerald-200 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-emerald-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-lg font-semibold text-gray-800">Daily Input</h3>
-                    <p class="text-sm text-gray-500 mt-1">
-                        Input daily warehouse stock and update material availability.
-                    </p>
-                    <span
-                        class="mt-4 inline-block px-4 py-2 text-sm rounded bg-emerald-600 text-white group-hover:bg-emerald-700 transition">
-                        Go
-                    </span>
+                        <div class="rounded-full bg-emerald-100 p-3 mb-4 group-hover:bg-emerald-200 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-emerald-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800">Daily Input</h3>
+                        <p class="text-sm text-gray-500 mt-1">
+                            Input daily warehouse stock and update material availability.
+                        </p>
+                        <span
+                            class="mt-4 inline-block px-4 py-2 text-sm rounded bg-emerald-600 text-white group-hover:bg-emerald-700 transition">
+                            Go
+                        </span>
                     </Link>
 
                     <!-- Warehouse Monitoring -->
                     <Link href="/warehouse-monitoring"
                         class="group hover:shadow-xl transition-all duration-300 rounded-xl bg-white border border-gray-200 p-6 flex flex-col items-center text-center cursor-pointer">
-                    <div class="rounded-full bg-blue-100 p-3 mb-4 group-hover:bg-blue-200 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 10h4l3 10h8l3-10h4M5 6h14M10 10V6m4 4V6" />
-                        </svg>
-                    </div>
-                    <h3 class="text-lg font-semibold text-gray-800">Warehouse Monitoring</h3>
-                    <p class="text-sm text-gray-500 mt-1">
-                        Track shortages, overflows, and real-time warehouse performance.
-                    </p>
-                    <span
-                        class="mt-4 inline-block px-4 py-2 text-sm rounded bg-blue-600 text-white group-hover:bg-blue-700 transition">
-                        Monitor
-                    </span>
+                        <div class="rounded-full bg-blue-100 p-3 mb-4 group-hover:bg-blue-200 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 10h4l3 10h8l3-10h4M5 6h14M10 10V6m4 4V6" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800">Warehouse Monitoring</h3>
+                        <p class="text-sm text-gray-500 mt-1">
+                            Track shortages, overflows, and real-time warehouse performance.
+                        </p>
+                        <span
+                            class="mt-4 inline-block px-4 py-2 text-sm rounded bg-blue-600 text-white group-hover:bg-blue-700 transition">
+                            Monitor
+                        </span>
                     </Link>
 
                     <!-- Login -->
                     <Link href="/login"
                         class="group hover:shadow-xl transition-all duration-300 rounded-xl bg-white border border-gray-200 p-6 flex flex-col items-center text-center cursor-pointer">
-                    <div class="rounded-full bg-purple-100 p-3 mb-4 group-hover:bg-purple-200 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-lg font-semibold text-gray-800">Login</h3>
-                    <p class="text-sm text-gray-500 mt-1">
-                        Access your account to manage inventory and warehouse tasks.
-                    </p>
-                    <span
-                        class="mt-4 inline-block px-4 py-2 text-sm rounded bg-purple-600 text-white group-hover:bg-purple-700 transition">
-                        Login
-                    </span>
+                        <div class="rounded-full bg-purple-100 p-3 mb-4 group-hover:bg-purple-200 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800">Login</h3>
+                        <p class="text-sm text-gray-500 mt-1">
+                            Access your account to manage inventory and warehouse tasks.
+                        </p>
+                        <span
+                            class="mt-4 inline-block px-4 py-2 text-sm rounded bg-purple-600 text-white group-hover:bg-purple-700 transition">
+                            Login
+                        </span>
+                    </Link>
+                    <!-- Discrepancy Dashboard -->
+                    <Link href="/discrepancy-dashboard"
+                        class="group hover:shadow-xl transition-all duration-300 rounded-xl bg-white border border-gray-200 p-6 flex flex-col items-center text-center cursor-pointer">
+                        <div class="rounded-full bg-yellow-100 p-3 mb-4 group-hover:bg-yellow-200 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800">Discrepancy Dashboard</h3>
+                        <p class="text-sm text-gray-500 mt-1">
+                            Compare discrepancy between system stock and actual stock
+                        </p>
+                        <span
+                            class="mt-4 inline-block px-4 py-2 text-sm rounded bg-yellow-600 text-white group-hover:bg-yellow-700 transition">
+                            Go
+                        </span>
                     </Link>
 
                 </div>

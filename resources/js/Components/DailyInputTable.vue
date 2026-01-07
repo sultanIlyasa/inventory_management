@@ -80,7 +80,7 @@
                                 </svg>
                             </div>
                         </th>
-                        <th class="p-2 border text-xs lg:text-sm">SoH</th>
+                        <th class="p-2 border text-xs lg:text-sm">Actual Stock</th>
                         <th class="p-2 border text-xs lg:text-sm">Action</th>
                     </tr>
                 </thead>

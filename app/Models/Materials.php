@@ -38,6 +38,14 @@ class Materials extends Model
     {
         return $this->belongsTo(Vendors::class, 'vendor_id');
     }
+
+    /**
+     * One Material has one DiscrepancyMaterial
+     */
+    public function discrepancyMaterial()
+    {
+        return $this->hasOne(DiscrepancyMaterials::class, 'material_id', 'id');
+    }
     /**
      * Scope: Apply usage filter
      */

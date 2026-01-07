@@ -10,6 +10,7 @@ use App\Http\Controllers\RecoveryDaysController;
 use App\Http\Controllers\StatusChangeController;
 use App\Http\Controllers\WarehouseMonitoringController;
 use App\Http\Controllers\MaterialBulkController;
+use App\Http\Controllers\DiscrepancyController;
 
 
 
@@ -60,9 +61,17 @@ Route::get('/daily-input', function () {
     return Inertia::render('DailyInput/index');
 })->name('daily-input.index');
 
-Route::get('/test-page', function () {
-    return Inertia::render('Testing/index');
-})->name('test-page.index');
+// Discrepancy Dashboard
+Route::get('/discrepancy-dashboard', [DiscrepancyController::class, 'index'])->name('discrepancy.index');
+
+// Discrepancy API Routes
+Route::prefix('api/discrepancy')->name('api.discrepancy.')->group(function () {
+    Route::get('/', [DiscrepancyController::class, 'getDiscrepancyData'])->name('data');
+    Route::get('/template', [DiscrepancyController::class, 'downloadTemplate'])->name('template');
+    Route::post('/import', [DiscrepancyController::class, 'import'])->name('import');
+    Route::post('/sync', [DiscrepancyController::class, 'sync'])->name('sync');
+    Route::patch('/{materialId}', [DiscrepancyController::class, 'update'])->name('update');
+});
 
 
 Route::prefix('/warehouse-monitoring')->group(function () {

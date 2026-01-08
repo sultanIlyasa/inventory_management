@@ -49,9 +49,10 @@ class DiscrepancyService
             $searchTerm = $filters['search'];
             $query->whereHas('material', function ($q) use ($searchTerm) {
                 $q->where('material_number', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('description', 'LIKE', "%{$searchTerm}%");
+                    ->orWhere('description', 'LIKE', "%{$searchTerm}%");
             });
         }
+
 
         // Apply sorting
         $sortBy = $filters['sort_by'] ?? null;
@@ -67,46 +68,46 @@ class DiscrepancyService
         $paginatedData = $query->paginate($perPage);
 
         $discrepancies = $paginatedData->map(function ($discrepancy) {
-                $material = $discrepancy->material;
-                $latestInput = DailyInput::getLatestForMaterial($discrepancy->material_id);
+            $material = $discrepancy->material;
+            $latestInput = DailyInput::getLatestForMaterial($discrepancy->material_id);
 
-                $qtyActual = $latestInput ? $latestInput->daily_stock : 0;
-                $qtyActualTimestamp = $latestInput ? $latestInput->updated_at->format('Y-m-d H:i') : null;
-                $sohTimestamp = $discrepancy->last_synced_at ? $discrepancy->last_synced_at->format('Y-m-d H:i') : null;
+            $qtyActual = $latestInput ? $latestInput->daily_stock : 0;
+            $qtyActualTimestamp = $latestInput ? $latestInput->updated_at->format('Y-m-d H:i') : null;
+            $sohTimestamp = $discrepancy->last_synced_at ? $discrepancy->last_synced_at->format('Y-m-d H:i') : null;
 
-                // Calculate time difference in hours
-                $timeDiff = 0;
-                if ($latestInput && $discrepancy->last_synced_at) {
-                    $timeDiff = round(
-                        abs($discrepancy->last_synced_at->diffInHours($latestInput->updated_at)),
-                        1
-                    );
-                }
+            // Calculate time difference in hours
+            $timeDiff = 0;
+            if ($latestInput && $discrepancy->last_synced_at) {
+                $timeDiff = round(
+                    abs($discrepancy->last_synced_at->diffInHours($latestInput->updated_at)),
+                    1
+                );
+            }
 
-                $initialDiscrepancy = $qtyActual - $discrepancy->soh;
-                $explained = $discrepancy->outstanding_gr + $discrepancy->outstanding_gi + $discrepancy->error_moving;
-                $finalDiscrepancy = $initialDiscrepancy + $explained;
+            $initialDiscrepancy = $qtyActual - $discrepancy->soh;
+            $explained = $discrepancy->outstanding_gr + $discrepancy->outstanding_gi + $discrepancy->error_moving;
+            $finalDiscrepancy = $initialDiscrepancy + $explained;
 
-                return [
-                    'id' => $discrepancy->id,
-                    'materialNo' => $material->material_number,
-                    'name' => $material->description,
-                    'uom' => $material->unit_of_measure,
-                    'location' => $material->location,
-                    'price' => (float) $discrepancy->price,
-                    'soh' => $discrepancy->soh,
-                    'sohTimestamp' => $sohTimestamp,
-                    'qtyActual' => $qtyActual,
-                    'qtyActualTimestamp' => $qtyActualTimestamp,
-                    'timeDiff' => $timeDiff,
-                    'outGR' => $discrepancy->outstanding_gr,
-                    'outGI' => $discrepancy->outstanding_gi,
-                    'errorMvmt' => $discrepancy->error_moving,
-                    'initialDiscrepancy' => $initialDiscrepancy,
-                    'finalDiscrepancy' => $finalDiscrepancy,
-                    'finalDiscrepancyAmount' => $finalDiscrepancy * $discrepancy->price,
-                ];
-            });
+            return [
+                'id' => $discrepancy->id,
+                'materialNo' => $material->material_number,
+                'name' => $material->description,
+                'uom' => $material->unit_of_measure,
+                'location' => $material->location,
+                'price' => (float) $discrepancy->price,
+                'soh' => $discrepancy->soh,
+                'sohTimestamp' => $sohTimestamp,
+                'qtyActual' => $qtyActual,
+                'qtyActualTimestamp' => $qtyActualTimestamp,
+                'timeDiff' => $timeDiff,
+                'outGR' => $discrepancy->outstanding_gr,
+                'outGI' => $discrepancy->outstanding_gi,
+                'errorMvmt' => $discrepancy->error_moving,
+                'initialDiscrepancy' => $initialDiscrepancy,
+                'finalDiscrepancy' => $finalDiscrepancy,
+                'finalDiscrepancyAmount' => $finalDiscrepancy * $discrepancy->price,
+            ];
+        });
 
         // Get all items for statistics (not just current page)
         $allQuery = DiscrepancyMaterials::with(['material.vendor']);
@@ -119,7 +120,7 @@ class DiscrepancyService
             $searchTerm = $filters['search'];
             $allQuery->whereHas('material', function ($q) use ($searchTerm) {
                 $q->where('material_number', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('description', 'LIKE', "%{$searchTerm}%");
+                    ->orWhere('description', 'LIKE', "%{$searchTerm}%");
             });
         }
         $allItems = $allQuery->get()->map(function ($discrepancy) {

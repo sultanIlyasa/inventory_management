@@ -29,6 +29,7 @@ class MaterialBulkImportService
         $result = [
             'created' => 0,
             'updated' => 0,
+            'deleted' => 0,
             'skipped' => 0,
             'errors' => [],
         ];
@@ -42,8 +43,16 @@ class MaterialBulkImportService
             }
 
             try {
-                $action = $this->upsertMaterial($rowData);
-                $result[$action === 'created' ? 'created' : 'updated']++;
+                // Check if this is a delete action
+                $action = strtolower(trim($rowData['action'] ?? ''));
+
+                if ($action === 'delete') {
+                    $this->deleteMaterial($rowData);
+                    $result['deleted']++;
+                } else {
+                    $actionResult = $this->upsertMaterial($rowData);
+                    $result[$actionResult === 'created' ? 'created' : 'updated']++;
+                }
             } catch (ValidationException $exception) {
                 $result['skipped']++;
                 $result['errors'][] = "Row {$rowNumber}: " . implode(' ', $exception->validator->errors()->all());
@@ -79,29 +88,9 @@ class MaterialBulkImportService
             }
         }
 
-        $required = [
-            'material_id',
-            'vendor_id',
-            'vendor_number',
-            'material_number',
-            'description',
-            'stock_minimum',
-            'stock_maximum',
-            'unit_of_measure',
-            'rack_address',
-            'usage',
-            'location',
-            'gentani',
-            'pic_name',
-        ];
-
-        $missing = array_filter($required, fn($column) => !array_key_exists($column, $map));
-
-        if ($missing) {
-            throw ValidationException::withMessages([
-                'file' => 'Missing required columns: ' . implode(', ', $missing),
-            ]);
-        }
+        // No required columns - material_id is optional (auto-generated for new records)
+        // All fields are optional for partial updates
+        // At minimum, the file should have some data columns
 
         return $map;
     }
@@ -128,32 +117,159 @@ class MaterialBulkImportService
         return true;
     }
 
-    private function upsertMaterial(array $rowData): string
+    /**
+     * Check if a cell value is truly empty (null, empty string, or whitespace only)
+     */
+    private function isEmptyCell($value): bool
+    {
+        return $value === null || $value === '' || trim((string) $value) === '';
+    }
+
+    private function deleteMaterial(array $rowData): void
     {
         $materialId = $this->toInt($rowData['material_id']);
+
+        if (!$materialId) {
+            throw ValidationException::withMessages([
+                'material_id' => 'Material ID is required for delete operation.',
+            ]);
+        }
+
+        $material = Materials::find($materialId);
+
+        if (!$material) {
+            throw ValidationException::withMessages([
+                'material_id' => "Material ID {$materialId} was not found.",
+            ]);
+        }
+
+        $material->delete();
+    }
+
+    private function upsertMaterial(array $rowData): string
+    {
+        // Allow empty material_id for creating new materials
+        $materialId = $this->toInt($rowData['material_id'] ?? null);
         $material = $materialId ? Materials::find($materialId) : null;
 
+        // Only throw error if material_id is provided but not found
         if ($materialId && !$material) {
             throw ValidationException::withMessages([
                 'material_id' => "Material ID {$materialId} was not found.",
             ]);
         }
 
-        $vendorId = $this->resolveVendorId($rowData['vendor_id'], $rowData['vendor_number']);
+        // Build payload with only provided (non-empty) fields
+        $payload = [];
 
-        $payload = [
-            'material_number' => $this->stringValue($rowData['material_number']),
-            'description' => $this->stringValue($rowData['description']),
-            'stock_minimum' => $this->toInt($rowData['stock_minimum']),
-            'stock_maximum' => $this->toInt($rowData['stock_maximum']),
-            'unit_of_measure' => $this->stringValue($rowData['unit_of_measure']),
-            'rack_address' => $this->nullableString($rowData['rack_address']),
-            'usage' => $this->normalizeEnum($rowData['usage'], $this->usageOptions, 'usage'),
-            'location' => $this->normalizeEnum($rowData['location'], $this->locationOptions, 'location'),
-            'gentani' => $this->stringValue($rowData['gentani']) ?? 'NON_GENTAN-I',
-            'pic_name' => $this->stringValue($rowData['pic_name']),
-            'vendor_id' => $vendorId,
+        // Handle vendor resolution if vendor fields are provided
+        if (!$this->isEmptyCell($rowData['vendor_id'] ?? null) || !$this->isEmptyCell($rowData['vendor_number'] ?? null)) {
+            $vendorId = $this->resolveVendorId($rowData['vendor_id'] ?? null, $rowData['vendor_number'] ?? null);
+            if ($vendorId !== null) {
+                $payload['vendor_id'] = $vendorId;
+            }
+        }
+
+        // Add fields only if they are not empty
+        if (!$this->isEmptyCell($rowData['material_number'] ?? null)) {
+            $payload['material_number'] = $this->stringValue($rowData['material_number']);
+        }
+        if (!$this->isEmptyCell($rowData['description'] ?? null)) {
+            $payload['description'] = $this->stringValue($rowData['description']);
+        }
+        if (!$this->isEmptyCell($rowData['stock_minimum'] ?? null)) {
+            $payload['stock_minimum'] = $this->toInt($rowData['stock_minimum']);
+        }
+        if (!$this->isEmptyCell($rowData['stock_maximum'] ?? null)) {
+            $payload['stock_maximum'] = $this->toInt($rowData['stock_maximum']);
+        }
+        if (!$this->isEmptyCell($rowData['unit_of_measure'] ?? null)) {
+            $payload['unit_of_measure'] = $this->stringValue($rowData['unit_of_measure']);
+        }
+        if (!$this->isEmptyCell($rowData['rack_address'] ?? null)) {
+            $payload['rack_address'] = $this->nullableString($rowData['rack_address']);
+        }
+        if (!$this->isEmptyCell($rowData['usage'] ?? null)) {
+            $payload['usage'] = $this->normalizeEnum($rowData['usage'], $this->usageOptions, 'usage');
+        }
+        if (!$this->isEmptyCell($rowData['location'] ?? null)) {
+            $payload['location'] = $this->normalizeEnum($rowData['location'], $this->locationOptions, 'location');
+        }
+        if (!$this->isEmptyCell($rowData['gentani'] ?? null)) {
+            $payload['gentani'] = $this->stringValue($rowData['gentani']);
+        }
+        if (!$this->isEmptyCell($rowData['pic_name'] ?? null)) {
+            $payload['pic_name'] = $this->stringValue($rowData['pic_name']);
+        }
+
+        // If updating existing material, only validate provided fields
+        if ($material) {
+            // Validate only the fields being updated
+            $rules = [];
+            if (isset($payload['material_number'])) $rules['material_number'] = 'required|string';
+            if (isset($payload['description'])) $rules['description'] = 'required|string';
+            if (isset($payload['stock_minimum'])) $rules['stock_minimum'] = 'required|integer|min:0';
+            if (isset($payload['stock_maximum'])) $rules['stock_maximum'] = 'required|integer|min:0';
+            if (isset($payload['unit_of_measure'])) $rules['unit_of_measure'] = 'required|string';
+            if (isset($payload['rack_address'])) $rules['rack_address'] = 'nullable|string';
+            if (isset($payload['usage'])) $rules['usage'] = 'required|in:' . implode(',', $this->usageOptions);
+            if (isset($payload['location'])) $rules['location'] = 'required|in:' . implode(',', $this->locationOptions);
+            if (isset($payload['gentani'])) $rules['gentani'] = 'required|string';
+            if (isset($payload['pic_name'])) $rules['pic_name'] = 'required|string';
+            if (isset($payload['vendor_id'])) $rules['vendor_id'] = 'nullable|integer|exists:vendors,id';
+
+            $validator = Validator::make($payload, $rules);
+
+            $validator->after(function ($validator) use ($payload, $material) {
+                // Validate stock minimum/maximum if both are being updated or if one is being updated
+                $newStockMin = $payload['stock_minimum'] ?? $material->stock_minimum;
+                $newStockMax = $payload['stock_maximum'] ?? $material->stock_maximum;
+
+                if ($newStockMin !== null && $newStockMax !== null && $newStockMin > $newStockMax) {
+                    $validator->errors()->add('stock_minimum', 'Stock minimum cannot be greater than stock maximum.');
+                }
+
+                // Validate material_number + location uniqueness if being updated
+                if (isset($payload['material_number']) || isset($payload['location'])) {
+                    $newMaterialNumber = $payload['material_number'] ?? $material->material_number;
+                    $newLocation = $payload['location'] ?? $material->location;
+
+                    $query = Materials::where('material_number', $newMaterialNumber)
+                        ->where('location', $newLocation)
+                        ->where('id', '!=', $material->id);
+
+                    if ($query->exists()) {
+                        $validator->errors()->add('material_number', 'Material number must be unique within the same location.');
+                    }
+                }
+            });
+
+            if ($validator->fails()) {
+                throw new ValidationException($validator);
+            }
+
+            $material->update($payload);
+            return 'updated';
+        }
+
+        // Creating new material - all required fields must be provided
+        $requiredForCreate = [
+            'material_number', 'description', 'stock_minimum', 'stock_maximum',
+            'unit_of_measure', 'usage', 'location', 'pic_name'
         ];
+
+        foreach ($requiredForCreate as $field) {
+            if (!isset($payload[$field]) || $payload[$field] === null) {
+                throw ValidationException::withMessages([
+                    $field => "The {$field} field is required when creating a new material.",
+                ]);
+            }
+        }
+
+        // Set default for gentani if not provided
+        if (!isset($payload['gentani'])) {
+            $payload['gentani'] = 'NON_GENTAN-I';
+        }
 
         $validator = Validator::make($payload, [
             'material_number' => 'required|string',
@@ -169,7 +285,7 @@ class MaterialBulkImportService
             'vendor_id' => 'nullable|integer|exists:vendors,id',
         ]);
 
-        $validator->after(function ($validator) use ($payload, $material) {
+        $validator->after(function ($validator) use ($payload) {
             if (
                 $payload['stock_minimum'] !== null &&
                 $payload['stock_maximum'] !== null &&
@@ -178,23 +294,16 @@ class MaterialBulkImportService
                 $validator->errors()->add('stock_minimum', 'Stock minimum cannot be greater than stock maximum.');
             }
 
-            $query = Materials::where('material_number', $payload['material_number']);
-            if ($material) {
-                $query->where('id', '!=', $material->id);
-            }
-
-            if ($query->exists()) {
-                $validator->errors()->add('material_number', 'Material number must be unique.');
+            // Validate material_number + location combination uniqueness
+            if (Materials::where('material_number', $payload['material_number'])
+                ->where('location', $payload['location'])
+                ->exists()) {
+                $validator->errors()->add('material_number', 'Material number must be unique within the same location.');
             }
         });
 
         if ($validator->fails()) {
             throw new ValidationException($validator);
-        }
-
-        if ($material) {
-            $material->update($payload);
-            return 'updated';
         }
 
         Materials::create($payload);

@@ -15,7 +15,7 @@ The Discrepancy Dashboard allows you to compare the latest daily input stock dat
 
 ## Access
 - **URL:** `/discrepancy-dashboard`
-- **Page:** `resources/js/Pages/Testing/index.vue`
+- **Page:** `resources/js/Pages/Discrepancy/index.vue`
 
 ## Backend Structure
 
@@ -30,7 +30,7 @@ The Discrepancy Dashboard allows you to compare the latest daily input stock dat
 - error_moving (Error Movement)
 - last_synced_at (timestamp)
 - created_at
-- updated_at
+- updated_at 
 ```
 
 ### 2. Model: `App\Models\DiscrepancyMaterials`

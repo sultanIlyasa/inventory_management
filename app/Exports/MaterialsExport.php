@@ -20,6 +20,7 @@ class MaterialsExport implements FromCollection, WithHeadings, WithMapping, Shou
     public function headings(): array
     {
         return [
+            'action',
             'material_id',
             'vendor_id',
             'vendor_number',
@@ -40,6 +41,7 @@ class MaterialsExport implements FromCollection, WithHeadings, WithMapping, Shou
     public function map($material): array
     {
         return [
+            '', // action column (empty by default, users can fill with "delete" to delete)
             $material->id,
             $material->vendor_id,
             $material->vendor?->vendor_number,

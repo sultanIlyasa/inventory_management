@@ -606,7 +606,7 @@ const formatCurrency = (value) => {
 const formatNumber = (value) => {
     if (value === null || value === undefined) return '0';
     // uses 'id-ID' for dots (1.200), change to 'en-US' for commas (1,200)
-    return new Intl.NumberFormat('id-ID').format(value);
+    return new Intl.NumberFormat('en-US').format(value);
 };
 
 // Color for the initial gap column

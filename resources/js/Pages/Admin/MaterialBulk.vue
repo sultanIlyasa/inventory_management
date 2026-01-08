@@ -44,7 +44,9 @@
                             <span class="font-semibold text-emerald-600">{{ bulkResult.created || 0 }}</span>
                             created,
                             <span class="font-semibold text-blue-600">{{ bulkResult.updated || 0 }}</span>
-                            updated.
+                            updated<span v-if="bulkResult.deleted">,
+                            <span class="font-semibold text-red-600">{{ bulkResult.deleted }}</span>
+                            deleted</span>.
                         </p>
                         <p v-if="bulkResult.skipped" class="mt-1 text-xs text-orange-600">
                             {{ bulkResult.skipped }} row(s) skipped.
@@ -92,6 +94,7 @@
                                     <th class="p-2 border text-xs lg:text-sm">Usage</th>
                                     <th class="p-2 border text-xs lg:text-sm">Gentani</th>
                                     <th class="p-2 border text-xs lg:text-sm">Last Updated</th>
+                                    <th class="p-2 border text-xs lg:text-sm">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -110,6 +113,18 @@
                                     <td class="border p-2  text-xs lg:text-sm">{{ item.gentani }}</td>
                                     <td class="border p-2 text-xs lg:text-sm">
                                         {{ formatDate(item.updated_at) }}
+                                    </td>
+                                    <td class="border p-2 text-xs lg:text-sm">
+                                        <div class="flex gap-1 justify-center">
+                                            <button @click="openEditMaterialModal(item)"
+                                                class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700">
+                                                Edit
+                                            </button>
+                                            <button @click="openDeleteMaterialModal(item)"
+                                                class="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700">
+                                                Delete
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -135,6 +150,105 @@
             </div>
         </div>
 
+        <!-- Edit Material Modal -->
+        <Modal :show="showEditMaterial" @close="closeEditMaterialModal">
+            <div class="p-6 space-y-4">
+                <h2 class="text-lg font-semibold">Edit Material</h2>
+
+                <div v-if="activeMaterial" class="space-y-3">
+                    <div>
+                        <label class="text-xs font-medium text-gray-700">Description</label>
+                        <input v-model="materialForm.description" type="text"
+                            class="mt-1 w-full rounded border px-3 py-2 text-sm" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-medium text-gray-700">Stock Min</label>
+                            <input v-model.number="materialForm.stock_minimum" type="number" min="0"
+                                class="mt-1 w-full rounded border px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-gray-700">Stock Max</label>
+                            <input v-model.number="materialForm.stock_maximum" type="number" min="0"
+                                class="mt-1 w-full rounded border px-3 py-2 text-sm" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-gray-700">Unit of Measure</label>
+                        <input v-model="materialForm.unit_of_measure" type="text"
+                            class="mt-1 w-full rounded border px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-gray-700">PIC Name</label>
+                        <select v-model="materialForm.pic_name"
+                            class="mt-1 w-full rounded border px-3 py-2 text-sm bg-white">
+                            <option disabled value="">Select PIC</option>
+                            <option v-for="pic in PIC_NAMES" :key="pic" :value="pic">
+                                {{ pic }}
+                            </option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-gray-700">Rack Address</label>
+                        <input v-model="materialForm.rack_address" type="text"
+                            class="mt-1 w-full rounded border px-3 py-2 text-sm" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-medium text-gray-700">Usage</label>
+                            <select v-model="materialForm.usage" class="mt-1 w-full rounded border px-3 py-2 text-sm">
+                                <option value="DAILY">DAILY</option>
+                                <option value="WEEKLY">WEEKLY</option>
+                                <option value="MONTHLY">MONTHLY</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-gray-700">Location</label>
+                            <select v-model="materialForm.location"
+                                class="mt-1 w-full rounded border px-3 py-2 text-sm">
+                                <option value="SUNTER_1">SUNTER_1</option>
+                                <option value="SUNTER_2">SUNTER_2</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-gray-700">Gentani</label>
+                        <input v-model="materialForm.gentani" type="text"
+                            class="mt-1 w-full rounded border px-3 py-2 text-sm" />
+                    </div>
+                </div>
+
+                <div class="mt-4 flex justify-end gap-2">
+                    <button class="px-3 py-2 text-sm rounded border" @click="closeEditMaterialModal">
+                        Cancel
+                    </button>
+                    <button
+                        class="px-4 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                        @click="submitEditMaterial" :disabled="isSubmittingMaterial">
+                        {{ isSubmittingMaterial ? 'Saving...' : 'Update' }}
+                    </button>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- Delete Material Modal -->
+        <Modal :show="showDeleteMaterial" @close="closeDeleteMaterialModal">
+            <div class="p-6">
+                <h2 class="text-lg font-semibold mb-2">Delete Material</h2>
+                <p class="text-sm text-gray-600 mb-4">
+                    Are you sure you want to delete this material? This action cannot be undone.
+                </p>
+                <div class="flex justify-end gap-2">
+                    <button class="px-3 py-2 text-sm rounded border" @click="closeDeleteMaterialModal">
+                        Cancel
+                    </button>
+                    <button class="px-4 py-2 text-sm rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+                        @click="submitDeleteMaterial" :disabled="isSubmittingMaterial">
+                        {{ isSubmittingMaterial ? 'Deleting...' : 'Delete' }}
+                    </button>
+                </div>
+            </div>
+        </Modal>
 
     </AuthenticatedLayout>
 </template>
@@ -142,10 +256,18 @@
 <script setup>
 import SearchBar from '@/Components/SearchBar.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import Modal from '@/Components/Modal.vue';
 import { ref, computed, watch } from 'vue'
 import debounce from 'lodash/debounce'
 import axios from 'axios'
 import { route } from 'ziggy-js'
+
+const PIC_NAMES = [
+    "ADE N", "AKBAR", "ANWAR", "BAHTIYAR", "DEDHI",
+    "EKA S", "EKO P", "FAHRI", "IBNU", "IRPANDI",
+    "IRVAN", "MIKS", "RACHMAT", "ZAINAL A."
+];
+
 const searchTerm = ref('')
 const props = defineProps({
     initialMaterialsData: {
@@ -163,6 +285,25 @@ const bulkResult = ref(null)
 const bulkErrors = ref([])
 const isUploadingBulk = ref(false)
 const isLoading = ref(false)
+
+// Material modals state
+const showEditMaterial = ref(false)
+const showDeleteMaterial = ref(false)
+const activeMaterial = ref(null)
+const isSubmittingMaterial = ref(false)
+
+const materialForm = ref({
+    material_number: '',
+    description: '',
+    stock_minimum: 0,
+    stock_maximum: 0,
+    unit_of_measure: '',
+    pic_name: '',
+    rack_address: '',
+    usage: '',
+    location: '',
+    gentani: ''
+})
 
 const clearSearch = () => {
     searchTerm.value = ''
@@ -282,7 +423,7 @@ const submitBulkUpload = async () => {
         bulkErrors.value = Array.isArray(summary?.errors) ? summary.errors : []
         bulkFile.value = null
         resetBulkFileInput()
-        await fetchVendorData()
+        await fetchMaterialData()
     } catch (error) {
         if (error.response?.data?.errors) {
             const messages = Object.values(error.response.data.errors)
@@ -297,5 +438,82 @@ const submitBulkUpload = async () => {
     }
 }
 
+// ---- material edit/delete handlers ----
+const resetMaterialForm = () => {
+    materialForm.value = {
+        material_number: '',
+        description: '',
+        stock_minimum: 0,
+        stock_maximum: 0,
+        unit_of_measure: '',
+        pic_name: '',
+        rack_address: '',
+        usage: '',
+        location: '',
+        gentani: ''
+    }
+}
+
+const openEditMaterialModal = (material) => {
+    activeMaterial.value = material
+    materialForm.value = {
+        material_number: material.material_number,
+        description: material.description,
+        stock_minimum: material.stock_minimum ?? 0,
+        stock_maximum: material.stock_maximum ?? 0,
+        unit_of_measure: material.unit_of_measure ?? '',
+        pic_name: material.pic_name ?? '',
+        rack_address: material.rack_address ?? '',
+        usage: material.usage,
+        location: material.location,
+        gentani: material.gentani ?? 'NON_GENTAN-I'
+    }
+    showEditMaterial.value = true
+}
+
+const closeEditMaterialModal = () => {
+    showEditMaterial.value = false
+    activeMaterial.value = null
+    resetMaterialForm()
+}
+
+const submitEditMaterial = async () => {
+    if (!activeMaterial.value) return
+    isSubmittingMaterial.value = true
+    try {
+        const payload = { ...materialForm.value }
+        await axios.patch(route('admin.materials.update', activeMaterial.value.id), payload)
+        await fetchMaterialData()
+        closeEditMaterialModal()
+    } catch (e) {
+        console.error('Update material failed', e)
+    } finally {
+        isSubmittingMaterial.value = false
+    }
+}
+
+const openDeleteMaterialModal = (material) => {
+    activeMaterial.value = material
+    showDeleteMaterial.value = true
+}
+
+const closeDeleteMaterialModal = () => {
+    showDeleteMaterial.value = false
+    activeMaterial.value = null
+}
+
+const submitDeleteMaterial = async () => {
+    if (!activeMaterial.value) return
+    isSubmittingMaterial.value = true
+    try {
+        await axios.delete(route('admin.materials.destroy', activeMaterial.value.id))
+        await fetchMaterialData()
+        closeDeleteMaterialModal()
+    } catch (e) {
+        console.error('Delete material failed', e)
+    } finally {
+        isSubmittingMaterial.value = false
+    }
+}
 
 </script>

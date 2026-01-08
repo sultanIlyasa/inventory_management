@@ -138,6 +138,17 @@ class AdminDashboardController extends Controller
         ]);
     }
 
+    // DELETE MATERIAL
+    public function destroyMaterial($id)
+    {
+        $material = Materials::findOrFail($id);
+        $material->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Material deleted successfully.'
+        ]);
+    }
 
     // DELETE VENDOR + DETACH MATERIALS
     public function destroyVendor($id)

@@ -37,6 +37,7 @@ Route::patch('/admin/vendors/{id}', [AdminDashboardController::class, 'updateVen
 Route::delete('/admin/vendors/{id}', [AdminDashboardController::class, 'destroyVendor'])->name('admin.vendors.destroy');
 Route::post('/admin/vendors/{vendorId}/materials', [AdminDashboardController::class, 'materialStore'])->name('admin.materials.store');
 Route::patch('/admin/materials/{id}', [AdminDashboardController::class, 'update'])->name('admin.materials.update');
+Route::delete('/admin/materials/{id}', [AdminDashboardController::class, 'destroyMaterial'])->name('admin.materials.destroy');
 Route::patch('/admin/materials/{id}/remove', [AdminDashboardController::class, 'removeMaterials'])->name('admin.materials.remove');
 Route::patch('/admin/materials/{id}/attach', [AdminDashboardController::class, 'attachMaterialToVendor'])->name('admin.materials.attach');
 

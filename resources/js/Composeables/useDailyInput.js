@@ -196,6 +196,23 @@ export function useDailyInput() {
         }
     };
 
+    const syncDailyInputStatus = async () => {
+        isLoading.value = true;
+        try {
+            const res = await axios.post("/api/daily-input/sync-status");
+            if (res.data.success) {
+                await fetchDailyData();
+            }
+            return res.data;
+        } catch (err) {
+            console.error("Sync failed:", err);
+            error.value = err.message;
+            return { success: false, message: err.message };
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
     // Watchers
     watch([selectedDate, selectedUsage, selectedLocation], fetchDailyData);
 
@@ -255,6 +272,7 @@ export function useDailyInput() {
         clearFilters,
         submitDailyStock,
         deleteInput,
+        syncDailyInputStatus,
         isLoading,
     };
 }

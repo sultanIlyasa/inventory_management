@@ -23,6 +23,7 @@ Route::get('/daily-input/status', [DailyInputController::class, 'dailyStatus']);
 Route::delete('/daily-input/delete/{id}', [DailyInputController::class, 'destroy']);
 Route::get('/daily-input/weekly-status',[DailyInputController::class,'weeklyStatus']);
 Route::get('/daily-input/export', [DailyInputController::class, 'export']);
+Route::post('/daily-input/sync-status', [DailyInputController::class, 'syncDailyInputStatus']);
 
 // Vendor Routes
 Route::get('/vendors', [VendorController::class, 'index']);

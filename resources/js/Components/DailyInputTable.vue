@@ -10,7 +10,7 @@
                     <span class="sm:hidden font-medium">Uncheck:</span>
                     <span
                         class="font-bold bg-gray-600 text-white px-2 md:px-3 py-0.5 md:py-1 rounded-md md:rounded-lg text-xs md:text-sm shadow-sm">{{
-                        stats.unchecked }}</span>
+                            stats.unchecked }}</span>
                 </div>
                 <div
                     class="px-2 sm:px-3 md:px-4 lg:px-5 py-2 md:py-3 bg-gradient-to-br from-red-100 to-red-200 text-red-700 rounded-lg md:rounded-xl border border-red-300 text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2 md:gap-3 hover:shadow-md hover:from-red-200 hover:to-red-300 transition-all duration-200">
@@ -18,7 +18,7 @@
                     <span class="sm:hidden font-medium">Short:</span>
                     <span
                         class="font-bold bg-red-600 text-white px-2 md:px-3 py-0.5 md:py-1 rounded-md md:rounded-lg text-xs md:text-sm shadow-sm">{{
-                        stats.shortage }}</span>
+                            stats.shortage }}</span>
                 </div>
                 <div
                     class="px-2 sm:px-3 md:px-4 lg:px-5 py-2 md:py-3 bg-gradient-to-br from-orange-100 to-orange-200 text-orange-700 rounded-lg md:rounded-xl border border-orange-300 text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2 md:gap-3 hover:shadow-md hover:from-orange-200 hover:to-orange-300 transition-all duration-200">
@@ -26,7 +26,7 @@
                     <span class="sm:hidden font-medium">Crit:</span>
                     <span
                         class="font-bold bg-orange-600 text-white px-2 md:px-3 py-0.5 md:py-1 rounded-md md:rounded-lg text-xs md:text-sm shadow-sm">{{
-                        stats.caution }}</span>
+                            stats.caution }}</span>
                 </div>
                 <div
                     class="px-2 sm:px-3 md:px-4 lg:px-5 py-2 md:py-3 bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 rounded-lg md:rounded-xl border border-blue-300 text-xs sm:text-sm md:text-base flex items-center justify-center gap-1 sm:gap-2 md:gap-3 hover:shadow-md hover:from-blue-200 hover:to-blue-300 transition-all duration-200">
@@ -34,7 +34,7 @@
                     <span class="sm:hidden font-medium">Over:</span>
                     <span
                         class="font-bold bg-blue-600 text-white px-2 md:px-3 py-0.5 md:py-1 rounded-md md:rounded-lg text-xs md:text-sm shadow-sm">{{
-                        stats.overflow }}</span>
+                            stats.overflow }}</span>
                 </div>
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <label class="text-xs sm:text-sm font-medium text-gray-700">Sort by:</label>
@@ -100,8 +100,8 @@
                                 {{ item.status }}
                             </span>
                             <span v-else-if="item.status === 'CAUTION'"
-                                class="bg-yellow-200 font-semibold px-2 py-1 rounded-xl text-xs">
-                                {{ item.status }}
+                                class="bg-orange-500 text-white font-semibold px-2 py-1 rounded-xl text-xs">
+                                CRITICAL
                             </span>
                             <span v-else-if="item.status === 'SHORTAGE'"
                                 class="bg-red-500 text-white font-semibold px-2 py-1 rounded-xl text-xs">
@@ -314,7 +314,7 @@
                 <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
                     <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ itemToSubmit?.material_number
-                    }}</span>
+                        }}</span>
                 </div>
                 <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span class="text-xs sm:text-sm text-gray-600">Description:</span>

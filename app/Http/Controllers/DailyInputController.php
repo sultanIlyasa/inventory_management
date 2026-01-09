@@ -10,8 +10,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\DailyInputExport;
-
-
+use PDO;
+use PhpParser\Node\Stmt\TryCatch;
 
 class DailyInputController extends Controller
 {
@@ -184,5 +184,61 @@ class DailyInputController extends Controller
             ->translatedFormat('d-F-Y_H.i') .
             '_WIB.xlsx';
         return Excel::download(new DailyInputExport($date, $usage, $location), $fileName);
+    }
+
+    // sync daily-input status with updated min-max stock
+    public function syncDailyInputStatus()
+    {
+        try {
+            DB::beginTransaction();
+
+            // 1. Get all DailyInputs with their parent Material
+            // Using chunk() is safer for memory if you have thousands of records
+            $updatedCount = 0;
+
+            DailyInput::with('material')->chunk(100, function ($inputs) use (&$updatedCount) {
+                foreach ($inputs as $input) {
+                    // If material is deleted or missing, skip
+                    if (!$input->material) continue;
+
+                    $stock = $input->daily_stock;
+                    $min = $input->material->stock_minimum;
+                    $max = $input->material->stock_maximum;
+
+                    // 2. Re-evaluate logic based on CURRENT material thresholds
+                    $newStatus = 'OK';
+                    if ($stock == 0) {
+                        $newStatus = 'SHORTAGE';
+                    } elseif ($stock < $min) {
+                        $newStatus = 'CAUTION';
+                    } elseif ($stock > $max) {
+                        $newStatus = 'OVERFLOW';
+                    }
+
+                    // 3. Update only if status has changed
+                    if ($input->status !== $newStatus) {
+                        $input->status = $newStatus;
+                        $input->save();
+                        $updatedCount++;
+                    }
+                }
+            });
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Daily input statuses synchronized successfully',
+                'data' => [
+                    'updated_records' => $updatedCount,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Sync failed: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

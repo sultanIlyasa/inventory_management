@@ -18,6 +18,7 @@ return new class extends Migration
                 ->onDelete('cascade');
             $table->string('pic_name');
             $table->string('material_number');
+            $table->string('description');
             $table->integer("stock_minimum");
             $table->integer("stock_maximum");
             $table->string('unit_of_measure');

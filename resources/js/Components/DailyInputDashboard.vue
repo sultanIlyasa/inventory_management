@@ -14,8 +14,9 @@
             <!-- Filterbar takes full width on mobile, flex on desktop -->
             <div class="flex-1 w-full lg:w-auto">
                 <Filterbar v-model:selectedPIC="selectedPIC" :picOptions="uniquePICs"
-                    v-model:selectedLocation="selectedLocation" v-model:selectedUsage="selectedUsage" :usageOptions="usages"
-                    v-model:selectedGentani="selectedGentani" v-model:selectedDate="selectedDate" />
+                    v-model:selectedLocation="selectedLocation" v-model:selectedUsage="selectedUsage"
+                    :usageOptions="usages" v-model:selectedGentani="selectedGentani"
+                    v-model:selectedDate="selectedDate" />
             </div>
 
             <!-- Action Buttons - Stack on mobile, side by side on tablet+ -->
@@ -42,17 +43,29 @@
                         Download Data
                     </span>
                 </button>
+                <button
+                    class="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 active:bg-orange-700 transition-colors font-medium text-sm sm:text-base shadow-sm hover:shadow-md"
+                    @click="handleSyncStatus">
+                    <span class="flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Sync Status
+                    </span>
+                </button>
             </div>
         </div>
 
         <!-- Data Table -->
-        <DailyInputTable :items="paginatedItems" :uncheckedCount="uncheckedCount" :stats="stats" v-model:sortOrder="sortOrder"
-            @submit="submitDailyStock" @delete="deleteInput" :startItem="startItem" />
+        <DailyInputTable :items="paginatedItems" :uncheckedCount="uncheckedCount" :stats="stats"
+            v-model:sortOrder="sortOrder" @submit="submitDailyStock" @delete="deleteInput" :startItem="startItem"
+            :selected-date="selectedDate" />
 
         <!-- Pagination -->
         <div v-if="totalPages > 1" class="mt-4">
-            <Pagination v-model:currentPage="currentPage" :totalPages="totalPages"
-                :startItem="startItem" :endItem="endItem" :totalItems="totalItems" :visiblePages="visiblePages" />
+            <Pagination v-model:currentPage="currentPage" :totalPages="totalPages" :startItem="startItem"
+                :endItem="endItem" :totalItems="totalItems" :visiblePages="visiblePages" />
         </div>
     </div>
 </template>
@@ -86,6 +99,7 @@ const {
     clearFilters,
     submitDailyStock,
     deleteInput,
+    syncDailyInputStatus,
     sortOrder,
     gentaniItems,
     selectedGentani,
@@ -101,6 +115,15 @@ const handleRefresh = async () => {
         await fetchDailyData()
     } finally {
         isLoading.value = false
+    }
+}
+
+const handleSyncStatus = async () => {
+    const result = await syncDailyInputStatus()
+    if (result.success) {
+        alert(`Sync completed! ${result.data.updated_records} records updated.`)
+    } else {
+        alert(`Sync failed: ${result.message}`)
     }
 }
 

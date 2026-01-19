@@ -83,7 +83,7 @@
                                                 ? 'bg-blue-50 text-blue-600 font-medium'
                                                 : 'text-gray-600'
                                         ]">
-                                        {{ child.name }}
+                                            {{ child.name }}
                                         </Link>
                                     </li>
                                 </ul>
@@ -99,8 +99,8 @@
                                     : 'text-gray-700',
                                 sidebarCollapsed ? 'justify-center' : ''
                             ]">
-                            <component :is="item.icon" class="w-5 h-5 text-gray-600" />
-                            <span v-if="!sidebarCollapsed" class="text-sm">{{ item.name }}</span>
+                                <component :is="item.icon" class="w-5 h-5 text-gray-600" />
+                                <span v-if="!sidebarCollapsed" class="text-sm">{{ item.name }}</span>
                             </Link>
                         </template>
                     </li>
@@ -137,8 +137,12 @@ import {
     LogIn,
     Menu,
     ChevronRight,
-    ChevronLeft
+    ChevronLeft,
+    ShieldX
+
+
 } from "lucide-vue-next";
+
 
 defineProps({
     title: {
@@ -182,6 +186,11 @@ const menuItems = [
             { name: "Overdue Days", route: "warehouse-monitoring.overdue-days" },
             { name: "Compliance", route: "warehouse-monitoring.check-compliance" }
         ]
+    },
+    {
+        name: "Discrepancy",
+        route: "discrepancy.index",
+        icon: ShieldX
     },
     {
         name: "Login",

@@ -71,6 +71,7 @@
                         </th>
                         <th class="p-2 border text-xs lg:text-sm">Min Stock</th>
                         <th class="p-2 border text-xs lg:text-sm">Max Stock</th>
+                        <th class="p-2 border text-xs lg:text-sm bg-blue-50">SOH</th>
                         <th class="p-2 border text-xs lg:text-sm cursor-pointer hover:bg-gray-300" @click="toggleSort">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Status</span>
@@ -94,6 +95,7 @@
                         <td class="border p-2 text-xs lg:text-sm">{{ item.rack_address }}</td>
                         <td class="border p-2 text-xs lg:text-sm">{{ item.stock_minimum }}</td>
                         <td class="border p-2 text-xs lg:text-sm">{{ item.stock_maximum }}</td>
+                        <td class="border p-2 text-xs lg:text-sm bg-blue-50 font-medium">{{ item.soh ?? '-' }}</td>
                         <td class="border p-2 text-xs lg:text-sm">
                             <span v-if="item.status === 'OK'"
                                 class="bg-green-200 font-semibold px-2 py-1 rounded-xl text-xs">
@@ -140,7 +142,7 @@
                         </td>
                     </tr>
                     <tr v-if="!items.length">
-                        <td colspan="11" class="border p-4 text-center text-gray-500 text-sm">{{ emptyMessage }}</td>
+                        <td colspan="12" class="border p-4 text-center text-gray-500 text-sm">{{ emptyMessage }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -201,6 +203,10 @@
                             <p class="text-gray-600">Min - Max</p>
                             <p class="font-semibold text-gray-900">{{ item.stock_minimum }} - {{ item.stock_maximum }}
                             </p>
+                        </div>
+                        <div class="bg-blue-50 px-2 py-1 rounded col-span-2">
+                            <p class="text-gray-600">SOH (System)</p>
+                            <p class="font-semibold text-blue-700">{{ item.soh ?? '-' }}</p>
                         </div>
                     </div>
 

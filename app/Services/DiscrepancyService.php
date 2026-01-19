@@ -43,7 +43,18 @@ class DiscrepancyService
                 $q->where('location', $filters['location']);
             });
         }
-
+        // Apply PIC Filter
+        if (!empty($filters['pic'])) {
+            $query->whereHas('material', function ($q) use ($filters) {
+                $q->where('pic_name', $filters['pic']);
+            });
+        }
+        // Apply usage filter
+        if (!empty($filters['usage'])) {
+            $query->whereHas('material', function ($q) use ($filters) {
+                $q->where('usage', $filters['usage']);
+            });
+        }
         // Apply search filter
         if (!empty($filters['search'])) {
             $searchTerm = $filters['search'];
@@ -93,7 +104,9 @@ class DiscrepancyService
                 'materialNo' => $material->material_number,
                 'name' => $material->description,
                 'uom' => $material->unit_of_measure,
+                'pic' => $material->pic_name,
                 'location' => $material->location,
+                'usage' => $material->usage,
                 'price' => (float) $discrepancy->price,
                 'soh' => $discrepancy->soh,
                 'sohTimestamp' => $sohTimestamp,
@@ -155,9 +168,37 @@ class DiscrepancyService
     public function getLocations(): array
     {
         return Materials::whereHas('discrepancyMaterial')
-            ->distinct()
             ->pluck('location')
             ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Get unique PIC names from materials with discrepancy data
+     */
+    public function getPics(): array
+    {
+        return Materials::whereHas('discrepancyMaterial')
+            ->pluck('pic_name')
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Get unique usage values from materials with discrepancy data
+     */
+    public function getUsages(): array
+    {
+        return Materials::whereHas('discrepancyMaterial')
+            ->pluck('usage')
+            ->filter()
+            ->unique()
             ->sort()
             ->values()
             ->all();

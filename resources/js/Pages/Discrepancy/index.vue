@@ -38,7 +38,7 @@
                             {{ uploading ? 'Uploading...' : 'Upload Excel' }}
                         </label>
                         <button @click="syncWithDailyInputs" :disabled="loading"
-                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             Sync
                         </button>
                         <button @click="fetchData" :disabled="loading"
@@ -65,11 +65,11 @@
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-green p-3 rounded-lg shadow-sm border border-green-100">
-                                <span class="block text-lg text-green-600 font-bold mb-1">Discrepancy Items (+)</span>
+                            <div class="bg-blue p-3 rounded-lg shadow-sm border border-blue-100">
+                                <span class="block text-lg text-blue-600 font-bold mb-1">Discrepancy Items (+)</span>
                                 <div class="flex items-baseline gap-1">
-                                    <span class="text-lg font-bold text-green-800">{{ statistics.surplusCount }}</span>
-                                    <span class="text-xs text-green-400">items</span>
+                                    <span class="text-lg font-bold text-blue-800">{{ statistics.surplusCount }}</span>
+                                    <span class="text-xs text-blue-400">items</span>
                                 </div>
                             </div>
                             <div class="bg-red p-3 rounded-lg shadow-sm border border-red-100">
@@ -85,7 +85,7 @@
 
                     <div class="p-4">
                         <div class="mb-3 flex items-center gap-2">
-                            <div class="p-1.5 bg-emerald-100 rounded-md text-emerald-600">
+                            <div class="p-1.5 bg-blue-100 rounded-md text-blue-600">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -97,8 +97,8 @@
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-white p-3 rounded-lg shadow-sm border border-green-100">
-                                <span class="block text-lg text-green-600 font-bold mb-1">Discrepancy Amount (+)</span>
+                            <div class="bg-white p-3 rounded-lg shadow-sm border border-blue-100">
+                                <span class="block text-lg text-blue-600 font-bold mb-1">Discrepancy Amount (+)</span>
                                 <span class="text-lg font-bold text-gray-800">{{
                                     formatCurrency(statistics.surplusAmount)
                                 }}</span>
@@ -123,7 +123,7 @@
                     <!-- Location Filter -->
                     <div class="flex items-center gap-2">
                         <label class="text-sm font-semibold text-gray-700">Location:</label>
-                        <select v-model="selectedLocation" @change="handleLocationChange"
+                        <select v-model="selectedLocation" @change="handleFilterChange"
                             class="border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-3 py-2">
                             <option value="">All Locations</option>
                             <option v-for="location in locations" :key="location" :value="location">
@@ -131,6 +131,31 @@
                             </option>
                         </select>
                     </div>
+
+                    <!-- Usage Filter -->
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-semibold text-gray-700">Usage:</label>
+                        <select v-model="selectedUsage" @change="handleFilterChange"
+                            class="border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-3 py-2">
+                            <option value="">All Usages</option>
+                            <option v-for="usage in usages" :key="usage" :value="usage">
+                                {{ usage }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- PIC Filter -->
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-semibold text-gray-700">PIC:</label>
+                        <select v-model="selectedPic" @change="handleFilterChange"
+                            class="border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-3 py-2">
+                            <option value="">All PICs</option>
+                            <option v-for="pic in pics" :key="pic" :value="pic">
+                                {{ pic }}
+                            </option>
+                        </select>
+                    </div>
+
 
                     <!-- Results Count -->
                     <div class="ml-auto text-sm text-gray-600">
@@ -304,7 +329,7 @@
                                     </div>
                                 </div>
                                 <div v-if="getFinalStatus(item).val === 0"
-                                    class="text-[10px] font-bold text-green-600 uppercase tracking-wider mt-1">Matched
+                                    class="text-[10px] font-bold text-blue-600 uppercase tracking-wider mt-1">Matched
                                 </div>
                                 <div v-else class="text-[10px] font-bold text-red-500 uppercase tracking-wider mt-1">
                                     Variance</div>
@@ -381,6 +406,14 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    pics: {
+        type: Array,
+        default: () => [],
+    },
+    usages: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 // State
@@ -398,6 +431,8 @@ const pagination = ref({
     last_page: 1,
 });
 const selectedLocation = ref('');
+const selectedPic = ref('');
+const selectedUsage = ref('');
 const searchQuery = ref('');
 const sortBy = ref(null);
 const sortOrder = ref('asc');
@@ -419,6 +454,14 @@ const fetchData = async (page = 1) => {
 
         if (selectedLocation.value) {
             params.location = selectedLocation.value;
+        }
+
+        if (selectedPic.value) {
+            params.pic = selectedPic.value;
+        }
+
+        if (selectedUsage.value) {
+            params.usage = selectedUsage.value;
         }
 
         if (searchQuery.value) {
@@ -445,8 +488,8 @@ const fetchData = async (page = 1) => {
     }
 };
 
-// Handle location filter change
-const handleLocationChange = () => {
+// Handle filter change (location, usage, or PIC)
+const handleFilterChange = () => {
     fetchData(1); // Reset to page 1 when filter changes
 };
 
@@ -612,7 +655,7 @@ const formatNumber = (value) => {
 // Color for the initial gap column
 const getGapColor = (val) => {
     if (val === 0) return 'text-gray-300';
-    if (val > 0) return 'text-green-600'; // Surplus
+    if (val > 0) return 'text-blue-600'; // Surplus
     return 'text-red-600'; // Loss
 };
 
@@ -669,7 +712,7 @@ const getFinalStatus = (item) => {
     if (finalVariance === 0) {
         return {
             label: 'MATCH',
-            class: 'bg-green-100 text-green-700 border-green-200',
+            class: 'bg-blue-100 text-blue-700 border-blue-200',
             val: 0
         };
     } else {

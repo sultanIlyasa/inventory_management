@@ -114,7 +114,7 @@ class DailyInputController extends Controller
             $end   = $carbonDate->copy()->endOfDay();
         }
 
-        $dailyInputsQuery = DailyInput::with('material')
+        $dailyInputsQuery = DailyInput::with(['material', 'material.discrepancyMaterial'])
             ->whereBetween('date', [$start, $end])
             ->when($usage, function ($query) use ($usage) {
                 $query->whereHas(
@@ -137,7 +137,7 @@ class DailyInputController extends Controller
         $checked = $dailyInputsQuery->get();
         $checkedIds = $checked->pluck('material_id')->toArray();
 
-        $missing = Materials::query()
+        $missing = Materials::with('discrepancyMaterial')
             ->when($usage, fn($q) => $q->where('usage', $usage))
             ->when(!empty($location), function ($query) use ($location) {
                 $locations = is_array($location)

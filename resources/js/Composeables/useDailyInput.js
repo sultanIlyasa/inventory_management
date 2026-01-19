@@ -61,6 +61,7 @@ export function useDailyInput() {
                 location: item.material.location,
                 usage: item.material.usage,
                 gentani: item.material.gentani,
+                soh: item.material.discrepancy_material?.soh ?? null,
             });
         });
 
@@ -80,6 +81,7 @@ export function useDailyInput() {
                 location: item.location,
                 usage: item.usage,
                 gentani: item.gentani,
+                soh: item.discrepancy_material?.soh ?? null,
             });
         });
 

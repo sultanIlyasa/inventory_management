@@ -23,9 +23,13 @@ class DiscrepancyController extends Controller
     public function index()
     {
         $locations = $this->service->getLocations();
+        $pics = $this->service->getPics();
+        $usages = $this->service->getUsages();
 
         return Inertia::render('Discrepancy/index', [
             'locations' => $locations,
+            'pics' => $pics,
+            'usages' => $usages,
         ]);
     }
 
@@ -36,6 +40,8 @@ class DiscrepancyController extends Controller
     {
         $filters = [
             'location' => $request->query('location'),
+            'pic' => $request->query('pic'),
+            'usage' => $request->query('usage'),
             'search' => $request->query('search'),
             'sort_by' => $request->query('sort_by'),
             'sort_order' => $request->query('sort_order', 'asc'),

@@ -29,6 +29,12 @@ Route::get('/', function () {
     ]);
 })->name('homepage.index');
 
+Route::get('/testpage', function () {
+    return Inertia::render('Testing/index');
+})->name('testpage.index');
+
+
+
 Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 Route::get('/admin/materials-bulk', [AdminDashboardController::class, 'materialBulk'])->middleware(['auth', 'verified'])->name('material-bulk');
 Route::get('/admin/vendor/all', [AdminDashboardController::class, 'getAllVendorsAdminApi'])->middleware(['auth', 'verified'])->name('admin-vendor-api');

@@ -6,7 +6,7 @@ export function useDailyInput() {
     const reportData = ref({ checked: [], missing: [] });
     const searchTerm = ref("");
     const selectedDate = ref(new Date().toISOString().split("T")[0]);
-    const selectedUsage = ref(""); // default DAILY
+    const selectedUsage = ref(""); // default all usage
     const selectedPIC = ref("");
     const selectedLocation = ref("");
     const selectedGentani = ref("");

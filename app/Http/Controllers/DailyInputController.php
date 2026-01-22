@@ -97,54 +97,21 @@ class DailyInputController extends Controller
     public function dailyStatus(Request $request)
     {
         $date = $request->query('date', Carbon::today()->toDateString());
-        $usage = $request->query('usage');
-        $usage = $usage ? strtoupper($usage) : null;
-        $location = $request->query('location');
+        $usage = $request->query('usage') ? strtoupper($request->query('usage')) : null;
+        $locations = $this->parseLocations($request->query('location'));
 
         $carbonDate = Carbon::parse($date)->locale('id');
+        [$start, $end] = $this->getDateRange($carbonDate, $usage);
 
-        if ($usage === 'WEEKLY') {
-            $start = $carbonDate->copy()->startOfWeek();
-            $end   = $carbonDate->copy()->endOfWeek();
-        } elseif ($usage === 'MONTHLY') {
-            $start = $carbonDate->copy()->startOfMonth();
-            $end   = $carbonDate->copy()->endOfMonth();
-        } else {
-            $start = $carbonDate->copy()->startOfDay();
-            $end   = $carbonDate->copy()->endOfDay();
-        }
+        $checked = $usage
+            ? $this->getCheckedWithUsage($start, $end, $usage, $locations)
+            : $this->getCheckedWithoutUsage($date, $carbonDate, $locations);
 
-        $dailyInputsQuery = DailyInput::with(['material', 'material.discrepancyMaterial'])
-            ->whereBetween('date', [$start, $end])
-            ->when($usage, function ($query) use ($usage) {
-                $query->whereHas(
-                    'material',
-                    fn($q) =>
-                    $q->where('usage', $usage)
-                );
-            })
-            ->when(!empty($location), function ($query) use ($location) {
-                $locations = is_array($location)
-                    ? $location
-                    : array_map('trim', explode(',', $location));
-                $query->whereHas(
-                    'material',
-                    fn($q) =>
-                    $q->whereIn('location', $locations)
-                );
-            });
-
-        $checked = $dailyInputsQuery->get();
         $checkedIds = $checked->pluck('material_id')->toArray();
 
         $missing = Materials::with('discrepancyMaterial')
             ->when($usage, fn($q) => $q->where('usage', $usage))
-            ->when(!empty($location), function ($query) use ($location) {
-                $locations = is_array($location)
-                    ? $location
-                    : array_map('trim', explode(',', $location));
-                $query->whereIn('location', $locations);
-            })
+            ->when($locations, fn($q) => $q->whereIn('location', $locations))
             ->whereNotIn('id', $checkedIds)
             ->get();
 
@@ -158,6 +125,64 @@ class DailyInputController extends Controller
             'checked' => $checked,
             'missing' => $missing,
         ]);
+    }
+
+    private function parseLocations($location): ?array
+    {
+        if (empty($location)) return null;
+        return is_array($location) ? $location : array_map('trim', explode(',', $location));
+    }
+
+    private function getDateRange(Carbon $date, ?string $usage): array
+    {
+        return match ($usage) {
+            'WEEKLY'  => [$date->copy()->startOfWeek(), $date->copy()->endOfWeek()],
+            'MONTHLY' => [$date->copy()->startOfMonth(), $date->copy()->endOfMonth()],
+            default   => [$date->copy()->startOfDay(), $date->copy()->endOfDay()],
+        };
+    }
+
+    private function getCheckedWithUsage($start, $end, string $usage, ?array $locations)
+    {
+        return DailyInput::with(['material', 'material.discrepancyMaterial'])
+            ->whereBetween('date', [$start, $end])
+            ->whereIn('id', function ($query) use ($start, $end) {
+                $query->select(DB::raw('MAX(id)'))
+                    ->from('daily_inputs')
+                    ->whereBetween('date', [$start, $end])
+                    ->groupBy('material_id');
+            })
+            ->whereHas('material', fn($q) => $q->where('usage', $usage))
+            ->when($locations, fn($q) => $q->whereHas('material', fn($m) => $m->whereIn('location', $locations)))
+            ->get();
+    }
+
+    private function getCheckedWithoutUsage(string $date, Carbon $carbonDate, ?array $locations)
+    {
+        $latestIdsQuery = DailyInput::select(DB::raw('MAX(id) as id'))
+            ->where('date', '<=', $date)
+            ->groupBy('material_id');
+
+        $candidates = DailyInput::with(['material', 'material.discrepancyMaterial'])
+            ->whereIn('id', $latestIdsQuery)
+            ->when($locations, fn($q) => $q->whereHas('material', fn($m) => $m->whereIn('location', $locations)))
+            ->get();
+
+        $weekStart = $carbonDate->copy()->startOfWeek();
+        $weekEnd = $carbonDate->copy()->endOfWeek();
+
+        return $candidates->filter(function ($input) use ($carbonDate, $weekStart, $weekEnd) {
+            if (!$input->material) return false;
+
+            $inputDate = Carbon::parse($input->date);
+
+            return match ($input->material->usage) {
+                'DAILY'   => $inputDate->isSameDay($carbonDate),
+                'WEEKLY'  => $inputDate->between($weekStart, $weekEnd),
+                'MONTHLY' => $inputDate->isSameMonth($carbonDate),
+                default   => false,
+            };
+        })->values();
     }
 
 

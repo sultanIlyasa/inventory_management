@@ -15,9 +15,9 @@ class DiscrepancyTemplateExport implements FromCollection, WithHeadings, ShouldA
     {
         // Return empty collection or example data
         return new Collection([
-            ['RM-2024-001', 50, 0, 0, 0, 150000],
-            ['PK-2024-055', 1200, 0, -100, 0, 5000],
-            ['EL-2024-889', 45, 5, 0, 0, 75000],
+            ['RM-2024-001', 50, 0, 0, 0, 150000, 'SUNTER_1'],
+            ['PK-2024-055', 1200, 0, -100, 0, 5000,'SUNTER_2'],
+            ['EL-2024-889', 45, 5, 0, 0, 75000,'SUNTER_1'],
         ]);
     }
 
@@ -30,6 +30,7 @@ class DiscrepancyTemplateExport implements FromCollection, WithHeadings, ShouldA
             'Outstanding GI',
             'Error Moving',
             'Price',
+            'Location'
         ];
     }
 

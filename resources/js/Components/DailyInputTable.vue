@@ -71,7 +71,7 @@
                         </th>
                         <th class="p-2 border text-xs lg:text-sm">Min Stock</th>
                         <th class="p-2 border text-xs lg:text-sm">Max Stock</th>
-                        <th class="p-2 border text-xs lg:text-sm bg-blue-50">SOH</th>
+                        <th class="p-2 border text-xs lg:text-sm ">SOH</th>
                         <th class="p-2 border text-xs lg:text-sm cursor-pointer hover:bg-gray-300" @click="toggleSort">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Status</span>
@@ -95,7 +95,14 @@
                         <td class="border p-2 text-xs lg:text-sm">{{ item.rack_address }}</td>
                         <td class="border p-2 text-xs lg:text-sm">{{ item.stock_minimum }}</td>
                         <td class="border p-2 text-xs lg:text-sm">{{ item.stock_maximum }}</td>
-                        <td class="border p-2 text-xs lg:text-sm bg-blue-50 font-medium">{{ item.soh ?? '-' }}</td>
+                        <td class="border p-2 text-xs lg:text-sm  font-medium">
+                            <p>{{ item.soh ?? '-' }}</p>
+                            <p class="text-xs text-gray-500">Last Updated:
+                                {{ new Date(item.sohTimestamp).toLocaleString('id-ID', {
+                                    dateStyle: 'short',
+                                    timeStyle: 'short'
+                                }) }}</p>
+                        </td>
                         <td class="border p-2 text-xs lg:text-sm">
                             <span v-if="item.status === 'OK'"
                                 class="bg-green-200 font-semibold px-2 py-1 rounded-xl text-xs">
@@ -207,6 +214,11 @@
                         <div class="bg-blue-50 px-2 py-1 rounded col-span-2">
                             <p class="text-gray-600">SOH (System)</p>
                             <p class="font-semibold text-blue-700">{{ item.soh ?? '-' }}</p>
+                            <p class="text-xs text-gray-500">Last Updated:</p>
+                            <p class="text-xs font-bold">{{ new Date(item.sohTimestamp).toLocaleString('id-ID', {
+                                dateStyle: 'full',
+                                timeStyle: 'short'
+                            }) }}</p>
                         </div>
                     </div>
 

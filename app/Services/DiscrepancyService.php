@@ -271,6 +271,8 @@ class DiscrepancyService
                 try {
                     // Extract material number
                     $materialNumber = trim($row[0] ?? '');
+                    $location = trim($row[6] ?? '');
+
 
                     if (empty($materialNumber)) {
                         continue; // Skip empty rows
@@ -313,10 +315,12 @@ class DiscrepancyService
                     $updateData['last_synced_at'] = now();
 
                     // Find material
-                    $material = Materials::where('material_number', $materialNumber)->first();
+                    $material = Materials::where('material_number', $materialNumber)
+                        ->where('location', $location)
+                        ->first();
 
                     if (!$material) {
-                        $errors[] = "Row {$rowNumber}: Material '{$materialNumber}' not found";
+                        $errors[] = "Row {$rowNumber}: Material '{$materialNumber}' at location '{$location}' not found";
                         continue;
                     }
 

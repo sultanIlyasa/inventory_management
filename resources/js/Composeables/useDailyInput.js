@@ -62,6 +62,8 @@ export function useDailyInput() {
                 usage: item.material.usage,
                 gentani: item.material.gentani,
                 soh: item.material.discrepancy_material?.soh ?? null,
+                sohTimestamp:
+                    item.material.discrepancy_material?.last_synced_at,
             });
         });
 
@@ -82,6 +84,8 @@ export function useDailyInput() {
                 usage: item.usage,
                 gentani: item.gentani,
                 soh: item.discrepancy_material?.soh ?? null,
+                sohTimestamp:
+                    item.discrepancy_material?.last_synced_at ?? null,
             });
         });
 
@@ -96,7 +100,7 @@ export function useDailyInput() {
 
         if (selectedLocation.value)
             items = items.filter(
-                (it) => it.location === selectedLocation.value
+                (it) => it.location === selectedLocation.value,
             );
         if (selectedUsage.value)
             items = items.filter((it) => it.usage === selectedUsage.value);
@@ -107,7 +111,7 @@ export function useDailyInput() {
         if (searchTerm.value) {
             const q = searchTerm.value.toLowerCase();
             items = items.filter((it) =>
-                Object.values(it).join(" ").toLowerCase().includes(q)
+                Object.values(it).join(" ").toLowerCase().includes(q),
             );
         }
 
@@ -128,18 +132,18 @@ export function useDailyInput() {
                 OK: 5,
             };
             return items.sort(
-                (a, b) => (map[a.status] || 99) - (map[b.status] || 99)
+                (a, b) => (map[a.status] || 99) - (map[b.status] || 99),
             );
         }
 
         if (sortOrder.value === "rack-asc")
             return items.sort((a, b) =>
-                a.rack_address.localeCompare(b.rack_address)
+                a.rack_address.localeCompare(b.rack_address),
             );
 
         if (sortOrder.value === "rack-desc")
             return items.sort((a, b) =>
-                b.rack_address.localeCompare(a.rack_address)
+                b.rack_address.localeCompare(a.rack_address),
             );
 
         return items;
@@ -147,7 +151,7 @@ export function useDailyInput() {
 
     const totalItems = computed(() => sortedItems.value.length);
     const totalPages = computed(() =>
-        Math.ceil(totalItems.value / itemsPerPage)
+        Math.ceil(totalItems.value / itemsPerPage),
     );
 
     const paginatedItems = computed(() => {
@@ -159,10 +163,11 @@ export function useDailyInput() {
     const stats = computed(() => {
         const items = filteredItems.value;
         return {
-            unchecked: items.filter(item => item.status === 'UNCHECKED').length,
-            shortage: items.filter(item => item.status === 'SHORTAGE').length,
-            caution: items.filter(item => item.status === 'CAUTION').length,
-            overflow: items.filter(item => item.status === 'OVERFLOW').length,
+            unchecked: items.filter((item) => item.status === "UNCHECKED")
+                .length,
+            shortage: items.filter((item) => item.status === "SHORTAGE").length,
+            caution: items.filter((item) => item.status === "CAUTION").length,
+            overflow: items.filter((item) => item.status === "OVERFLOW").length,
         };
     });
 
@@ -240,10 +245,10 @@ export function useDailyInput() {
         totalPages,
         totalItems,
         startItem: computed(() =>
-            totalItems.value ? (currentPage.value - 1) * itemsPerPage + 1 : 0
+            totalItems.value ? (currentPage.value - 1) * itemsPerPage + 1 : 0,
         ),
         endItem: computed(() =>
-            Math.min(currentPage.value * itemsPerPage, totalItems.value)
+            Math.min(currentPage.value * itemsPerPage, totalItems.value),
         ),
 
         visiblePages: computed(() => {

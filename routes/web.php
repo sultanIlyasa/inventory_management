@@ -11,6 +11,7 @@ use App\Http\Controllers\StatusChangeController;
 use App\Http\Controllers\WarehouseMonitoringController;
 use App\Http\Controllers\MaterialBulkController;
 use App\Http\Controllers\DiscrepancyController;
+use App\Http\Controllers\AnnualInventoryController;
 
 
 
@@ -67,6 +68,19 @@ Route::middleware('auth')->group(function () {
 Route::get('/daily-input', function () {
     return Inertia::render('DailyInput/index');
 })->name('daily-input.index');
+
+// Annual Inventory Routes
+Route::get('/annual-inventory', function () {
+    return Inertia::render('AnnualInventory/index');
+})->name('annual-inventory.index');
+
+Route::get('/annual-inventory/discrepancy', function () {
+    return Inertia::render('AnnualInventory/discrepancy');
+})->name('annual-inventory.discrepancy');
+
+Route::get('/annual-inventory/{pid}', function ($pid) {
+    return Inertia::render('AnnualInventory/show', ['pid' => $pid]);
+})->name('annual-inventory.show')->where('pid', '.*');
 
 // Discrepancy Dashboard
 Route::get('/discrepancy-dashboard', [DiscrepancyController::class, 'index'])->name('discrepancy.index');

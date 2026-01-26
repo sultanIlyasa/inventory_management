@@ -19,7 +19,6 @@ return new class extends Migration
             $table->string('rack_address');
             $table->string('unit_of_measure');
             $table->integer('price');
-            $table->integer('system_qty');
             $table->integer('soh')->nullable();
             $table->integer('actual_qty')->nullable();
             $table->integer('outstanding_gr')->nullable();
@@ -28,13 +27,13 @@ return new class extends Migration
             $table->integer('final_discrepancy')->nullable();
             $table->decimal('final_discrepancy_amount')->nullable();
             $table->string('status')->default('PENDING');
-            $table->string('counted_by');
-            $table->datetime('counted_at');
-            $table->string('image_path');
-            $table->text('notes');
+            $table->string('counted_by')->nullable();
+            $table->datetime('counted_at')->nullable();
+            $table->string('image_path')->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
 
-            $table->unique(['annual_inventory_id']);
+            $table->unique(['annual_inventory_id', 'material_number'], 'annual_items_inventory_material_unique');
         });
     }
 

@@ -138,9 +138,8 @@ import {
     Menu,
     ChevronRight,
     ChevronLeft,
-    ShieldX
-
-
+    ShieldX,
+    ClipboardList
 } from "lucide-vue-next";
 
 
@@ -174,6 +173,14 @@ const menuItems = [
         name: "Daily Input",
         route: "daily-input.index",
         icon: ListChecks
+    },
+    {
+        name: "Annual Inventory",
+        icon: ClipboardList,
+        children: [
+            { name: "PID List", route: "annual-inventory.index" },
+            { name: "Discrepancy", route: "annual-inventory.discrepancy" }
+        ]
     },
     {
         name: "Warehouse Monitoring",

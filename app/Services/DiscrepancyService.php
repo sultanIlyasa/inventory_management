@@ -246,7 +246,7 @@ class DiscrepancyService
 
     /**
      * Import external system data from Excel
-     * Expected columns: Material Number, SoH, Outstanding GR, Outstanding GI, Error Moving, Price
+     * Expected columns: Material Number, SoH, Outstanding GR, Outstanding GI, Error Moving, Price, Location
      */
     public function importFromExcel($filePath): array
     {

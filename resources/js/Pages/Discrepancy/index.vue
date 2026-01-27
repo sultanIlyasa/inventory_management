@@ -290,16 +290,16 @@
                         <tr v-else v-for="item in items" :key="item.id"
                             class="group hover:bg-gray-50 transition-colors relative">
 
-                            <td class="px-4 py-4 font-medium text-gray-900 border-r border-gray-100">{{ item.materialNo
+                            <td class="px-4 py-4 font-medium text-gray-900 border-r border-gray-100 text-xs">{{ item.materialNo
                                 }}</td>
                             <td class="px-4  border-r border-gray-100">
-                                <div class="text-gray-900 text-base">{{ item.name }}</div>
+                                <div class="text-gray-900 text-xs">{{ item.name }}</div>
                                 <div class="text-xs text-gray-500 mt-0.5 inline-block bg-gray-100 px-1.5 rounded-sm">{{
                                     item.uom }}</div>
                             </td>
-                            <td class="px-2 py-4 text-sm text-gray-600 text-center border-r border-gray-100">{{
+                            <td class="px-2 py-4 text-xs text-gray-600 text-center border-r border-gray-100">{{
                                 item.location }}</td>
-                            <td class="px-1 py-1 text-right text-gray-700 font-medium border-r border-gray-200">{{
+                            <td class="px-1 py-1 text-right text-xs text-gray-700 font-medium border-r border-gray-200">{{
                                 formatCurrency(item.price) }}</td>
 
                             <td

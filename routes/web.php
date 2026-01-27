@@ -89,8 +89,10 @@ Route::get('/discrepancy-dashboard', [DiscrepancyController::class, 'index'])->n
 Route::prefix('api/discrepancy')->name('api.discrepancy.')->group(function () {
     Route::get('/', [DiscrepancyController::class, 'getDiscrepancyData'])->name('data');
     Route::get('/template', [DiscrepancyController::class, 'downloadTemplate'])->name('template');
+    Route::get('/export', [DiscrepancyController::class, 'export'])->name('export');
     Route::post('/import', [DiscrepancyController::class, 'import'])->name('import');
     Route::post('/sync', [DiscrepancyController::class, 'sync'])->name('sync');
+    Route::post('/bulk-update', [DiscrepancyController::class, 'bulkUpdate'])->name('bulk-update');
     Route::patch('/{materialId}', [DiscrepancyController::class, 'update'])->name('update');
 });
 

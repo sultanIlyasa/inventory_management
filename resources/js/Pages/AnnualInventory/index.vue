@@ -810,29 +810,29 @@ const uploadAllFiles = async () => {
                 formData,
                 { headers: { 'Content-Type': 'multipart/form-data' } }
             );
-            const resultData = response.data.data || {};
 
-            if (resultData) {
+            if (response.data.success) {
                 uploadResults.value.push({
                     success: true,
                     filename: file.name,
-                    ...response.data.data
+                    pids_created: response.data.pids_created || 0,
+                    pids_updated: response.data.pids_updated || 0,
+                    items_created: response.data.items_created || 0
                 });
 
-                summary.totalPidsCreated += resultData.pids_created ?? 0;
-                summary.totalPidsUpdated += resultData.pids_updated ?? 0;
-                summary.totalItemsCreated += resultData.items_created ?? 0;
+                summary.totalPidsCreated += response.data.pids_created || 0;
+                summary.totalPidsUpdated += response.data.pids_updated || 0;
+                summary.totalItemsCreated += response.data.items_created || 0;
             } else {
-                throw new Error(response.data.message);
+                throw new Error(response.data.message || 'Import failed');
             }
         } catch (error) {
             uploadResults.value.push({
-                success: true,
+                success: false,
                 filename: file.name,
-                pids_created: resultData.pids_created ?? 0,
-                pids_updated: resultData.pids_updated ?? 0,
-                items_created: resultData.items_created ?? 0
+                error: error.response?.data?.message || error.message || 'Upload failed'
             });
+            summary.failedFiles++;
         } finally {
             uploadProgress.value.current++;
             summary.filesProcessed++;

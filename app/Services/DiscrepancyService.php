@@ -96,9 +96,8 @@ class DiscrepancyService
             }
 
             $initialDiscrepancy = $qtyActual - $discrepancy->soh;
-            $explained = $discrepancy->outstanding_gr + $discrepancy->outstanding_gi + $discrepancy->error_moving;
-            $finalDiscrepancy = $initialDiscrepancy + $explained;
-
+            $movingData = $discrepancy->outstanding_gr + $discrepancy->outstanding_gi + $discrepancy->error_moving;
+            $finalDiscrepancy = $initialDiscrepancy + $movingData;
             return [
                 'id' => $discrepancy->id,
                 'materialNo' => $material->material_number,
@@ -129,6 +128,16 @@ class DiscrepancyService
                 $q->where('location', $filters['location']);
             });
         }
+        if (!empty($filters['pic'])) {
+            $allQuery->whereHas('material', function ($q) use ($filters) {
+                $q->where('pic_name', $filters['pic']);
+            });
+        }
+        if (!empty($filters['usage'])) {
+            $allQuery->whereHas('material', function ($q) use ($filters) {
+                $q->where('usage', $filters['usage']);
+            });
+        }
         if (!empty($filters['search'])) {
             $searchTerm = $filters['search'];
             $allQuery->whereHas('material', function ($q) use ($searchTerm) {
@@ -141,12 +150,14 @@ class DiscrepancyService
             $latestInput = DailyInput::getLatestForMaterial($discrepancy->material_id);
             $qtyActual = $latestInput ? $latestInput->daily_stock : 0;
             $initialDiscrepancy = $qtyActual - $discrepancy->soh;
-            $explained = $discrepancy->outstanding_gr + $discrepancy->outstanding_gi + $discrepancy->error_moving;
-            $finalDiscrepancy = $initialDiscrepancy + $explained;
+            $movingData = $discrepancy->outstanding_gr + $discrepancy->outstanding_gi + $discrepancy->error_moving;
+            $finalDiscrepancy = $initialDiscrepancy + $movingData;
+            $initialAmount = $qtyActual * $discrepancy->price;
 
             return [
                 'finalDiscrepancy' => $finalDiscrepancy,
                 'finalDiscrepancyAmount' => $finalDiscrepancy * $discrepancy->price,
+                'initialAmount' => $initialAmount
             ];
         });
 
@@ -209,29 +220,57 @@ class DiscrepancyService
      */
     private function calculateStatistics($discrepancies): array
     {
+        $totalItems = count($discrepancies);
         $surplusCount = 0;
         $discrepancyCount = 0;
+        $matchCount = 0;
         $surplusAmount = 0;
         $discrepancyAmount = 0;
+        $totalAmount = 0;
 
         foreach ($discrepancies as $item) {
             $finalDiscrepancy = $item['finalDiscrepancy'];
-            $amount = $item['finalDiscrepancyAmount'];
+            $finalDiscrepancyAmount = $item['finalDiscrepancyAmount'];
+            $initialAmount = $item['initialAmount'];
 
+            // Calculate total amount (absolute value for percentage calculation)
             if ($finalDiscrepancy > 0) {
                 $surplusCount++;
-                $surplusAmount += $amount;
+                $surplusAmount += $finalDiscrepancyAmount;
+                $totalAmount += $initialAmount;
             } elseif ($finalDiscrepancy < 0) {
                 $discrepancyCount++;
-                $discrepancyAmount += $amount;
+                $discrepancyAmount += $finalDiscrepancyAmount;
+                $totalAmount += $initialAmount;
+            } else {
+                $matchCount++;
+                $totalAmount += $initialAmount;
             }
         }
 
+        // Calculate percentages
+        $surplusCountPercent = $totalItems > 0 ? round(($surplusCount / $totalItems) * 100, 1) : 0;
+        $discrepancyCountPercent = $totalItems > 0 ? round(($discrepancyCount / $totalItems) * 100, 1) : 0;
+        $matchCountPercent = $totalItems > 0 ? round(($matchCount / $totalItems) * 100, 1) : 0;
+
+        // For amount percentages, calculate based on total absolute amounts
+        $totalAbsAmount = $totalAmount > 0 ? abs($totalAmount) : 0;
+        $surplusAmountPercent = $totalAbsAmount > 0 ? round((abs($surplusAmount) / $totalAbsAmount) * 100, 1) : 0;
+        $discrepancyAmountPercent = $totalAbsAmount > 0 ? round((abs($discrepancyAmount) / $totalAbsAmount) * 100, 1) : 0;
+
         return [
+            'totalItems' => $totalItems,
             'surplusCount' => $surplusCount,
             'discrepancyCount' => $discrepancyCount,
+            'matchCount' => $matchCount,
             'surplusAmount' => $surplusAmount,
             'discrepancyAmount' => abs($discrepancyAmount),
+            'surplusCountPercent' => $surplusCountPercent,
+            'discrepancyCountPercent' => $discrepancyCountPercent,
+            'matchCountPercent' => $matchCountPercent,
+            'totalAmount' => $totalAbsAmount,
+            'surplusAmountPercent' => $surplusAmountPercent,
+            'discrepancyAmountPercent' => $discrepancyAmountPercent,
         ];
     }
 
@@ -450,6 +489,66 @@ class DiscrepancyService
             return [
                 'success' => false,
                 'message' => 'Update failed: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Bulk update discrepancy fields for multiple items
+     */
+    public function bulkUpdateDiscrepancy(array $items): array
+    {
+        try {
+            DB::beginTransaction();
+
+            $updated = 0;
+            $errors = [];
+
+            foreach ($items as $item) {
+                $discrepancyId = $item['id'] ?? null;
+
+                if (!$discrepancyId) {
+                    continue;
+                }
+
+                $discrepancy = DiscrepancyMaterials::find($discrepancyId);
+
+                if (!$discrepancy) {
+                    $errors[] = "Discrepancy ID {$discrepancyId} not found";
+                    continue;
+                }
+
+                $updateData = [];
+
+                if (isset($item['outGR'])) {
+                    $updateData['outstanding_gr'] = (int) $item['outGR'];
+                }
+                if (isset($item['outGI'])) {
+                    $updateData['outstanding_gi'] = (int) $item['outGI'];
+                }
+                if (isset($item['errorMvmt'])) {
+                    $updateData['error_moving'] = (int) $item['errorMvmt'];
+                }
+
+                if (!empty($updateData)) {
+                    $discrepancy->update($updateData);
+                    $updated++;
+                }
+            }
+
+            DB::commit();
+
+            return [
+                'success' => true,
+                'updated' => $updated,
+                'errors' => $errors,
+            ];
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return [
+                'success' => false,
+                'message' => 'Bulk update failed: ' . $e->getMessage(),
             ];
         }
     }

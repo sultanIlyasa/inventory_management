@@ -25,6 +25,15 @@
                             </svg>
                             Download Template
                         </button>
+                        <button @click="downloadExcel"
+                            class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download Excel
+                        </button>
                         <label
                             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors flex items-center gap-2"
                             :class="{ 'opacity-50 cursor-not-allowed': uploading }">
@@ -37,6 +46,15 @@
                                 :disabled="uploading" />
                             {{ uploading ? 'Uploading...' : 'Upload Excel' }}
                         </label>
+                        <button @click="saveAllChanges" :disabled="saving || modifiedItems.size === 0"
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                            {{ saving ? 'Saving...' : `Save Changes${modifiedItems.size > 0 ? ` (${modifiedItems.size})` : ''}` }}
+                        </button>
                         <button @click="syncWithDailyInputs" :disabled="loading"
                             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             Sync
@@ -62,22 +80,28 @@
                             <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Operational Impact
                                 (Items)
                             </h3>
+                            <span class="ml-auto text-xs text-gray-500">Total: {{ statistics.totalItems }} items</span>
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
                             <div class="bg-blue p-3 rounded-lg shadow-sm border border-blue-100">
                                 <span class="block text-lg text-blue-600 font-bold mb-1">Discrepancy Items (+)</span>
-                                <div class="flex items-baseline gap-1">
+                                <div class="flex items-baseline gap-2">
                                     <span class="text-lg font-bold text-blue-800">{{ statistics.surplusCount }}</span>
                                     <span class="text-xs text-blue-400">items</span>
+                                    <span class="ml-auto text-sm font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                                        {{ statistics.surplusCountPercent }}%
+                                    </span>
                                 </div>
                             </div>
                             <div class="bg-red p-3 rounded-lg shadow-sm border border-red-100">
                                 <span class="block text-lg text-red-600 font-bold mb-1">Discrepancy Items (-)</span>
-                                <div class="flex items-baseline gap-1">
-                                    <span class="text-lg font-bold text-red-800">{{ statistics.discrepancyCount
-                                    }}</span>
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-lg font-bold text-red-800">{{ statistics.discrepancyCount }}</span>
                                     <span class="text-xs text-red-400">items</span>
+                                    <span class="ml-auto text-sm font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                                        {{ statistics.discrepancyCountPercent }}%
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -94,19 +118,27 @@
                             </div>
                             <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Financial Impact (Value)
                             </h3>
+                            <span class="ml-auto text-xs text-gray-500">Match: {{ statistics.matchCount }} items ({{ statistics.matchCountPercent }}%)</span>
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
                             <div class="bg-white p-3 rounded-lg shadow-sm border border-blue-100">
                                 <span class="block text-lg text-blue-600 font-bold mb-1">Discrepancy Amount (+)</span>
-                                <span class="text-lg font-bold text-gray-800">{{
-                                    formatCurrency(statistics.surplusAmount)
-                                }}</span>
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-lg font-bold text-gray-800">{{ formatCurrency(statistics.surplusAmount) }}</span>
+                                    <span class="ml-auto text-sm font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                                        {{ statistics.surplusAmountPercent }}%
+                                    </span>
+                                </div>
                             </div>
                             <div class="bg-white p-3 rounded-lg shadow-sm border border-red-100">
                                 <span class="block text-lg text-red-600 font-bold mb-1">Discrepancy Amount (-)</span>
-                                <span class="text-lg font-bold text-gray-800">{{
-                                    formatCurrency(statistics.discrepancyAmount) }}</span>
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-lg font-bold text-gray-800">{{ formatCurrency(statistics.discrepancyAmount) }}</span>
+                                    <span class="ml-auto text-sm font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                                        {{ statistics.discrepancyAmountPercent }}%
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -301,22 +333,27 @@
 
                             <td
                                 class="px-3 py-3 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors">
-                                <input type="number" min="0" v-model.number="item.outGR"
+                                <input type="number" min="0" :value="item.outGR"
+                                    @input="trackModification(item, 'outGR', Number($event.target.value) || 0)"
                                     class="w-full border-gray-300 rounded-md text-right font-medium text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 shadow-sm px-2 py-1.5 transition-all"
+                                    :class="{ 'ring-2 ring-green-400 border-green-400': modifiedItems.has(item.id) }"
                                     placeholder="0" />
                             </td>
 
                             <td
                                 class="px-3 py-3 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors">
                                 <input type="number" :value="item.outGI"
-                                    @input="item.outGI = -Math.abs($event.target.value)"
+                                    @input="trackModification(item, 'outGI', -Math.abs($event.target.value))"
                                     class="w-full border-gray-300 rounded-md text-right font-medium text-sm focus:ring-2 focus:ring-red-400 focus:border-red-400 shadow-sm px-2 py-1.5 transition-all text-red-600"
+                                    :class="{ 'ring-2 ring-green-400 border-green-400': modifiedItems.has(item.id) }"
                                     placeholder="0" />
                             </td>
                             <td
                                 class="px-3 py-3 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors">
-                                <input type="number" v-model.number="item.errorMvmt"
+                                <input type="number" :value="item.errorMvmt"
+                                    @input="trackModification(item, 'errorMvmt', Number($event.target.value) || 0)"
                                     class="w-full border-gray-300 rounded-md text-right font-medium text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 shadow-sm px-2 py-1.5 transition-all"
+                                    :class="{ 'ring-2 ring-green-400 border-green-400': modifiedItems.has(item.id) }"
                                     placeholder="0" />
                             </td>
 
@@ -419,10 +456,17 @@ const props = defineProps({
 // State
 const items = ref([]);
 const statistics = ref({
+    totalItems: 0,
     surplusCount: 0,
     discrepancyCount: 0,
+    matchCount: 0,
     surplusAmount: 0,
     discrepancyAmount: 0,
+    surplusCountPercent: 0,
+    discrepancyCountPercent: 0,
+    matchCountPercent: 0,
+    surplusAmountPercent: 0,
+    discrepancyAmountPercent: 0,
 });
 const pagination = ref({
     current_page: 1,
@@ -438,7 +482,10 @@ const sortBy = ref(null);
 const sortOrder = ref('asc');
 const loading = ref(false);
 const uploading = ref(false);
+const saving = ref(false);
 const error = ref(null);
+const modifiedItems = ref(new Set());
+const originalValues = ref(new Map());
 let searchTimeout = null;
 
 // Fetch discrepancy data from API
@@ -479,6 +526,17 @@ const fetchData = async (page = 1) => {
             items.value = response.data.data.items;
             statistics.value = response.data.data.statistics;
             pagination.value = response.data.data.pagination;
+
+            // Store original values for change tracking
+            originalValues.value.clear();
+            modifiedItems.value.clear();
+            items.value.forEach(item => {
+                originalValues.value.set(item.id, {
+                    outGR: item.outGR,
+                    outGI: item.outGI,
+                    errorMvmt: item.errorMvmt,
+                });
+            });
         }
     } catch (err) {
         error.value = 'Failed to fetch discrepancy data: ' + (err.response?.data?.message || err.message);
@@ -535,6 +593,96 @@ const goToPage = (page) => {
 // Download template
 const downloadTemplate = () => {
     window.location.href = '/api/discrepancy/template';
+};
+
+// Download Excel with current filters
+const downloadExcel = () => {
+    const params = new URLSearchParams();
+
+    if (selectedLocation.value) {
+        params.append('location', selectedLocation.value);
+    }
+    if (selectedPic.value) {
+        params.append('pic', selectedPic.value);
+    }
+    if (selectedUsage.value) {
+        params.append('usage', selectedUsage.value);
+    }
+    if (searchQuery.value) {
+        params.append('search', searchQuery.value);
+    }
+
+    const queryString = params.toString();
+    window.location.href = '/api/discrepancy/export' + (queryString ? '?' + queryString : '');
+};
+
+// Track item modification
+const trackModification = (item, field, value) => {
+    const original = originalValues.value.get(item.id);
+    if (!original) return;
+
+    // Update the item value
+    item[field] = value;
+
+    // Check if any field differs from original
+    const isModified =
+        item.outGR !== original.outGR ||
+        item.outGI !== original.outGI ||
+        item.errorMvmt !== original.errorMvmt;
+
+    if (isModified) {
+        modifiedItems.value.add(item.id);
+    } else {
+        modifiedItems.value.delete(item.id);
+    }
+
+    // Force reactivity update
+    modifiedItems.value = new Set(modifiedItems.value);
+};
+
+// Save all changes
+const saveAllChanges = async () => {
+    if (modifiedItems.value.size === 0) return;
+
+    saving.value = true;
+    error.value = null;
+
+    try {
+        const itemsToSave = items.value
+            .filter(item => modifiedItems.value.has(item.id))
+            .map(item => ({
+                id: item.id,
+                outGR: item.outGR,
+                outGI: item.outGI,
+                errorMvmt: item.errorMvmt,
+            }));
+
+        const response = await axios.post('/api/discrepancy/bulk-update', {
+            items: itemsToSave,
+        });
+
+        if (response.data.success) {
+            // Update original values to match saved values
+            itemsToSave.forEach(item => {
+                originalValues.value.set(item.id, {
+                    outGR: item.outGR,
+                    outGI: item.outGI,
+                    errorMvmt: item.errorMvmt,
+                });
+            });
+
+            modifiedItems.value.clear();
+            modifiedItems.value = new Set();
+
+            alert(`Changes saved successfully!\n\nUpdated: ${response.data.data.updated} items`);
+        }
+    } catch (err) {
+        error.value = 'Failed to save changes: ' + (err.response?.data?.message || err.message);
+        alert('Failed to save changes: ' + (err.response?.data?.message || err.message));
+        console.error('Save error:', err);
+    } finally {
+        saving.value = false;
+    }
 };
 
 // Get page numbers for pagination

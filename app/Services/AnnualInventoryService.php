@@ -653,66 +653,25 @@ class AnnualInventoryService
                 'annual_inventories.pic_name',
             ]);
 
-        // Filter by PID
-        if (!empty($filters['pid_id'])) {
-            $query->where('annual_inventory_items.annual_inventory_id', $filters['pid_id']);
-        }
-
-        // Filter by item status
-        if (!empty($filters['status'])) {
-            $query->where('annual_inventory_items.status', $filters['status']);
-        }
-
-        // Search filter (material number or description)
-        if (!empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('annual_inventory_items.material_number', 'LIKE', "%{$search}%")
-                    ->orWhere('annual_inventory_items.description', 'LIKE', "%{$search}%")
-                    ->orWhere('annual_inventories.pid', 'LIKE', "%{$search}%");
-            });
-        }
-
-        // Filter by discrepancy type
-        if (!empty($filters['discrepancy_type'])) {
-            switch ($filters['discrepancy_type']) {
-                case 'surplus':
-                    $query->where('annual_inventory_items.final_discrepancy', '>', 0);
-                    break;
-                case 'shortage':
-                    $query->where('annual_inventory_items.final_discrepancy', '<', 0);
-                    break;
-                case 'match':
-                    $query->where('annual_inventory_items.final_discrepancy', '=', 0);
-                    break;
-            }
-        }
-
-        // Filter by location
-        if (!empty($filters['location'])) {
-            $query->where('annual_inventories.location', $filters['location']);
-        }
-
-        // Only show counted items
-        if (!empty($filters['counted_only']) && $filters['counted_only'] !== 'false') {
-            $query->where('annual_inventory_items.status', '!=', 'PENDING');
-        }
+        // Apply filters to main query
+        $this->applyDiscrepancyFilters($query, $filters);
 
         $query->orderBy('annual_inventories.pid', 'asc')
             ->orderBy('annual_inventory_items.material_number', 'asc');
 
         $paginated = $query->paginate($perPage);
 
-        // Calculate statistics
+        // Build statistics query with the same filters applied
         $statsQuery = AnnualInventoryItems::query()
-            ->where('status', '!=', 'PENDING');
+            ->join('annual_inventories', 'annual_inventory_items.annual_inventory_id', '=', 'annual_inventories.id')
+            ->where('annual_inventory_items.status', '!=', 'PENDING');
 
-        $surplusCount = (clone $statsQuery)->where('final_discrepancy', '>', 0)->count();
-        $shortageCount = (clone $statsQuery)->where('final_discrepancy', '<', 0)->count();
-        $matchCount = (clone $statsQuery)->where('final_discrepancy', '=', 0)->count();
+        // Apply same filters to stats query
+        $this->applyDiscrepancyFilters($statsQuery, $filters, true);
 
-        $surplusAmount = (clone $statsQuery)->where('final_discrepancy', '>', 0)->sum('final_discrepancy_amount');
-        $shortageAmount = (clone $statsQuery)->where('final_discrepancy', '<', 0)->sum('final_discrepancy_amount');
+        // Get all filtered items for statistics calculation
+        $allItems = $statsQuery->get();
+        $statistics = $this->calculateDiscrepancyStatistics($allItems);
 
         return [
             'items' => $paginated->map(function ($item) {
@@ -745,14 +704,119 @@ class AnnualInventoryService
                 'total' => $paginated->total(),
                 'last_page' => $paginated->lastPage(),
             ],
-            'statistics' => [
-                'surplus_count' => $surplusCount,
-                'shortage_count' => $shortageCount,
-                'match_count' => $matchCount,
-                'surplus_amount' => (float) $surplusAmount,
-                'shortage_amount' => (float) $shortageAmount,
-                'total_counted' => $surplusCount + $shortageCount + $matchCount,
-            ],
+            'statistics' => $statistics,
+        ];
+    }
+
+    /**
+     * Apply discrepancy filters to a query
+     */
+    private function applyDiscrepancyFilters($query, array $filters, bool $excludeDiscrepancyType = false): void
+    {
+        // Filter by PID
+        if (!empty($filters['pid_id'])) {
+            $query->where('annual_inventory_items.annual_inventory_id', $filters['pid_id']);
+        }
+
+        // Filter by item status
+        if (!empty($filters['status'])) {
+            $query->where('annual_inventory_items.status', $filters['status']);
+        }
+
+        // Search filter (material number or description)
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('annual_inventory_items.material_number', 'LIKE', "%{$search}%")
+                    ->orWhere('annual_inventory_items.description', 'LIKE', "%{$search}%")
+                    ->orWhere('annual_inventories.pid', 'LIKE', "%{$search}%");
+            });
+        }
+
+        // Filter by discrepancy type (exclude for stats query to get accurate percentages)
+        if (!$excludeDiscrepancyType && !empty($filters['discrepancy_type'])) {
+            switch ($filters['discrepancy_type']) {
+                case 'surplus':
+                    $query->where('annual_inventory_items.final_discrepancy', '>', 0);
+                    break;
+                case 'shortage':
+                    $query->where('annual_inventory_items.final_discrepancy', '<', 0);
+                    break;
+                case 'match':
+                    $query->where('annual_inventory_items.final_discrepancy', '=', 0);
+                    break;
+            }
+        }
+
+        // Filter by location
+        if (!empty($filters['location'])) {
+            $query->where('annual_inventories.location', $filters['location']);
+        }
+
+        // Only show counted items
+        if (!empty($filters['counted_only']) && $filters['counted_only'] !== 'false') {
+            $query->where('annual_inventory_items.status', '!=', 'PENDING');
+        }
+    }
+
+    /**
+     * Calculate discrepancy statistics with percentages
+     */
+    private function calculateDiscrepancyStatistics($items): array
+    {
+        $totalItems = count($items);
+        $surplusCount = 0;
+        $discrepancyCount = 0;
+        $matchCount = 0;
+        $surplusAmount = 0;
+        $discrepancyAmount = 0;
+        $totalAmount = 0;
+
+        foreach ($items as $item) {
+            $finalDiscrepancy = (float) ($item->final_discrepancy ?? 0);
+            $finalDiscrepancyAmount = (float) ($item->final_discrepancy_amount ?? 0);
+            $actualQty = (float) ($item->actual_qty ?? 0);
+            $price = (float) ($item->price ?? 0);
+            $initialAmount = $actualQty * $price;
+
+            // Calculate totals
+            if ($finalDiscrepancy > 0) {
+                $surplusCount++;
+                $surplusAmount += $finalDiscrepancyAmount;
+                $totalAmount += $initialAmount;
+            } elseif ($finalDiscrepancy < 0) {
+                $discrepancyCount++;
+                $discrepancyAmount += $finalDiscrepancyAmount;
+                $totalAmount += $initialAmount;
+            } else {
+                $matchCount++;
+                $totalAmount += $initialAmount;
+            }
+        }
+
+        // Calculate percentages
+        $surplusCountPercent = $totalItems > 0 ? round(($surplusCount / $totalItems) * 100, 1) : 0;
+        $discrepancyCountPercent = $totalItems > 0 ? round(($discrepancyCount / $totalItems) * 100, 1) : 0;
+        $matchCountPercent = $totalItems > 0 ? round(($matchCount / $totalItems) * 100, 1) : 0;
+
+        // For amount percentages, calculate based on total absolute amounts
+        $totalAbsAmount = $totalAmount > 0 ? abs($totalAmount) : 0;
+        $surplusAmountPercent = $totalAbsAmount > 0 ? round((abs($surplusAmount) / $totalAbsAmount) * 100, 1) : 0;
+        $discrepancyAmountPercent = $totalAbsAmount > 0 ? round((abs($discrepancyAmount) / $totalAbsAmount) * 100, 1) : 0;
+
+        return [
+            'totalItems' => $totalItems,
+            'surplusCount' => $surplusCount,
+            'discrepancyCount' => $discrepancyCount,
+            'matchCount' => $matchCount,
+            'surplusAmount' => (float) $surplusAmount,
+            'discrepancyAmount' => (float) abs($discrepancyAmount),
+            'surplusCountPercent' => $surplusCountPercent,
+            'discrepancyCountPercent' => $discrepancyCountPercent,
+            'matchCountPercent' => $matchCountPercent,
+            'totalAmount' => $totalAbsAmount,
+            'surplusAmountPercent' => $surplusAmountPercent,
+            'discrepancyAmountPercent' => $discrepancyAmountPercent,
         ];
     }
 
@@ -949,7 +1013,7 @@ class AnnualInventoryService
         $sheet = $spreadsheet->getActiveSheet();
 
         // Headers
-        $headers = ['Material Number', 'SOH', 'Outstanding GR', 'Outstanding GI', 'Error Movement','Price','Location'];
+        $headers = ['pid', 'Material Number', 'SOH', 'Outstanding GR', 'Outstanding GI', 'Error Movement', 'Price'];
 
         $col = 'A';
         foreach ($headers as $header) {
@@ -963,9 +1027,9 @@ class AnnualInventoryService
 
         // Example data
         $examples = [
-            ['RM-2024-001', 50, 0, 0, 0],
-            ['PK-2024-055', 1200, 0, -100, 0],
-            ['EL-2024-889', 45, 5, 0, 0],
+            ['20252201', 'RM-2024-001', 50, 0, 0, 0],
+            ['20252201', 'PK-2024-055', 1200, 0, -100, 0],
+            ['20252201', 'EL-2024-889', 45, 5, 0, 0],
         ];
 
         $row = 2;
@@ -1014,20 +1078,25 @@ class AnnualInventoryService
             foreach ($rows as $index => $row) {
                 $rowNum = $index + 2; // Account for header and 0-index
 
-                $materialNumber = trim($row[0] ?? '');
-                $soh = is_numeric($row[1]) ? (float) $row[1] : null;
-                $outstandingGR = is_numeric($row[2]) ? (float) $row[2] : 0;
-                $outstandingGI = is_numeric($row[3]) ? (float) $row[3] : 0;
-                $errorMovement = is_numeric($row[4]) ? (float) $row[4] : 0;
-                $price = is_numeric($row[5]) ? (float) $row[5] : 0;
-                $location = trim($row[6] ?? '');
+                $pidNumber = trim($row[0] ?? '');
+                $materialNumber = trim($row[1] ?? '');
+                $soh = is_numeric($row[2]) ? (float) $row[2] : null;
+                $outstandingGR = is_numeric($row[3]) ? (float) $row[3] : 0;
+                $outstandingGI = is_numeric($row[4]) ? (float) $row[4] : 0;
+                $errorMovement = is_numeric($row[5]) ? (float) $row[5] : 0;
+                $price = is_numeric($row[6]) ? (float) $row[6] : 0;
 
                 if (empty($materialNumber)) {
                     continue;
                 }
 
-                // Find item by material number
-                $item = AnnualInventoryItems::where('material_number', $materialNumber)->first();
+                // Find item by material number and PID
+                $item = AnnualInventoryItems::query()
+                    ->whereHas('annualInventory', function ($q) use ($pidNumber) {
+                        $q->where('pid', $pidNumber);
+                    })
+                    ->where('material_number', $materialNumber)
+                    ->first();
 
                 if (!$item) {
                     $errors[] = "Row {$rowNum}: Material '{$materialNumber}' not found";
@@ -1039,7 +1108,6 @@ class AnnualInventoryService
                     'outstanding_gi' => $outstandingGI,
                     'error_movement' => $errorMovement,
                     'price' => $price,
-                    'location' => $location,
                 ];
 
                 if ($soh !== null) {
@@ -1104,10 +1172,23 @@ class AnnualInventoryService
 
         // Headers
         $headers = [
-            'PID', 'Location', 'PIC', 'Status',
-            'Material Number', 'Description', 'Rack', 'UoM',
-            'System Qty', 'SOH', 'Actual Qty', 'Discrepancy',
-            'Price', 'Discrepancy Amount', 'Counted By', 'Counted At', 'Item Status'
+            'PID',
+            'Location',
+            'PIC',
+            'Status',
+            'Material Number',
+            'Description',
+            'Rack',
+            'UoM',
+            'System Qty',
+            'SOH',
+            'Actual Qty',
+            'Discrepancy',
+            'Price',
+            'Discrepancy Amount',
+            'Counted By',
+            'Counted At',
+            'Item Status'
         ];
 
         $col = 'A';
@@ -1163,5 +1244,4 @@ class AnnualInventoryService
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
     }
-
 }

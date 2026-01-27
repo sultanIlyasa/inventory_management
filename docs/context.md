@@ -54,7 +54,8 @@ Final Discrepancy Amount = Final Discrepancy × Price
 - `GET /api/annual-inventory/pids-dropdown` - PIDs for dropdown
 
 ### Import & Export
-- `POST /api/annual-inventory/importpid` - Import PIDs from Excel
+- `GET /api/annual-inventory/template` - Download PID import Excel template
+- `POST /api/annual-inventory/importpid` - Import PIDs from Excel (supports bulk upload)
 - `GET /api/annual-inventory/export` - Export PIDs with actual qty to Excel
 - `GET /api/annual-inventory/statistics` - Dashboard stats
 - `GET /api/annual-inventory/locations` - Unique locations
@@ -87,7 +88,13 @@ routes/web.php
 ## Page Responsibilities
 
 ### index.vue (PID List)
-- Upload PIDs from Excel
+- Bulk upload PIDs from multiple Excel files at once
+  - Select multiple files in one dialog
+  - Progress bar showing upload progress (x of y files)
+  - Per-file results display (success/error)
+  - Summary totals (PIDs created, updated, items created)
+  - Remove individual files before upload
+- Download PID import template
 - Edit PID details (pid, location, pic_name)
 - Delete PID with confirmation
 - Download PIDs with actual qty to Excel

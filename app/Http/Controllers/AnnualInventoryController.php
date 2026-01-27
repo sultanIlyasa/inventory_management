@@ -238,10 +238,10 @@ class AnnualInventoryController extends Controller
      * GET /api/annual-inventory/template
      * Download PID import Excel template
      */
-    public function pidTemplate()
-    {
-        return $this->service->generatePIDTemplate();
-    }
+    // public function pidTemplate()
+    // {
+    //     return $this->service->generatePIDTemplate();
+    // }
 
     /**
      * GET /api/annual-inventory/statistics

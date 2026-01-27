@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\DiscrepancyService;
 use App\Exports\DiscrepancyTemplateExport;
+use App\Exports\DiscrepancyDataExport;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
@@ -65,6 +66,23 @@ class DiscrepancyController extends Controller
         $fileName = 'discrepancy_import_template_' . now()->format('Ymd') . '.xlsx';
 
         return Excel::download(new DiscrepancyTemplateExport(), $fileName);
+    }
+
+    /**
+     * Export discrepancy data to Excel
+     */
+    public function export(Request $request)
+    {
+        $filters = [
+            'location' => $request->query('location'),
+            'pic' => $request->query('pic'),
+            'usage' => $request->query('usage'),
+            'search' => $request->query('search'),
+        ];
+
+        $fileName = 'discrepancy_data_' . now()->format('Ymd_His') . '.xlsx';
+
+        return Excel::download(new DiscrepancyDataExport($filters), $fileName);
     }
 
     /**
@@ -139,6 +157,38 @@ class DiscrepancyController extends Controller
                 'message' => 'Sync completed successfully',
                 'data' => [
                     'created' => $result['created'],
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => $result['message'],
+        ], 400);
+    }
+
+    /**
+     * Bulk update discrepancy data for multiple items
+     */
+    public function bulkUpdate(Request $request)
+    {
+        $request->validate([
+            'items' => 'required|array',
+            'items.*.id' => 'required|integer',
+            'items.*.outGR' => 'nullable|integer',
+            'items.*.outGI' => 'nullable|integer',
+            'items.*.errorMvmt' => 'nullable|integer',
+        ]);
+
+        $result = $this->service->bulkUpdateDiscrepancy($request->input('items'));
+
+        if ($result['success']) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Changes saved successfully',
+                'data' => [
+                    'updated' => $result['updated'],
+                    'errors' => $result['errors'],
                 ],
             ]);
         }

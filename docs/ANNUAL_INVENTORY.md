@@ -97,7 +97,8 @@ The Annual Inventory feature allows warehouse staff to perform physical inventor
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/annual-inventory/importpid` | Import PIDs from Excel |
+| GET | `/api/annual-inventory/template` | Download PID import Excel template |
+| POST | `/api/annual-inventory/importpid` | Import PIDs from Excel (supports bulk upload) |
 | GET | `/api/annual-inventory/export` | Export PIDs with actual qty to Excel |
 | GET | `/api/annual-inventory/statistics` | Get dashboard statistics |
 | GET | `/api/annual-inventory/locations` | Get unique locations |
@@ -110,10 +111,22 @@ The Annual Inventory feature allows warehouse staff to perform physical inventor
 - **Statistics Cards**: Total PIDs, Completed, In Progress, Completion Rate
 - **Search Bar**: Search by PID number or PIC name
 - **Filters**: Location, Status
-- **Actions**:1
+- **Actions**:
   - Refresh - Reload data
+  - Download Template - Download PID import Excel template
   - Download Excel - Export PIDs with actual quantities
-  - Upload PID - Import new PIDs from Excel
+  - Upload PID - Import new PIDs from Excel (supports bulk upload)
+- **Bulk Upload Feature**:
+  - Select multiple Excel files at once
+  - File list display with remove buttons
+  - Progress bar showing upload progress (x of y files)
+  - Per-file results (success with counts, or error message)
+  - Summary totals after upload:
+    - Files processed
+    - Total PIDs created
+    - Total PIDs updated
+    - Total items created
+    - Failed files count
 - **Table**: PID list with progress indicators, pagination
 - **Row Actions**:
   - Submit - Navigate to counting page
@@ -168,6 +181,40 @@ The Annual Inventory feature allows warehouse staff to perform physical inventor
   - Final Discrepancy (calculated)
   - Final Amount (calculated)
 - **Pagination**: 50 items per page
+
+## Bulk Upload Feature
+
+The index page supports uploading multiple Excel files at once for PID import:
+
+### How It Works
+
+1. Click "Upload PID" button to open upload modal
+2. Click "Choose Files" to select multiple Excel files
+3. Selected files appear in a list with remove buttons
+4. Click "Upload All" to start processing
+5. Progress bar shows current file being processed (x of y)
+6. Each file shows individual result (success or error)
+7. Summary totals displayed after all files complete:
+   - Files processed
+   - Total PIDs created across all files
+   - Total PIDs updated across all files
+   - Total items created across all files
+   - Count of failed files
+
+### Upload Response Format
+
+Each file upload returns:
+
+```json
+{
+  "success": true,
+  "message": "Import completed",
+  "pids_created": 5,
+  "pids_updated": 2,
+  "items_created": 150,
+  "errors": []
+}
+```
 
 ## Excel Import/Export Formats
 

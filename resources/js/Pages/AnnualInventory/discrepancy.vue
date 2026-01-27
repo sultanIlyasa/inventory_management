@@ -18,7 +18,8 @@
 
             <!-- Header Card -->
             <div class="bg-white rounded-t-xl shadow-sm border-b border-gray-200 mb-6">
-                <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div
+                    class="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div class="flex items-center gap-4">
                         <button @click="goBack"
                             class="p-2 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors">
@@ -26,7 +27,8 @@
                         </button>
                         <div>
                             <h1 class="text-2xl font-bold text-gray-800">Annual Inventory Discrepancy</h1>
-                            <p class="text-gray-500 text-sm mt-1">PID: {{ pidData?.pid || 'All PIDs' }} • {{ pidData?.location || 'All Locations' }}</p>
+                            <p class="text-gray-500 text-sm mt-1">PID: {{ pidData?.pid || 'All PIDs' }} • {{
+                                pidData?.location || 'All Locations' }}</p>
                         </div>
                     </div>
                     <div class="flex gap-3 flex-wrap">
@@ -58,27 +60,36 @@
                 </div>
 
                 <!-- Statistics -->
-                <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-200 bg-gray-50/50 rounded-b-xl">
+                <div
+                    class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-200 bg-gray-50/50 rounded-b-xl">
                     <div class="p-4">
                         <div class="mb-3 flex items-center gap-2">
                             <div class="p-1.5 bg-indigo-100 rounded-md text-indigo-600">
                                 <Package class="w-4 h-4" />
                             </div>
-                            <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Operational Impact (Items)</h3>
+                            <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Operational Impact
+                                (Items)</h3>
+                            <span class="ml-auto text-xs text-gray-500">Total: {{ statistics.totalItems }} items</span>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="bg-blue-50 p-3 rounded-lg shadow-sm border border-blue-100">
                                 <span class="block text-sm text-blue-600 font-bold mb-1">Surplus Items (+)</span>
-                                <div class="flex items-baseline gap-1">
+                                <div class="flex items-baseline gap-2">
                                     <span class="text-lg font-bold text-blue-800">{{ statistics.surplusCount }}</span>
                                     <span class="text-xs text-blue-400">items</span>
+                                    <span class="ml-auto text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
+                                        {{ statistics.surplusCountPercent }}%
+                                    </span>
                                 </div>
                             </div>
                             <div class="bg-red-50 p-3 rounded-lg shadow-sm border border-red-100">
                                 <span class="block text-sm text-red-600 font-bold mb-1">Shortage Items (-)</span>
-                                <div class="flex items-baseline gap-1">
-                                    <span class="text-lg font-bold text-red-800">{{ statistics.shortageCount }}</span>
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-lg font-bold text-red-800">{{ statistics.discrepancyCount }}</span>
                                     <span class="text-xs text-red-400">items</span>
+                                    <span class="ml-auto text-sm font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded">
+                                        {{ statistics.discrepancyCountPercent }}%
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -89,16 +100,28 @@
                             <div class="p-1.5 bg-blue-100 rounded-md text-blue-600">
                                 <DollarSign class="w-4 h-4" />
                             </div>
-                            <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Financial Impact (Value)</h3>
+                            <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Financial Impact (Value)
+                            </h3>
+                            <span class="ml-auto text-xs text-gray-500">Match: {{ statistics.matchCount }} items ({{ statistics.matchCountPercent }}%)</span>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="bg-white p-3 rounded-lg shadow-sm border border-blue-100">
                                 <span class="block text-sm text-blue-600 font-bold mb-1">Surplus Amount (+)</span>
-                                <span class="text-lg font-bold text-gray-800">{{ formatCurrency(statistics.surplusAmount) }}</span>
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-lg font-bold text-gray-800">{{ formatCurrency(statistics.surplusAmount) }}</span>
+                                    <span class="ml-auto text-sm font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                                        {{ statistics.surplusAmountPercent }}%
+                                    </span>
+                                </div>
                             </div>
                             <div class="bg-white p-3 rounded-lg shadow-sm border border-red-100">
                                 <span class="block text-sm text-red-600 font-bold mb-1">Shortage Amount (-)</span>
-                                <span class="text-lg font-bold text-gray-800">{{ formatCurrency(statistics.shortageAmount) }}</span>
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-lg font-bold text-gray-800">{{ formatCurrency(statistics.discrepancyAmount) }}</span>
+                                    <span class="ml-auto text-sm font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                                        {{ statistics.discrepancyAmountPercent }}%
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -161,7 +184,8 @@
             <div class="bg-white shadow-lg rounded-lg border border-gray-200 overflow-x-auto pb-4">
                 <table class="w-full text-sm text-left border-collapse">
                     <thead>
-                        <tr class="bg-gray-50/80 text-xs text-gray-600 uppercase font-semibold border-b border-gray-200 leading-tight">
+                        <tr
+                            class="bg-gray-50/80 text-xs text-gray-600 uppercase font-semibold border-b border-gray-200 leading-tight">
                             <th class="px-4 py-3 min-w-[120px] border-r border-gray-100">Material No.</th>
                             <th class="px-4 py-3 min-w-[200px] border-r border-gray-100">Material Name</th>
                             <th class="px-4 py-3 border-r border-gray-100">Rack</th>
@@ -173,7 +197,8 @@
                             <th class="px-4 py-3 text-center bg-blue-50/30 border-r border-blue-100">
                                 Actual<br><span class="text-[10px] opacity-70">(Count)</span>
                             </th>
-                            <th class="px-4 py-3 text-center font-bold text-gray-700 bg-blue-50/30 border-r border-blue-100">
+                            <th
+                                class="px-4 py-3 text-center font-bold text-gray-700 bg-blue-50/30 border-r border-blue-100">
                                 Initial<br>Gap
                             </th>
 
@@ -221,21 +246,24 @@
                             <td class="px-2 py-4 text-sm text-gray-600 text-center border-r border-gray-100">
                                 {{ item.rack_address || '-' }}
                             </td>
+                            <!-- Editable Price -->
                             <td class="px-1 py-1 text-right text-gray-700 font-medium border-r border-gray-200">
-                                {{ formatCurrency(item.price || 0) }}
+                                {{ formatCurrency(item.price) }}
                             </td>
 
                             <!-- Editable SOH -->
-                            <td class="px-3 py-3 bg-green-50/10 border-r border-green-100 group-hover:bg-green-50/30 transition-colors">
-                                <input type="number" v-model.number="item.soh"
-                                    @input="markDirty(item)"
+                            <td
+                                class="px-3 py-3 bg-green-50/10 border-r border-green-100 group-hover:bg-green-50/30 transition-colors">
+                                <input type="number" v-model.number="item.soh" @input="markDirty(item)"
                                     class="w-full border-gray-300 rounded-md text-right font-medium text-sm focus:ring-2 focus:ring-green-400 focus:border-green-400 shadow-sm px-2 py-1.5 transition-all"
                                     placeholder="0" />
                             </td>
 
-                            <td class="px-1 text-center border-r border-blue-100 group-hover:bg-blue-50/30 transition-colors">
+                            <td
+                                class="px-1 text-center border-r border-blue-100 group-hover:bg-blue-50/30 transition-colors">
                                 <div class="text-sm font-bold text-gray-800">{{ formatNumber(item.actual_qty) }}</div>
-                                <div v-if="item.counted_at" class="text-[11px] text-gray-400 font-medium mt-1 whitespace-nowrap">
+                                <div v-if="item.counted_at"
+                                    class="text-[11px] text-gray-400 font-medium mt-1 whitespace-nowrap">
                                     {{ formatCompactTimestamp(item.counted_at) }}
                                 </div>
                             </td>
@@ -245,23 +273,25 @@
                                 {{ getInitialGap(item) > 0 ? '+' : '' }}{{ formatNumber(getInitialGap(item)) }}
                             </td>
 
-                            <td class="px-3 py-3 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors">
+                            <td
+                                class="px-3 py-3 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors">
                                 <input type="number" min="0" v-model.number="item.outstanding_gr"
                                     @input="markDirty(item)"
                                     class="w-full border-gray-300 rounded-md text-right font-medium text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 shadow-sm px-2 py-1.5 transition-all"
                                     placeholder="0" />
                             </td>
 
-                            <td class="px-3 py-3 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors">
-                                <input type="number" :value="item.outstanding_gi "
+                            <td
+                                class="px-3 py-3 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors">
+                                <input type="number" :value="item.outstanding_gi"
                                     @input="item.outstanding_gi = -Math.abs($event.target.value); markDirty(item)"
                                     class="w-full border-gray-300 rounded-md text-right font-medium text-sm focus:ring-2 focus:ring-red-400 focus:border-red-400 shadow-sm px-2 py-1.5 transition-all text-red-600"
                                     placeholder="0" />
                             </td>
 
-                            <td class="px-3 py-3 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors">
-                                <input type="number" v-model.number="item.error_movement"
-                                    @input="markDirty(item)"
+                            <td
+                                class="px-3 py-3 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors">
+                                <input type="number" v-model.number="item.error_movement" @input="markDirty(item)"
                                     class="w-full border-gray-300 rounded-md text-right font-medium text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 shadow-sm px-2 py-1.5 transition-all"
                                     placeholder="0" />
                             </td>
@@ -274,8 +304,10 @@
                                     </div>
                                 </div>
                                 <div v-if="getFinalDiscrepancy(item) === 0"
-                                    class="text-[10px] font-bold text-green-600 uppercase tracking-wider mt-1">Matched</div>
-                                <div v-else class="text-[10px] font-bold text-red-500 uppercase tracking-wider mt-1">Variance</div>
+                                    class="text-[10px] font-bold text-green-600 uppercase tracking-wider mt-1">Matched
+                                </div>
+                                <div v-else class="text-[10px] font-bold text-red-500 uppercase tracking-wider mt-1">
+                                    Variance</div>
                             </td>
 
                             <td class="px-4 py-4 text-right bg-white border-l border-gray-200 group-hover:bg-gray-50 font-medium"
@@ -364,10 +396,17 @@ const items = ref([]);
 const pids = ref([]);
 const pidData = ref(null);
 const statistics = ref({
+    totalItems: 0,
     surplusCount: 0,
-    shortageCount: 0,
+    discrepancyCount: 0,
+    matchCount: 0,
     surplusAmount: 0,
-    shortageAmount: 0,
+    discrepancyAmount: 0,
+    surplusCountPercent: 0,
+    discrepancyCountPercent: 0,
+    matchCountPercent: 0,
+    surplusAmountPercent: 0,
+    discrepancyAmountPercent: 0,
 });
 const pagination = ref({
     current_page: 1,

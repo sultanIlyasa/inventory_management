@@ -12,11 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('annual_inventory_items', function (Blueprint $table) {
-            $table->nullable('counted_by');
-            $table->nullable('counted_at');
-            $table->nullable('image_path');
-            $table->nullable('notes');
-
+            $table->string('counted_by')->nullable()->change();
+            $table->dateTime('counted_at')->nullable()->change();
+            $table->string('image_path')->nullable()->change();
+            $table->text('notes')->nullable()->change();
         });
     }
 

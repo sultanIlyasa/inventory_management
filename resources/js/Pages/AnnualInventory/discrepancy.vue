@@ -1,65 +1,64 @@
 <template>
     <MainAppLayout title="Annual Inventory Discrepancy" subtitle="Manage discrepancy for annual inventory">
-        <div class="min-h-screen bg-gray-100 p-4 md:p-8 font-sans">
+        <div class="min-h-screen bg-gray-100 p-2 md:p-8 font-sans">
 
-            <!-- Error notification -->
             <div v-if="error"
-                class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex justify-between items-center">
+                class="mb-4 md:mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex justify-between items-center text-sm md:text-base">
                 <span>{{ error }}</span>
                 <button @click="error = null" class="text-red-600 hover:text-red-800 font-bold">×</button>
             </div>
 
-            <!-- Success notification -->
             <div v-if="successMessage"
-                class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex justify-between items-center">
+                class="mb-4 md:mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex justify-between items-center text-sm md:text-base">
                 <span>{{ successMessage }}</span>
                 <button @click="successMessage = null" class="text-green-600 hover:text-green-800 font-bold">×</button>
             </div>
 
-            <!-- Header Card -->
-            <div class="bg-white rounded-t-xl shadow-sm border-b border-gray-200 mb-6">
+            <div class="bg-white rounded-xl shadow-sm border-b border-gray-200 mb-4 md:mb-6">
                 <div
-                    class="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div class="flex items-center gap-4">
+                    class="p-4 md:p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex items-center gap-3 md:gap-4 w-full md:w-auto">
                         <button @click="goBack"
-                            class="p-2 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors">
+                            class="p-2 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors flex-shrink-0">
                             <ArrowLeft class="w-5 h-5 text-gray-600" />
                         </button>
-                        <div>
-                            <h1 class="text-2xl font-bold text-gray-800">Annual Inventory Discrepancy</h1>
-                            <p class="text-gray-500 text-sm mt-1">PID: {{ pidData?.pid || 'All PIDs' }} • {{
-                                pidData?.location || 'All Locations' }}</p>
+                        <div class="overflow-hidden">
+                            <h1 class="text-lg md:text-2xl font-bold text-gray-800 truncate">Inventory Discrepancy</h1>
+                            <p class="text-gray-500 text-xs md:text-sm mt-1 truncate">
+                                PID: {{ pidData?.pid || 'All' }} • {{ pidData?.location || 'All Locations' }}
+                            </p>
                         </div>
                     </div>
-                    <div class="flex gap-3 flex-wrap">
+
+                    <div class="grid grid-cols-2 sm:flex gap-2 w-full md:w-auto">
                         <button @click="downloadTemplate"
-                            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2">
+                            class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 text-xs md:text-sm">
                             <Download class="w-4 h-4" />
-                            Download Template
+                            <span class="hidden sm:inline">Template</span>
+                            <span class="sm:hidden">Templ.</span>
                         </button>
                         <label
-                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors flex items-center gap-2"
+                            class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors flex items-center justify-center gap-2 text-xs md:text-sm"
                             :class="{ 'opacity-50 cursor-not-allowed': uploading }">
                             <Upload class="w-4 h-4" />
                             <input type="file" @change="handleFileUpload" accept=".xlsx,.xls" class="hidden"
                                 :disabled="uploading" />
-                            {{ uploading ? 'Uploading...' : 'Upload Excel' }}
+                            {{ uploading ? '...' : 'Upload' }}
                         </label>
                         <button @click="saveAllChanges" :disabled="!hasChanges || saving"
-                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                            class="col-span-2 sm:col-span-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-xs md:text-sm">
                             <Loader2 v-if="saving" class="w-4 h-4 animate-spin" />
                             <Save v-else class="w-4 h-4" />
-                            {{ saving ? 'Saving...' : 'Save All Changes' }}
+                            {{ saving ? 'Saving...' : 'Save Changes' }}
                         </button>
                         <button @click="fetchData" :disabled="loading"
-                            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                            class="col-span-2 sm:col-span-1 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-xs md:text-sm">
                             <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': loading }" />
-                            {{ loading ? 'Loading...' : 'Refresh' }}
+                            <span class="hidden sm:inline">Refresh</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Statistics -->
                 <div
                     class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-200 bg-gray-50/50 rounded-b-xl">
                     <div class="p-4">
@@ -67,27 +66,32 @@
                             <div class="p-1.5 bg-indigo-100 rounded-md text-indigo-600">
                                 <Package class="w-4 h-4" />
                             </div>
-                            <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Operational Impact
-                                (Items)</h3>
-                            <span class="ml-auto text-xs text-gray-500">Total: {{ statistics.totalItems }} items</span>
+                            <h3 class="text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wide">Operational
+                                Impact</h3>
+                            <span class="ml-auto text-[10px] md:text-xs text-gray-500">Total: {{ statistics.totalItems
+                            }}</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-blue-50 p-3 rounded-lg shadow-sm border border-blue-100">
-                                <span class="block text-sm text-blue-600 font-bold mb-1">Surplus Items (+)</span>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg font-bold text-blue-800">{{ statistics.surplusCount }}</span>
-                                    <span class="text-xs text-blue-400">items</span>
-                                    <span class="ml-auto text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
+                        <div class="grid grid-cols-2 gap-3 md:gap-4">
+                            <div class="bg-blue-50 p-2 md:p-3 rounded-lg shadow-sm border border-blue-100">
+                                <span class="block text-xs md:text-sm text-blue-600 font-bold mb-1">Discrepancy Items
+                                    (+)</span>
+                                <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
+                                    <span class="text-base md:text-lg font-bold text-blue-800">{{
+                                        statistics.surplusCount }}</span>
+                                    <span
+                                        class="text-[10px] font-semibold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded w-fit">
                                         {{ statistics.surplusCountPercent }}%
                                     </span>
                                 </div>
                             </div>
-                            <div class="bg-red-50 p-3 rounded-lg shadow-sm border border-red-100">
-                                <span class="block text-sm text-red-600 font-bold mb-1">Shortage Items (-)</span>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg font-bold text-red-800">{{ statistics.discrepancyCount }}</span>
-                                    <span class="text-xs text-red-400">items</span>
-                                    <span class="ml-auto text-sm font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded">
+                            <div class="bg-red-50 p-2 md:p-3 rounded-lg shadow-sm border border-red-100">
+                                <span class="block text-xs md:text-sm text-red-600 font-bold mb-1">Discrepancy Items
+                                    (-)</span>
+                                <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
+                                    <span class="text-base md:text-lg font-bold text-red-800">{{
+                                        statistics.discrepancyCount }}</span>
+                                    <span
+                                        class="text-[10px] font-semibold text-red-600 bg-red-100 px-1.5 py-0.5 rounded w-fit">
                                         {{ statistics.discrepancyCountPercent }}%
                                     </span>
                                 </div>
@@ -100,25 +104,34 @@
                             <div class="p-1.5 bg-blue-100 rounded-md text-blue-600">
                                 <DollarSign class="w-4 h-4" />
                             </div>
-                            <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Financial Impact (Value)
-                            </h3>
-                            <span class="ml-auto text-xs text-gray-500">Match: {{ statistics.matchCount }} items ({{ statistics.matchCountPercent }}%)</span>
+                            <h3 class="text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wide">Financial
+                                Impact</h3>
+                            <span class="ml-auto text-[10px] md:text-xs text-gray-500">Match: {{
+                                statistics.matchCountPercent }}%</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-white p-3 rounded-lg shadow-sm border border-blue-100">
-                                <span class="block text-sm text-blue-600 font-bold mb-1">Surplus Amount (+)</span>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg font-bold text-gray-800">{{ formatCurrency(statistics.surplusAmount) }}</span>
-                                    <span class="ml-auto text-sm font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                        <div class="grid grid-cols-2 gap-3 md:gap-4">
+                            <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm border border-blue-100">
+                                <span class="block text-xs md:text-sm text-blue-600 font-bold mb-1">Discrepancy Amount
+                                    (+) </span>
+                                <div class="flex flex-col xl:flex-row xl:items-baseline gap-1">
+                                    <span class="text-sm md:text-lg font-bold text-gray-800 break-all">{{
+                                        formatCurrency(statistics.surplusAmount) }}
+                                    </span>
+                                    <span
+                                        class="text-[10px] font-semibold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded w-fit">
                                         {{ statistics.surplusAmountPercent }}%
                                     </span>
                                 </div>
                             </div>
-                            <div class="bg-white p-3 rounded-lg shadow-sm border border-red-100">
-                                <span class="block text-sm text-red-600 font-bold mb-1">Shortage Amount (-)</span>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg font-bold text-gray-800">{{ formatCurrency(statistics.discrepancyAmount) }}</span>
-                                    <span class="ml-auto text-sm font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                            <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm border border-red-100">
+                                <span class="block text-xs md:text-sm text-red-600 font-bold mb-1">Discrepancy Amount
+                                    (-) </span>
+                                <div class="flex flex-col xl:flex-row xl:items-baseline gap-1">
+                                    <span class="text-sm md:text-lg font-bold text-gray-800 break-all">{{
+                                        formatCurrency(statistics.discrepancyAmount) }}
+                                    </span>
+                                    <span
+                                        class="text-[10px] font-semibold text-red-600 bg-red-100 px-1.5 py-0.5 rounded w-fit">
                                         {{ statistics.discrepancyAmountPercent }}%
                                     </span>
                                 </div>
@@ -127,61 +140,146 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Search and Filters -->
+            <div class="relative w-full lg:max-w-md my-1">
+                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input v-model="searchQuery" type="text" placeholder="Search material number or description..."
+                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" />
+            </div>
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 p-4">
                 <div class="flex flex-col lg:flex-row items-start lg:items-center gap-4">
-                    <!-- Search -->
-                    <div class="relative flex-1 w-full lg:max-w-md">
-                        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input v-model="searchQuery" type="text" placeholder="Search material number or description..."
-                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" />
-                    </div>
-
-                    <!-- Filters -->
-                    <div class="flex flex-wrap items-center gap-4">
-                        <!-- Location Filter -->
-                        <div class="flex items-center gap-2">
-                            <label class="text-sm font-semibold text-gray-700">Location:</label>
-                            <select v-model="selectedLocation" @change="handleFilterChange"
-                                class="border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-3 py-2 text-sm">
-                                <option value="">All Locations</option>
-                                <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
-                            </select>
-                        </div>
-
-                        <!-- PID Filter -->
-                        <div class="flex items-center gap-2">
-                            <label class="text-sm font-semibold text-gray-700">PID:</label>
+                    <div class="grid grid-cols-2 md:flex md:flex-wrap items-center gap-3 w-full lg:w-auto">
+                        <div class="flex flex-col md:flex-row md:items-center gap-1 md:gap-2 col-span-1">
+                            <label class="text-xs md:text-sm font-semibold text-gray-700">PID:</label>
                             <select v-model="selectedPID" @change="handleFilterChange"
-                                class="border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-3 py-2 text-sm">
-                                <option value="">All PIDs</option>
+                                class="w-full border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-3 py-2 text-sm">
+                                <option value="">All</option>
                                 <option v-for="pid in pids" :key="pid.id" :value="pid.id">{{ pid.pid }}</option>
                             </select>
                         </div>
 
-                        <!-- Discrepancy Filter -->
-                        <div class="flex items-center gap-2">
-                            <label class="text-sm font-semibold text-gray-700">Discrepancy:</label>
+                        <div class="flex flex-col md:flex-row md:items-center gap-1 md:gap-2 col-span-1">
+                            <label class="text-xs md:text-sm font-semibold text-gray-700">Type:</label>
                             <select v-model="selectedDiscrepancy" @change="handleFilterChange"
-                                class="border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-3 py-2 text-sm">
+                                class="w-full border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-3 py-2 text-sm">
                                 <option value="">All</option>
-                                <option value="surplus">Surplus (+)</option>
-                                <option value="shortage">Shortage (-)</option>
-                                <option value="match">Match (0)</option>
+                                <option value="surplus">Surplus</option>
+                                <option value="shortage">Shortage</option>
+                                <option value="match">Match</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col md:flex-row md:items-center gap-1 md:gap-2 col-span-2 sm:col-span-1">
+                            <label class="text-xs md:text-sm font-semibold text-gray-700">Loc:</label>
+                            <select v-model="selectedLocation" @change="handleFilterChange"
+                                class="w-full border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-3 py-2 text-sm">
+                                <option value="">All</option>
+                                <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
                             </select>
                         </div>
                     </div>
 
-                    <!-- Results Count -->
-                    <div class="ml-auto text-sm text-gray-600">
+                    <div class="hidden lg:block ml-auto text-sm text-gray-600">
                         Showing {{ items.length }} of {{ pagination.total }} items
                     </div>
                 </div>
             </div>
 
-            <!-- Data Table -->
-            <div class="bg-white shadow-lg rounded-lg border border-gray-200 overflow-x-auto pb-4">
+            <div class="md:hidden space-y-4">
+                <div v-if="loading" class="text-center py-8 bg-white rounded-lg shadow">
+                    <Loader2 class="w-8 h-8 mx-auto text-blue-500 animate-spin mb-2" />
+                    <p class="text-gray-500 text-sm">Loading data...</p>
+                </div>
+                <div v-else-if="items.length === 0"
+                    class="text-center py-8 bg-white rounded-lg shadow text-gray-500 text-sm">
+                    No items found.
+                </div>
+
+                <div v-else v-for="item in items" :key="item.id"
+                    class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+                    :class="{ 'ring-2 ring-yellow-400': item._dirty }">
+
+                    <div class="bg-gray-50 p-3 border-b border-gray-100 flex justify-between items-start">
+                        <div>
+                            <div class="font-bold text-gray-900 text-sm">{{ item.material_number }}</div>
+                            <div class="text-xs text-gray-600 mt-1 line-clamp-2">{{ item.description }}</div>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-200 text-gray-700 mb-1">
+                                {{ item.rack_address || 'No Rack' }}
+                            </span>
+                            <span class="text-xs font-medium text-gray-500">{{ item.unit_of_measure }}</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100 bg-white">
+                        <div class="p-2 text-center">
+                            <div class="text-[10px] text-gray-400 uppercase">Price</div>
+                            <div class="text-xs font-semibold">{{ formatCurrency(item.price) }}</div>
+                        </div>
+                        <div class="p-2 text-center bg-blue-50/20">
+                            <div class="text-[10px] text-gray-400 uppercase">Actual</div>
+                            <div class="text-xs font-bold text-blue-700">{{ formatNumber(item.actual_qty) }}</div>
+                        </div>
+                        <div class="p-2 text-center bg-blue-50/20">
+                            <div class="text-[10px] text-gray-400 uppercase">Init Gap</div>
+                            <div class="text-xs font-bold" :class="getGapColor(getInitialGap(item))">
+                                {{ getInitialGap(item) > 0 ? '+' : '' }}{{ formatNumber(getInitialGap(item)) }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-green-700 uppercase">SOH (Editable)</label>
+                                <input type="number" v-model.number="item.soh" @input="markDirty(item)"
+                                    class="w-full border-green-200 bg-green-50/20 rounded-md text-center font-bold text-sm focus:ring-2 focus:ring-green-400 focus:border-green-400 py-2"
+                                    placeholder="0" />
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-yellow-700 uppercase">Error Mvmt</label>
+                                <input type="number" v-model.number="item.error_movement" @input="markDirty(item)"
+                                    class="w-full border-yellow-200 bg-yellow-50/20 rounded-md text-center font-medium text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 py-2"
+                                    placeholder="0" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase">O/S GR (+)</label>
+                                <input type="number" min="0" v-model.number="item.outstanding_gr"
+                                    @input="markDirty(item)"
+                                    class="w-full border-gray-300 rounded-md text-center text-sm focus:ring-2 focus:ring-blue-400 py-2"
+                                    placeholder="0" />
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase">O/S GI (-)</label>
+                                <input type="number" :value="item.outstanding_gi"
+                                    @input="item.outstanding_gi = -Math.abs($event.target.value); markDirty(item)"
+                                    class="w-full border-gray-300 rounded-md text-center text-sm text-red-600 focus:ring-2 focus:ring-red-400 py-2"
+                                    placeholder="0" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-3 border-t border-gray-200 flex justify-between items-center">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-gray-500 uppercase font-bold">Final Variance</span>
+                            <span class="text-sm font-bold" :class="getGapColor(getFinalDiscrepancy(item))">
+                                {{ formatNumber(getFinalDiscrepancy(item)) }} Qty
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-sm font-bold"
+                                :class="getGapColor(getFinalDiscrepancy(item) * (item.price || 0))">
+                                {{ formatCurrency(getFinalDiscrepancy(item) * (item.price || 0)) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hidden md:block bg-white shadow-lg rounded-lg border border-gray-200 overflow-x-auto pb-4">
                 <table class="w-full text-sm text-left border-collapse">
                     <thead>
                         <tr
@@ -246,12 +344,10 @@
                             <td class="px-2 py-4 text-sm text-gray-600 text-center border-r border-gray-100">
                                 {{ item.rack_address || '-' }}
                             </td>
-                            <!-- Editable Price -->
                             <td class="px-1 py-1 text-right text-gray-700 font-medium border-r border-gray-200">
                                 {{ formatCurrency(item.price) }}
                             </td>
 
-                            <!-- Editable SOH -->
                             <td
                                 class="px-3 py-3 bg-green-50/10 border-r border-green-100 group-hover:bg-green-50/30 transition-colors">
                                 <input type="number" v-model.number="item.soh" @input="markDirty(item)"
@@ -314,50 +410,55 @@
                                 :class="getGapColor(getFinalDiscrepancy(item) * (item.price || 0))">
                                 {{ formatCurrency(getFinalDiscrepancy(item) * (item.price || 0)) }}
                             </td>
-
-
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Pagination -->
             <div v-if="pagination.last_page > 1" class="bg-white rounded-lg shadow-sm border border-gray-200 mt-4 p-4">
-                <div class="flex items-center justify-between">
-                    <div class="text-sm text-gray-600">
-                        Page {{ pagination.current_page }} of {{ pagination.last_page }}
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="text-sm text-gray-600 order-2 md:order-1">
+                        <span class="md:hidden">Page {{ pagination.current_page }} / {{ pagination.last_page }}</span>
+                        <span class="hidden md:inline">Page {{ pagination.current_page }} of {{ pagination.last_page
+                        }}</span>
                     </div>
-                    <div class="flex gap-2">
+
+                    <div class="flex gap-2 order-1 md:order-2">
                         <button @click="goToPage(1)" :disabled="pagination.current_page === 1"
-                            class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+                            class="hidden md:block px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
                             First
                         </button>
                         <button @click="goToPage(pagination.current_page - 1)" :disabled="pagination.current_page === 1"
-                            class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
-                            Previous
+                            class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center">
+                            <ChevronLeft class="w-4 h-4 md:hidden" />
+                            <span class="hidden md:inline">Previous</span>
                         </button>
 
-                        <template v-for="page in getPageNumbers()" :key="page">
-                            <button v-if="page !== '...'" @click="goToPage(page)"
-                                class="px-3 py-1 border rounded-md text-sm"
-                                :class="pagination.current_page === page ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 hover:bg-gray-50'">
-                                {{ page }}
-                            </button>
-                            <span v-else class="px-2 py-1 text-sm">...</span>
-                        </template>
+                        <div class="hidden md:flex gap-1">
+                            <template v-for="page in getPageNumbers()" :key="page">
+                                <button v-if="page !== '...'" @click="goToPage(page)"
+                                    class="px-3 py-1 border rounded-md text-sm"
+                                    :class="pagination.current_page === page ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 hover:bg-gray-50'">
+                                    {{ page }}
+                                </button>
+                                <span v-else class="px-2 py-1 text-sm">...</span>
+                            </template>
+                        </div>
 
                         <button @click="goToPage(pagination.current_page + 1)"
                             :disabled="pagination.current_page === pagination.last_page"
-                            class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
-                            Next
+                            class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center">
+                            <ChevronRight class="w-4 h-4 md:hidden" />
+                            <span class="hidden md:inline">Next</span>
                         </button>
                         <button @click="goToPage(pagination.last_page)"
                             :disabled="pagination.current_page === pagination.last_page"
-                            class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+                            class="hidden md:block px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
                             Last
                         </button>
                     </div>
-                    <div class="text-sm text-gray-600">
+
+                    <div class="hidden md:block text-sm text-gray-600 order-3">
                         Total: {{ pagination.total }} items
                     </div>
                 </div>

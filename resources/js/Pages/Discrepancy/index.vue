@@ -1,75 +1,80 @@
 <template>
     <MainAppLayout>
-        <div class="min-h-screen bg-gray-100 p-8 font-sans">
+        <div class="min-h-screen bg-gray-100 p-4 md:p-8 font-sans">
 
             <!-- Error notification -->
             <div v-if="error"
-                class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex justify-between items-center">
+                class="mb-4 md:mb-6 bg-red-50 border border-red-200 text-red-800 px-3 py-2 md:px-4 md:py-3 rounded-lg flex justify-between items-center text-sm md:text-base">
                 <span>{{ error }}</span>
-                <button @click="error = null" class="text-red-600 hover:text-red-800 font-bold">×</button>
+                <button @click="error = null" class="text-red-600 hover:text-red-800 font-bold ml-2">×</button>
             </div>
 
-            <div class="bg-white rounded-t-xl shadow-sm border-b border-gray-200 mb-6">
-                <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-800">Stock Discrepancy Check</h1>
-                        <p class="text-gray-500 text-sm mt-1">Warehouse A • Cycle Count #2026-01</p>
-                    </div>
-                    <div class="flex gap-3">
-                        <button @click="downloadTemplate"
-                            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Download Template
-                        </button>
-                        <button @click="downloadExcel"
-                            class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                            Download Excel
-                        </button>
-                        <label
-                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors flex items-center gap-2"
-                            :class="{ 'opacity-50 cursor-not-allowed': uploading }">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                            </svg>
-                            <input type="file" @change="handleFileUpload" accept=".xlsx,.xls" class="hidden"
-                                :disabled="uploading" />
-                            {{ uploading ? 'Uploading...' : 'Upload Excel' }}
-                        </label>
-                        <button @click="saveAllChanges" :disabled="saving || modifiedItems.size === 0"
-                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            {{ saving ? 'Saving...' : `Save Changes${modifiedItems.size > 0 ? ` (${modifiedItems.size})` : ''}` }}
-                        </button>
-                        <button @click="syncWithDailyInputs" :disabled="loading"
-                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                            Sync
-                        </button>
-                        <button @click="fetchData" :disabled="loading"
-                            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                            {{ loading ? 'Loading...' : 'Refresh' }}
-                        </button>
+            <div class="bg-white rounded-t-xl shadow-sm border-b border-gray-200 mb-4 md:mb-6">
+                <div class="p-4 md:p-6 border-b border-gray-100">
+                    <!-- Header: Title and Actions -->
+                    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+                        <div>
+                            <h1 class="text-xl md:text-2xl font-bold text-gray-800">Stock Discrepancy Check</h1>
+                            <p class="text-gray-500 text-xs md:text-sm mt-1">Warehouse A • Cycle Count #2026-01</p>
+                        </div>
+
+                        <!-- Action Buttons - Grid on mobile, flex on desktop -->
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:flex gap-2 lg:gap-3">
+                            <button @click="downloadTemplate"
+                                class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-1.5 text-xs md:text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span class="hidden sm:inline">Download</span> Template
+                            </button>
+                            <button @click="downloadExcel"
+                                class="px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 text-xs md:text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                <span class="hidden sm:inline">Download</span> Excel
+                            </button>
+                            <label
+                                class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors flex items-center justify-center gap-1.5 text-xs md:text-sm"
+                                :class="{ 'opacity-50 cursor-not-allowed': uploading }">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                <input type="file" @change="handleFileUpload" accept=".xlsx,.xls" class="hidden"
+                                    :disabled="uploading" />
+                                {{ uploading ? 'Uploading...' : 'Upload' }}
+                            </label>
+                            <button @click="saveAllChanges" :disabled="saving || modifiedItems.size === 0"
+                                class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-xs md:text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                                {{ saving ? 'Saving...' : `Save${modifiedItems.size > 0 ? ` (${modifiedItems.size})` : ''}` }}
+                            </button>
+                            <button @click="syncWithDailyInputs" :disabled="loading"
+                                class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm">
+                                Sync
+                            </button>
+                            <button @click="fetchData" :disabled="loading"
+                                class="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm">
+                                {{ loading ? 'Loading...' : 'Refresh' }}
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div
                     class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-200 bg-gray-50/50 rounded-b-xl">
 
-                    <div class="p-4">
-                        <div class="mb-3 flex items-center gap-2">
+                    <div class="p-3 md:p-4">
+                        <div class="mb-2 md:mb-3 flex flex-wrap items-center gap-2">
                             <div class="p-1.5 bg-indigo-100 rounded-md text-indigo-600">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
@@ -77,29 +82,33 @@
                                         d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                 </svg>
                             </div>
-                            <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Operational Impact
+                            <h3 class="text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wide">Operational Impact
                                 (Items)
                             </h3>
-                            <span class="ml-auto text-xs text-gray-500">Total: {{ statistics.totalItems }} items</span>
+                            <span class="ml-auto text-[10px] md:text-xs text-gray-500">Total: {{ statistics.totalItems }} items</span>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-blue p-3 rounded-lg shadow-sm border border-blue-100">
-                                <span class="block text-lg text-blue-600 font-bold mb-1">Discrepancy Items (+)</span>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg font-bold text-blue-800">{{ statistics.surplusCount }}</span>
-                                    <span class="text-xs text-blue-400">items</span>
-                                    <span class="ml-auto text-sm font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                        <div class="grid grid-cols-2 gap-2 md:gap-4">
+                            <div class="bg-blue p-2 md:p-3 rounded-lg shadow-sm border border-blue-100">
+                                <span class="block text-xs md:text-lg text-blue-600 font-bold mb-1">Discrepancy (+)</span>
+                                <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
+                                    <div class="flex items-baseline gap-1">
+                                        <span class="text-base md:text-lg font-bold text-blue-800">{{ statistics.surplusCount }}</span>
+                                        <span class="text-[10px] md:text-xs text-blue-400">items</span>
+                                    </div>
+                                    <span class="text-xs md:text-sm font-semibold text-blue-600 bg-blue-50 px-1.5 md:px-2 py-0.5 rounded w-fit">
                                         {{ statistics.surplusCountPercent }}%
                                     </span>
                                 </div>
                             </div>
-                            <div class="bg-red p-3 rounded-lg shadow-sm border border-red-100">
-                                <span class="block text-lg text-red-600 font-bold mb-1">Discrepancy Items (-)</span>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg font-bold text-red-800">{{ statistics.discrepancyCount }}</span>
-                                    <span class="text-xs text-red-400">items</span>
-                                    <span class="ml-auto text-sm font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                            <div class="bg-red p-2 md:p-3 rounded-lg shadow-sm border border-red-100">
+                                <span class="block text-xs md:text-lg text-red-600 font-bold mb-1">Discrepancy (-)</span>
+                                <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
+                                    <div class="flex items-baseline gap-1">
+                                        <span class="text-base md:text-lg font-bold text-red-800">{{ statistics.discrepancyCount }}</span>
+                                        <span class="text-[10px] md:text-xs text-red-400">items</span>
+                                    </div>
+                                    <span class="text-xs md:text-sm font-semibold text-red-600 bg-red-50 px-1.5 md:px-2 py-0.5 rounded w-fit">
                                         {{ statistics.discrepancyCountPercent }}%
                                     </span>
                                 </div>
@@ -107,8 +116,8 @@
                         </div>
                     </div>
 
-                    <div class="p-4">
-                        <div class="mb-3 flex items-center gap-2">
+                    <div class="p-3 md:p-4">
+                        <div class="mb-2 md:mb-3 flex flex-wrap items-center gap-2">
                             <div class="p-1.5 bg-blue-100 rounded-md text-blue-600">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
@@ -116,26 +125,26 @@
                                         d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Financial Impact (Value)
+                            <h3 class="text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wide">Financial Impact (Value)
                             </h3>
-                            <span class="ml-auto text-xs text-gray-500">Match: {{ statistics.matchCount }} items ({{ statistics.matchCountPercent }}%)</span>
+                            <span class="ml-auto text-[10px] md:text-xs text-gray-500">Match: {{ statistics.matchCount }} ({{ statistics.matchCountPercent }}%)</span>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-white p-3 rounded-lg shadow-sm border border-blue-100">
-                                <span class="block text-lg text-blue-600 font-bold mb-1">Discrepancy Amount (+)</span>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg font-bold text-gray-800">{{ formatCurrency(statistics.surplusAmount) }}</span>
-                                    <span class="ml-auto text-sm font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                        <div class="grid grid-cols-2 gap-2 md:gap-4">
+                            <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm border border-blue-100">
+                                <span class="block text-xs md:text-lg text-blue-600 font-bold mb-1">Amount (+)</span>
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-xs md:text-lg font-bold text-gray-800 break-all">{{ formatCurrency(statistics.surplusAmount) }}</span>
+                                    <span class="text-xs md:text-sm font-semibold text-blue-600 bg-blue-50 px-1.5 md:px-2 py-0.5 rounded w-fit">
                                         {{ statistics.surplusAmountPercent }}%
                                     </span>
                                 </div>
                             </div>
-                            <div class="bg-white p-3 rounded-lg shadow-sm border border-red-100">
-                                <span class="block text-lg text-red-600 font-bold mb-1">Discrepancy Amount (-)</span>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg font-bold text-gray-800">{{ formatCurrency(statistics.discrepancyAmount) }}</span>
-                                    <span class="ml-auto text-sm font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                            <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm border border-red-100">
+                                <span class="block text-xs md:text-lg text-red-600 font-bold mb-1">Amount (-)</span>
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-xs md:text-lg font-bold text-gray-800 break-all">{{ formatCurrency(statistics.discrepancyAmount) }}</span>
+                                    <span class="text-xs md:text-sm font-semibold text-red-600 bg-red-50 px-1.5 md:px-2 py-0.5 rounded w-fit">
                                         {{ statistics.discrepancyAmountPercent }}%
                                     </span>
                                 </div>
@@ -150,54 +159,56 @@
             <SearchBar :searchTerm="searchQuery" @update:searchTerm="handleSearchUpdate" @clear="clearSearch" />
 
             <!-- Filters -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 p-4">
-                <div class="flex items-center gap-4 flex-wrap">
-                    <!-- Location Filter -->
-                    <div class="flex items-center gap-2">
-                        <label class="text-sm font-semibold text-gray-700">Location:</label>
-                        <select v-model="selectedLocation" @change="handleFilterChange"
-                            class="border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-3 py-2">
-                            <option value="">All Locations</option>
-                            <option v-for="location in locations" :key="location" :value="location">
-                                {{ location }}
-                            </option>
-                        </select>
-                    </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 p-3 md:p-4">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 flex-wrap">
+                    <!-- Filter Row - Stack on mobile -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 w-full sm:w-auto">
+                        <!-- Location Filter -->
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                            <label class="text-xs sm:text-sm font-semibold text-gray-700">Location:</label>
+                            <select v-model="selectedLocation" @change="handleFilterChange"
+                                class="border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-2 py-1.5 sm:px-3 sm:py-2 text-sm w-full sm:w-auto">
+                                <option value="">All Locations</option>
+                                <option v-for="location in locations" :key="location" :value="location">
+                                    {{ location }}
+                                </option>
+                            </select>
+                        </div>
 
-                    <!-- Usage Filter -->
-                    <div class="flex items-center gap-2">
-                        <label class="text-sm font-semibold text-gray-700">Usage:</label>
-                        <select v-model="selectedUsage" @change="handleFilterChange"
-                            class="border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-3 py-2">
-                            <option value="">All Usages</option>
-                            <option v-for="usage in usages" :key="usage" :value="usage">
-                                {{ usage }}
-                            </option>
-                        </select>
-                    </div>
+                        <!-- Usage Filter -->
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                            <label class="text-xs sm:text-sm font-semibold text-gray-700">Usage:</label>
+                            <select v-model="selectedUsage" @change="handleFilterChange"
+                                class="border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-2 py-1.5 sm:px-3 sm:py-2 text-sm w-full sm:w-auto">
+                                <option value="">All Usages</option>
+                                <option v-for="usage in usages" :key="usage" :value="usage">
+                                    {{ usage }}
+                                </option>
+                            </select>
+                        </div>
 
-                    <!-- PIC Filter -->
-                    <div class="flex items-center gap-2">
-                        <label class="text-sm font-semibold text-gray-700">PIC:</label>
-                        <select v-model="selectedPic" @change="handleFilterChange"
-                            class="border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-3 py-2">
-                            <option value="">All PICs</option>
-                            <option v-for="pic in pics" :key="pic" :value="pic">
-                                {{ pic }}
-                            </option>
-                        </select>
+                        <!-- PIC Filter -->
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                            <label class="text-xs sm:text-sm font-semibold text-gray-700">PIC:</label>
+                            <select v-model="selectedPic" @change="handleFilterChange"
+                                class="border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-2 py-1.5 sm:px-3 sm:py-2 text-sm w-full sm:w-auto">
+                                <option value="">All PICs</option>
+                                <option v-for="pic in pics" :key="pic" :value="pic">
+                                    {{ pic }}
+                                </option>
+                            </select>
+                        </div>
                     </div>
-
 
                     <!-- Results Count -->
-                    <div class="ml-auto text-sm text-gray-600">
+                    <div class="sm:ml-auto text-xs sm:text-sm text-gray-600 text-center sm:text-right">
                         Showing {{ items.length }} of {{ pagination.total }} items
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white shadow-lg rounded-lg border border-gray-200 overflow-x-auto pb-4">
-                <table class="w-full text-sm text-left border-collapse">
+            <div class="bg-white shadow-lg rounded-lg border border-gray-200 overflow-x-auto pb-4 -mx-4 sm:mx-0">
+                <table class="w-full text-xs sm:text-sm text-left border-collapse min-w-[900px]">
                     <thead>
                         <tr
                             class="bg-gray-50/80 text-xs text-gray-600 uppercase font-semibold border-b border-gray-200 leading-tight">
@@ -382,46 +393,58 @@
             </div>
 
             <!-- Pagination -->
-            <div v-if="pagination.last_page > 1" class="bg-white rounded-lg shadow-sm border border-gray-200 mt-4 p-4">
-                <div class="flex items-center justify-between">
-                    <div class="text-sm text-gray-600">
+            <div v-if="pagination.last_page > 1" class="bg-white rounded-lg shadow-sm border border-gray-200 mt-4 p-3 md:p-4">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <!-- Page info - hidden on mobile, shown in center area -->
+                    <div class="hidden sm:block text-xs sm:text-sm text-gray-600">
                         Page {{ pagination.current_page }} of {{ pagination.last_page }}
                     </div>
-                    <div class="flex gap-2">
+
+                    <!-- Navigation buttons -->
+                    <div class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+                        <!-- First/Prev buttons -->
                         <button @click="goToPage(1)" :disabled="pagination.current_page === 1"
-                            class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                            First
+                            class="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="hidden sm:inline">First</span>
+                            <span class="sm:hidden">«</span>
                         </button>
                         <button @click="goToPage(pagination.current_page - 1)" :disabled="pagination.current_page === 1"
-                            class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                            Previous
+                            class="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="hidden sm:inline">Previous</span>
+                            <span class="sm:hidden">‹</span>
                         </button>
 
-                        <!-- Page numbers -->
+                        <!-- Page numbers - fewer on mobile -->
                         <template v-for="page in getPageNumbers()" :key="page">
                             <button v-if="page !== '...'" @click="goToPage(page)" :class="[
-                                'px-3 py-1 border rounded-md',
+                                'px-2.5 sm:px-3 py-1 text-xs sm:text-sm border rounded-md',
                                 pagination.current_page === page
                                     ? 'bg-blue-600 text-white border-blue-600'
                                     : 'border-gray-300 hover:bg-gray-50'
                             ]">
                                 {{ page }}
                             </button>
-                            <span v-else class="px-2 py-1">...</span>
+                            <span v-else class="px-1 sm:px-2 py-1 text-xs sm:text-sm">...</span>
                         </template>
 
+                        <!-- Next/Last buttons -->
                         <button @click="goToPage(pagination.current_page + 1)"
                             :disabled="pagination.current_page === pagination.last_page"
-                            class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                            Next
+                            class="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="hidden sm:inline">Next</span>
+                            <span class="sm:hidden">›</span>
                         </button>
                         <button @click="goToPage(pagination.last_page)"
                             :disabled="pagination.current_page === pagination.last_page"
-                            class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                            Last
+                            class="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="hidden sm:inline">Last</span>
+                            <span class="sm:hidden">»</span>
                         </button>
                     </div>
-                    <div class="text-sm text-gray-600">
+
+                    <!-- Total count and mobile page info -->
+                    <div class="text-xs sm:text-sm text-gray-600 text-center sm:text-right">
+                        <span class="sm:hidden">Page {{ pagination.current_page }}/{{ pagination.last_page }} • </span>
                         Total: {{ pagination.total }} items
                     </div>
                 </div>

@@ -1143,6 +1143,118 @@ class AnnualInventoryService
     }
 
     /**
+     * Export discrepancy data to Excel with filters
+     */
+    public function exportDiscrepancyToExcel(array $filters = [])
+    {
+        $query = AnnualInventoryItems::query()
+            ->join('annual_inventories', 'annual_inventory_items.annual_inventory_id', '=', 'annual_inventories.id')
+            ->select([
+                'annual_inventory_items.*',
+                'annual_inventories.pid',
+                'annual_inventories.location',
+                'annual_inventories.pic_name',
+            ]);
+
+        // Apply filters
+        $this->applyDiscrepancyFilters($query, $filters);
+
+        $query->orderBy('annual_inventories.pid', 'asc')
+            ->orderBy('annual_inventory_items.material_number', 'asc');
+
+        $items = $query->get();
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Headers
+        $headers = [
+            'PID',
+            'Location',
+            'Material Number',
+            'Description',
+            'Rack',
+            'UoM',
+            'Price',
+            'SOH',
+            'Actual Qty',
+            'Initial Gap',
+            'Outstanding GR (+)',
+            'Outstanding GI (-)',
+            'Error Movement',
+            'Final Discrepancy',
+            'Final Amount',
+            'Status',
+            'Counted By',
+            'Counted At',
+        ];
+
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . '1', $header);
+            $sheet->getStyle($col . '1')->getFont()->setBold(true);
+            $sheet->getStyle($col . '1')->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('E5E7EB');
+            $col++;
+        }
+
+        $row = 2;
+        foreach ($items as $item) {
+            $actualQty = (float) ($item->actual_qty ?? 0);
+            $soh = (float) ($item->soh ?? 0);
+            $initialGap = $actualQty - $soh;
+            $outstandingGR = (float) ($item->outstanding_gr ?? 0);
+            $outstandingGI = (float) ($item->outstanding_gi ?? 0);
+            $errorMovement = (float) ($item->error_movement ?? 0);
+            $finalDiscrepancy = $initialGap + $outstandingGR + $outstandingGI + $errorMovement;
+            $price = (float) ($item->price ?? 0);
+            $finalAmount = $finalDiscrepancy * $price;
+
+            $sheet->setCellValue('A' . $row, $item->pid);
+            $sheet->setCellValue('B' . $row, $item->location);
+            $sheet->setCellValue('C' . $row, $item->material_number);
+            $sheet->setCellValue('D' . $row, $item->description);
+            $sheet->setCellValue('E' . $row, $item->rack_address);
+            $sheet->setCellValue('F' . $row, $item->unit_of_measure);
+            $sheet->setCellValue('G' . $row, $price);
+            $sheet->setCellValue('H' . $row, $soh);
+            $sheet->setCellValue('I' . $row, $actualQty);
+            $sheet->setCellValue('J' . $row, $initialGap);
+            $sheet->setCellValue('K' . $row, $outstandingGR);
+            $sheet->setCellValue('L' . $row, $outstandingGI);
+            $sheet->setCellValue('M' . $row, $errorMovement);
+            $sheet->setCellValue('N' . $row, $finalDiscrepancy);
+            $sheet->setCellValue('O' . $row, $finalAmount);
+            $sheet->setCellValue('P' . $row, $item->status);
+            $sheet->setCellValue('Q' . $row, $item->counted_by);
+            $sheet->setCellValue('R' . $row, $item->counted_at);
+            $row++;
+        }
+
+        // Auto-size columns
+        foreach (range('A', 'R') as $columnID) {
+            $sheet->getColumnDimension($columnID)->setAutoSize(true);
+        }
+
+        // Format currency columns
+        $lastRow = $row - 1;
+        if ($lastRow >= 2) {
+            $sheet->getStyle('G2:G' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle('O2:O' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+        }
+
+        $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+        $filename = 'annual_inventory_discrepancy_' . date('Y-m-d_His') . '.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /**
      * Export PIDs with actual quantities to Excel
      */
     public function exportToExcel(array $filters = [])

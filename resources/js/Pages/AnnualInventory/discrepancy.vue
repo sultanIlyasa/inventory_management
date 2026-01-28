@@ -37,6 +37,12 @@
                             <span class="hidden sm:inline">Template</span>
                             <span class="sm:hidden">Templ.</span>
                         </button>
+                        <button @click="downloadExcel"
+                            class="px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 text-xs md:text-sm">
+                            <Download class="w-4 h-4" />
+                            <span class="hidden sm:inline">Download</span>
+                            <span class="sm:hidden">Excel</span>
+                        </button>
                         <label
                             class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors flex items-center justify-center gap-2 text-xs md:text-sm"
                             :class="{ 'opacity-50 cursor-not-allowed': uploading }">
@@ -560,6 +566,27 @@ const fetchLocations = async () => {
 // Download Excel template
 const downloadTemplate = () => {
     window.location.href = '/api/annual-inventory/discrepancy/template';
+};
+
+// Download Excel with current filters
+const downloadExcel = () => {
+    const params = new URLSearchParams();
+
+    if (selectedPID.value) {
+        params.append('pid_id', selectedPID.value);
+    }
+    if (selectedDiscrepancy.value) {
+        params.append('discrepancy_type', selectedDiscrepancy.value);
+    }
+    if (selectedLocation.value) {
+        params.append('location', selectedLocation.value);
+    }
+    if (searchQuery.value) {
+        params.append('search', searchQuery.value);
+    }
+
+    const queryString = params.toString();
+    window.location.href = '/api/annual-inventory/discrepancy/export' + (queryString ? '?' + queryString : '');
 };
 
 // Handle Excel file upload

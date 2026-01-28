@@ -439,6 +439,24 @@ class AnnualInventoryController extends Controller
     }
 
     /**
+     * GET /api/annual-inventory/discrepancy/export
+     * Export discrepancy data to Excel with filters
+     */
+    public function discrepancyExport(Request $request)
+    {
+        $filters = [
+            'pid_id' => $request->query('pid_id'),
+            'status' => $request->query('status'),
+            'search' => $request->query('search'),
+            'discrepancy_type' => $request->query('discrepancy_type'),
+            'location' => $request->query('location'),
+            'counted_only' => true, // Only export counted items
+        ];
+
+        return $this->service->exportDiscrepancyToExcel($filters);
+    }
+
+    /**
      * POST /api/annual-inventory/discrepancy/bulk-update
      * Bulk update discrepancy fields (SOH, outstanding GR/GI, error movement)
      */

@@ -89,12 +89,31 @@
                                     d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                             </svg>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-800">Discrepancy Dashboard</h3>
+                        <h3 class="text-lg font-semibold text-gray-800"> Daily Discrepancy Dashboard</h3>
                         <p class="text-sm text-gray-500 mt-1">
                             Compare discrepancy between system stock and actual stock
                         </p>
                         <span
                             class="mt-4 inline-block px-4 py-2 text-sm rounded bg-yellow-600 text-white group-hover:bg-yellow-700 transition">
+                            Go
+                        </span>
+                    </Link>
+                    <!-- Annual Inventory Dashboard -->
+                    <Link href="/annual-inventory"
+                        class="group hover:shadow-xl transition-all duration-300 rounded-xl bg-white border border-gray-200 p-6 flex flex-col items-center text-center cursor-pointer">
+                        <div class="rounded-full bg-red-100 p-3 mb-4 group-hover:bg-red-200 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800">Annual Inventory</h3>
+                        <p class="text-sm text-gray-500 mt-1">
+                            Annual Inventory Taking and Discrepancy Analysis
+                        </p>
+                        <span
+                            class="mt-4 inline-block px-4 py-2 text-sm rounded bg-red-600 text-white group-hover:bg-red-700 transition">
                             Go
                         </span>
                     </Link>

@@ -22,8 +22,8 @@
                         <div class="grid grid-cols-2 sm:grid-cols-3 lg:flex gap-2 lg:gap-3">
                             <button @click="downloadTemplate"
                                 class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-1.5 text-xs md:text-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
@@ -31,8 +31,8 @@
                             </button>
                             <button @click="downloadExcel"
                                 class="px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 text-xs md:text-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                 </svg>
@@ -41,8 +41,8 @@
                             <label
                                 class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors flex items-center justify-center gap-1.5 text-xs md:text-sm"
                                 :class="{ 'opacity-50 cursor-not-allowed': uploading }">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                 </svg>
@@ -52,12 +52,13 @@
                             </label>
                             <button @click="saveAllChanges" :disabled="saving || modifiedItems.size === 0"
                                 class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-xs md:text-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M5 13l4 4L19 7" />
                                 </svg>
-                                {{ saving ? 'Saving...' : `Save${modifiedItems.size > 0 ? ` (${modifiedItems.size})` : ''}` }}
+                                {{ saving ? 'Saving...' : `Save${modifiedItems.size > 0 ? ` (${modifiedItems.size})` :
+                                    ''}` }}
                             </button>
                             <button @click="syncWithDailyInputs" :disabled="loading"
                                 class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm">
@@ -82,33 +83,41 @@
                                         d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                 </svg>
                             </div>
-                            <h3 class="text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wide">Operational Impact
+                            <h3 class="text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wide">Operational
+                                Impact
                                 (Items)
                             </h3>
-                            <span class="ml-auto text-[10px] md:text-xs text-gray-500">Total: {{ statistics.totalItems }} items</span>
+                            <span class="ml-auto text-[10px] md:text-xs text-gray-500">Total: {{ statistics.totalItems
+                                }} items</span>
                         </div>
 
                         <div class="grid grid-cols-2 gap-2 md:gap-4">
                             <div class="bg-blue p-2 md:p-3 rounded-lg shadow-sm border border-blue-100">
-                                <span class="block text-xs md:text-lg text-blue-600 font-bold mb-1">Discrepancy (+)</span>
+                                <span class="block text-xs md:text-lg text-blue-600 font-bold mb-1">Discrepancy
+                                    (+)</span>
                                 <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
                                     <div class="flex items-baseline gap-1">
-                                        <span class="text-base md:text-lg font-bold text-blue-800">{{ statistics.surplusCount }}</span>
+                                        <span class="text-base md:text-lg font-bold text-blue-800">{{
+                                            statistics.surplusCount }}</span>
                                         <span class="text-[10px] md:text-xs text-blue-400">items</span>
                                     </div>
-                                    <span class="text-xs md:text-sm font-semibold text-blue-600 bg-blue-50 px-1.5 md:px-2 py-0.5 rounded w-fit">
+                                    <span
+                                        class="text-xs md:text-sm font-semibold text-blue-600 bg-blue-50 px-1.5 md:px-2 py-0.5 rounded w-fit">
                                         {{ statistics.surplusCountPercent }}%
                                     </span>
                                 </div>
                             </div>
                             <div class="bg-red p-2 md:p-3 rounded-lg shadow-sm border border-red-100">
-                                <span class="block text-xs md:text-lg text-red-600 font-bold mb-1">Discrepancy (-)</span>
+                                <span class="block text-xs md:text-lg text-red-600 font-bold mb-1">Discrepancy
+                                    (-)</span>
                                 <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
                                     <div class="flex items-baseline gap-1">
-                                        <span class="text-base md:text-lg font-bold text-red-800">{{ statistics.discrepancyCount }}</span>
+                                        <span class="text-base md:text-lg font-bold text-red-800">{{
+                                            statistics.discrepancyCount }}</span>
                                         <span class="text-[10px] md:text-xs text-red-400">items</span>
                                     </div>
-                                    <span class="text-xs md:text-sm font-semibold text-red-600 bg-red-50 px-1.5 md:px-2 py-0.5 rounded w-fit">
+                                    <span
+                                        class="text-xs md:text-sm font-semibold text-red-600 bg-red-50 px-1.5 md:px-2 py-0.5 rounded w-fit">
                                         {{ statistics.discrepancyCountPercent }}%
                                     </span>
                                 </div>
@@ -125,17 +134,21 @@
                                         d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <h3 class="text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wide">Financial Impact (Value)
+                            <h3 class="text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wide">Financial
+                                Impact (Value)
                             </h3>
-                            <span class="ml-auto text-[10px] md:text-xs text-gray-500">Match: {{ statistics.matchCount }} ({{ statistics.matchCountPercent }}%)</span>
+                            <span class="ml-auto text-[10px] md:text-xs text-gray-500">Match: {{ statistics.matchCount
+                                }} ({{ statistics.matchCountPercent }}%)</span>
                         </div>
 
                         <div class="grid grid-cols-2 gap-2 md:gap-4">
                             <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm border border-blue-100">
                                 <span class="block text-xs md:text-lg text-blue-600 font-bold mb-1">Amount (+)</span>
                                 <div class="flex flex-col gap-1">
-                                    <span class="text-xs md:text-lg font-bold text-gray-800 break-all">{{ formatCurrency(statistics.surplusAmount) }}</span>
-                                    <span class="text-xs md:text-sm font-semibold text-blue-600 bg-blue-50 px-1.5 md:px-2 py-0.5 rounded w-fit">
+                                    <span class="text-xs md:text-lg font-bold text-gray-800 break-all">{{
+                                        formatCurrency(statistics.surplusAmount) }}</span>
+                                    <span
+                                        class="text-xs md:text-sm font-semibold text-blue-600 bg-blue-50 px-1.5 md:px-2 py-0.5 rounded w-fit">
                                         {{ statistics.surplusAmountPercent }}%
                                     </span>
                                 </div>
@@ -143,8 +156,10 @@
                             <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm border border-red-100">
                                 <span class="block text-xs md:text-lg text-red-600 font-bold mb-1">Amount (-)</span>
                                 <div class="flex flex-col gap-1">
-                                    <span class="text-xs md:text-lg font-bold text-gray-800 break-all">{{ formatCurrency(statistics.discrepancyAmount) }}</span>
-                                    <span class="text-xs md:text-sm font-semibold text-red-600 bg-red-50 px-1.5 md:px-2 py-0.5 rounded w-fit">
+                                    <span class="text-xs md:text-lg font-bold text-gray-800 break-all">{{
+                                        formatCurrency(statistics.discrepancyAmount) }}</span>
+                                    <span
+                                        class="text-xs md:text-sm font-semibold text-red-600 bg-red-50 px-1.5 md:px-2 py-0.5 rounded w-fit">
                                         {{ statistics.discrepancyAmountPercent }}%
                                     </span>
                                 </div>
@@ -243,7 +258,7 @@
                             <th class="px-4 py-3 text-center sticky right-0 bg-gray-50 shadow-sm border-l border-gray-200 align-bottom cursor-pointer hover:bg-gray-100 transition-colors select-none"
                                 @click="handleSort('final_qty')">
                                 <div class="flex items-center justify-center gap-1">
-                                    <span>Final Qty</span>
+                                    <span>Final Gap</span>
                                     <div class="flex flex-col">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3"
                                             :class="sortBy === 'final_qty' && sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-400'"
@@ -301,7 +316,8 @@
                         <tr v-else v-for="item in items" :key="item.id"
                             class="group hover:bg-gray-50 transition-colors relative">
 
-                            <td class="px-4 py-4 font-medium text-gray-900 border-r border-gray-100 text-xs">{{ item.materialNo
+                            <td class="px-4 py-4 font-medium text-gray-900 border-r border-gray-100 text-xs">{{
+                                item.materialNo
                                 }}</td>
                             <td class="px-4  border-r border-gray-100">
                                 <div class="text-gray-900 text-xs">{{ item.name }}</div>
@@ -310,8 +326,9 @@
                             </td>
                             <td class="px-2 py-4 text-xs text-gray-600 text-center border-r border-gray-100">{{
                                 item.location }}</td>
-                            <td class="px-1 py-1 text-right text-xs text-gray-700 font-medium border-r border-gray-200">{{
-                                formatCurrency(item.price) }}</td>
+                            <td class="px-1 py-1 text-right text-xs text-gray-700 font-medium border-r border-gray-200">
+                                {{
+                                    formatCurrency(item.price) }}</td>
 
                             <td
                                 class=" text-center border-r border-blue-100 group-hover:bg-blue-50/30 transition-colors relative">
@@ -381,6 +398,8 @@
                                 </div>
                                 <div v-else class="text-[10px] font-bold text-red-500 uppercase tracking-wider mt-1">
                                     Variance</div>
+                                <span class="inline-block text-xs px-3 py-1 rounded-md bg-gray-50 border"> SOH: {{
+                                    getFinalStatus(item).predictedSOH }}</span>
                             </td>
                             <td class="px-4 py-4 text-right sticky right-0 bg-white border-l border-gray-200 group-hover:bg-gray-50 font-medium"
                                 :class="getGapColor(getFinalStatus(item).val * item.price)">
@@ -393,7 +412,8 @@
             </div>
 
             <!-- Pagination -->
-            <div v-if="pagination.last_page > 1" class="bg-white rounded-lg shadow-sm border border-gray-200 mt-4 p-3 md:p-4">
+            <div v-if="pagination.last_page > 1"
+                class="bg-white rounded-lg shadow-sm border border-gray-200 mt-4 p-3 md:p-4">
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
                     <!-- Page info - hidden on mobile, shown in center area -->
                     <div class="hidden sm:block text-xs sm:text-sm text-gray-600">
@@ -855,42 +875,28 @@ const formatTimeDiffCeil = (hours) => {
 
 // Core Logic: Calculate if the explanation matches the gap
 const getFinalStatus = (item) => {
-    // Logic:
-    // Initial Gap = Actual - SoH
-    // Explanation = +Outstanding GR - Outstanding GI + Error
-    // Final Variance = Initial Gap - Explanation
-
-    // Example:
-    // SoH: 100, Actual: 90. Gap: -10.
-    // We found an Outstanding GI of 10.
-    // Explanation = 0 - 10 + 0 = -10.
-    // Final = -10 - (-10) = 0. (MATCH)
-
     const initialGap = item.qtyActual - item.soh;
-    // Ensure inputs are treated as numbers (Vue v-model.number sometimes needs help with empty strings)
     const gr = Number(item.outGR) || 0;
     const gi = Number(item.outGI) || 0;
     const err = Number(item.errorMvmt) || 0;
-
-    // Depending on your business logic, usually:
-    // We want to see if (System + GR - GI) == Actual
-    // Or: Gap + (GR - GI + Err) == 0 ?
-    // Let's use: Remaining = (Actual) - (SoH + GR - GI + Err)
-
     const explainedSystem = gr + gi + err;
-    const finalVariance = initialGap + explainedSystem;
+    const finalGap = initialGap - explainedSystem;
+    const predictedSOH = item.soh + finalGap;
 
-    if (finalVariance === 0) {
+
+    if (finalGap === 0) {
         return {
             label: 'MATCH',
             class: 'bg-blue-100 text-blue-700 border-blue-200',
-            val: 0
+            val: 0,
+            predictedSOH: predictedSOH
         };
     } else {
         return {
             label: 'UNMATCHED',
             class: 'bg-red-100 text-red-700 border-red-200',
-            val: finalVariance
+            val: finalGap,
+            predictedSOH: predictedSOH
         };
     }
 };

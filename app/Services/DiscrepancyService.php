@@ -33,8 +33,8 @@ class DiscrepancyService
             ->select([
                 'discrepancy_materials.*',
                 DB::raw('COALESCE(latest_input.daily_stock, 0) as qty_actual'),
-                DB::raw('(COALESCE(latest_input.daily_stock, 0) - discrepancy_materials.soh + discrepancy_materials.outstanding_gr + discrepancy_materials.outstanding_gi + discrepancy_materials.error_moving) as final_discrepancy'),
-                DB::raw('((COALESCE(latest_input.daily_stock, 0) - discrepancy_materials.soh + discrepancy_materials.outstanding_gr + discrepancy_materials.outstanding_gi + discrepancy_materials.error_moving) * discrepancy_materials.price) as final_amount')
+                DB::raw('(COALESCE(latest_input.daily_stock, 0) - discrepancy_materials.soh - discrepancy_materials.outstanding_gr - discrepancy_materials.outstanding_gi - discrepancy_materials.error_moving) as final_discrepancy'),
+                DB::raw('((COALESCE(latest_input.daily_stock, 0) - discrepancy_materials.soh - discrepancy_materials.outstanding_gr - discrepancy_materials.outstanding_gi - discrepancy_materials.error_moving) * discrepancy_materials.price) as final_amount')
             ]);
 
         // Apply location filter
@@ -97,7 +97,7 @@ class DiscrepancyService
 
             $initialDiscrepancy = $qtyActual - $discrepancy->soh;
             $movingData = $discrepancy->outstanding_gr + $discrepancy->outstanding_gi + $discrepancy->error_moving;
-            $finalDiscrepancy = $initialDiscrepancy + $movingData;
+            $finalDiscrepancy = $initialDiscrepancy - $movingData;
             return [
                 'id' => $discrepancy->id,
                 'materialNo' => $material->material_number,
@@ -146,18 +146,17 @@ class DiscrepancyService
             });
         }
         $allItems = $allQuery->get()->map(function ($discrepancy) {
-            $material = $discrepancy->material;
             $latestInput = DailyInput::getLatestForMaterial($discrepancy->material_id);
             $qtyActual = $latestInput ? $latestInput->daily_stock : 0;
             $initialDiscrepancy = $qtyActual - $discrepancy->soh;
             $movingData = $discrepancy->outstanding_gr + $discrepancy->outstanding_gi + $discrepancy->error_moving;
-            $finalDiscrepancy = $initialDiscrepancy + $movingData;
-            $initialAmount = $qtyActual * $discrepancy->price;
+            $finalDiscrepancy = $initialDiscrepancy - $movingData;
+            $systemAmount = $discrepancy->soh * $discrepancy->price;
 
             return [
                 'finalDiscrepancy' => $finalDiscrepancy,
                 'finalDiscrepancyAmount' => $finalDiscrepancy * $discrepancy->price,
-                'initialAmount' => $initialAmount
+                'systemAmount' => $systemAmount,
             ];
         });
 
@@ -217,6 +216,11 @@ class DiscrepancyService
 
     /**
      * Calculate statistics from discrepancy data
+     *
+     * Percentage calculation:
+     * - System Amount = SOH × Price (total value according to system)
+     * - Surplus/Discrepancy Amount = Final Gap × Price
+     * - Percentage = (Surplus or Discrepancy Amount / Total System Amount) × 100
      */
     private function calculateStatistics($discrepancies): array
     {
@@ -226,37 +230,35 @@ class DiscrepancyService
         $matchCount = 0;
         $surplusAmount = 0;
         $discrepancyAmount = 0;
-        $totalAmount = 0;
+        $totalSystemAmount = 0;
 
         foreach ($discrepancies as $item) {
             $finalDiscrepancy = $item['finalDiscrepancy'];
             $finalDiscrepancyAmount = $item['finalDiscrepancyAmount'];
-            $initialAmount = $item['initialAmount'];
+            $systemAmount = $item['systemAmount'];
 
-            // Calculate total amount (absolute value for percentage calculation)
+            // Sum total system amount (SOH × Price) for all items
+            $totalSystemAmount += $systemAmount;
+
             if ($finalDiscrepancy > 0) {
                 $surplusCount++;
                 $surplusAmount += $finalDiscrepancyAmount;
-                $totalAmount += $initialAmount;
             } elseif ($finalDiscrepancy < 0) {
                 $discrepancyCount++;
-                $discrepancyAmount += $finalDiscrepancyAmount;
-                $totalAmount += $initialAmount;
+                $discrepancyAmount += abs($finalDiscrepancyAmount);
             } else {
                 $matchCount++;
-                $totalAmount += $initialAmount;
             }
         }
 
-        // Calculate percentages
+        // Calculate count percentages based on total items
         $surplusCountPercent = $totalItems > 0 ? round(($surplusCount / $totalItems) * 100, 1) : 0;
         $discrepancyCountPercent = $totalItems > 0 ? round(($discrepancyCount / $totalItems) * 100, 1) : 0;
         $matchCountPercent = $totalItems > 0 ? round(($matchCount / $totalItems) * 100, 1) : 0;
 
-        // For amount percentages, calculate based on total absolute amounts
-        $totalAbsAmount = $totalAmount > 0 ? abs($totalAmount) : 0;
-        $surplusAmountPercent = $totalAbsAmount > 0 ? round((abs($surplusAmount) / $totalAbsAmount) * 100, 1) : 0;
-        $discrepancyAmountPercent = $totalAbsAmount > 0 ? round((abs($discrepancyAmount) / $totalAbsAmount) * 100, 1) : 0;
+        // Calculate amount percentages based on total system amount (SOH × Price)
+        $surplusAmountPercent = $totalSystemAmount > 0 ? round(($surplusAmount / $totalSystemAmount) * 100, 1) : 0;
+        $discrepancyAmountPercent = $totalSystemAmount > 0 ? round(($discrepancyAmount / $totalSystemAmount) * 100, 1) : 0;
 
         return [
             'totalItems' => $totalItems,
@@ -264,11 +266,10 @@ class DiscrepancyService
             'discrepancyCount' => $discrepancyCount,
             'matchCount' => $matchCount,
             'surplusAmount' => $surplusAmount,
-            'discrepancyAmount' => abs($discrepancyAmount),
+            'discrepancyAmount' => $discrepancyAmount,
             'surplusCountPercent' => $surplusCountPercent,
             'discrepancyCountPercent' => $discrepancyCountPercent,
             'matchCountPercent' => $matchCountPercent,
-            'totalAmount' => $totalAbsAmount,
             'surplusAmountPercent' => $surplusAmountPercent,
             'discrepancyAmountPercent' => $discrepancyAmountPercent,
         ];

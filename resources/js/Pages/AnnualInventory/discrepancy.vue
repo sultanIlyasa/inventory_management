@@ -400,19 +400,21 @@
 
                             <td class="px-4 py-4 text-center bg-white border-l border-gray-200 group-hover:bg-gray-50">
                                 <div class="inline-block px-3 py-1 rounded-md bg-gray-50 border"
-                                    :class="[getGapColor(getFinalDiscrepancy(item)), getFinalDiscrepancy(item) === 0 ? 'border-gray-200' : 'border-current opacity-80']">
+                                    :class="[getGapColor(getFinalDiscrepancy(item).val), getFinalDiscrepancy(item).val === 0 ? 'border-gray-200' : 'border-current opacity-80']">
                                     <div class="text-sm font-bold">
-                                        {{ formatNumber(getFinalDiscrepancy(item)) }}
+                                        {{ formatNumber(getFinalDiscrepancy(item).val) }}
                                     </div>
                                 </div>
-                                <div v-if="getFinalDiscrepancy(item) === 0"
+                                <div v-if="getFinalDiscrepancy(item.val) === 0"
                                     class="text-[10px] font-bold text-green-600 uppercase tracking-wider mt-1">Matched
                                 </div>
                                 <div v-else class="text-[10px] font-bold text-red-500 uppercase tracking-wider mt-1">
                                     Variance</div>
+                                <span class="inline-block text-xs px-3 py-1 rounded-md bg-gray-50 border"> SOH: {{
+                                    getFinalDiscrepancy(item).predictedSOH }}</span>
                             </td>
 
-                            <td class="px-4 py-4 text-right bg-white border-l border-gray-200 group-hover:bg-gray-50 font-medium"
+                            <td class="px-4 py-4 text-right bg-white border-l border-gray-1200 group-hover:bg-gray-50 font-medium"
                                 :class="getGapColor(getFinalDiscrepancy(item) * (item.price || 0))">
                                 {{ formatCurrency(getFinalDiscrepancy(item) * (item.price || 0)) }}
                             </td>
@@ -794,9 +796,10 @@ const getFinalDiscrepancy = (item) => {
     const gi = Number(item.outstanding_gi) || 0;
     const err = Number(item.error_movement) || 0;
 
-    // Final = Initial Gap + GR + GI + Error
-    // GI is typically negative, GR is positive
-    return initialGap + gr + gi + err;
+    return {
+        val: initialGap - gr + gi + err,
+        predictedSOH: item.soh + (initialGap - gr + gi + err)
+    };
 };
 
 // Formatting

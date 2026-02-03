@@ -60,7 +60,7 @@ class DiscrepancyDataExport implements FromCollection, WithHeadings, ShouldAutoS
 
             $initialDiscrepancy = $qtyActual - $discrepancy->soh;
             $explained = $discrepancy->outstanding_gr + $discrepancy->outstanding_gi + $discrepancy->error_moving;
-            $finalDiscrepancy = $initialDiscrepancy + $explained;
+            $finalDiscrepancy = $initialDiscrepancy - $explained;
             $finalAmount = $finalDiscrepancy * $discrepancy->price;
 
             return [

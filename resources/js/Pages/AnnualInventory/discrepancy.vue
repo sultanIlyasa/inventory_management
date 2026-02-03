@@ -74,16 +74,16 @@
                             </div>
                             <h3 class="text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wide">Operational
                                 Impact</h3>
-                            <span class="ml-auto text-[10px] md:text-xs text-gray-500">Total: {{ statistics.totalItems
-                            }}</span>
+                            <span class="ml-auto text-[10px] md:text-xs text-gray-500">Total:
+                                {{ statistics.totalItems }}</span>
                         </div>
                         <div class="grid grid-cols-2 gap-3 md:gap-4">
                             <div class="bg-blue-50 p-2 md:p-3 rounded-lg shadow-sm border border-blue-100">
                                 <span class="block text-xs md:text-sm text-blue-600 font-bold mb-1">Discrepancy Items
                                     (+)</span>
                                 <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
-                                    <span class="text-base md:text-lg font-bold text-blue-800">{{
-                                        statistics.surplusCount }}</span>
+                                    <span class="text-base md:text-lg font-bold text-blue-800">
+                                        {{ statistics.surplusCount }}</span>
                                     <span
                                         class="text-[10px] font-semibold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded w-fit">
                                         {{ statistics.surplusCountPercent }}%
@@ -428,7 +428,7 @@
                     <div class="text-sm text-gray-600 order-2 md:order-1">
                         <span class="md:hidden">Page {{ pagination.current_page }} / {{ pagination.last_page }}</span>
                         <span class="hidden md:inline">Page {{ pagination.current_page }} of {{ pagination.last_page
-                        }}</span>
+                            }}</span>
                     </div>
 
                     <div class="flex gap-2 order-1 md:order-2">
@@ -661,6 +661,7 @@ const fetchData = async (page = 1) => {
                 ...item,
                 _dirty: false,
                 _original: {
+                    actual_qty: item.actual_qty,
                     soh: item.soh,
                     outstanding_gr: item.outstanding_gr,
                     outstanding_gi: item.outstanding_gi,
@@ -719,6 +720,7 @@ const saveAllChanges = async () => {
             dirtyItems.forEach(item => {
                 item._dirty = false;
                 item._original = {
+                    actual_qty: item.actual_qty,
                     soh: item.soh,
                     outstanding_gr: item.outstanding_gr,
                     outstanding_gi: item.outstanding_gi,

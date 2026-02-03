@@ -985,7 +985,7 @@ class AnnualInventoryService
                     'counted_by' => $item->counted_by,
                     'counted_at' => $item->counted_at,
                     'image_path' => $item->image_path,
-                    'image_url' => $item->image_path ? Storage::disk('s3')->url($item->image_path) : null,
+                    'image_url' => $item->image_path,
                     'notes' => $item->notes,
                 ];
             })->all(),

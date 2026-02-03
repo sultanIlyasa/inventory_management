@@ -88,7 +88,7 @@
                                 (Items)
                             </h3>
                             <span class="ml-auto text-[10px] md:text-xs text-gray-500">Total: {{ statistics.totalItems
-                                }} items</span>
+                            }} items</span>
                         </div>
 
                         <div class="grid grid-cols-2 gap-2 md:gap-4">
@@ -138,8 +138,12 @@
                                 Impact (Value)
                             </h3>
                             <span class="ml-auto text-[10px] md:text-xs text-gray-500">Match: {{ statistics.matchCount
-                                }} ({{ statistics.matchCountPercent }}%)</span>
+                            }} ({{ statistics.matchCountPercent }}%)</span>
+                            <span class="mr-auto text-[10px] md:text-lg text-black-500 font-bold">System Amount:{{
+                                formatCurrency(statistics.totalSystemAmount) }}</span>
                         </div>
+                        <!-- Total Amount -->
+
 
                         <div class="grid grid-cols-2 gap-2 md:gap-4">
                             <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm border border-blue-100">
@@ -318,14 +322,17 @@
 
                             <td class="px-4 py-4 font-medium text-gray-900 border-r border-gray-100 text-xs">{{
                                 item.materialNo
-                                }}</td>
+                            }}</td>
                             <td class="px-4  border-r border-gray-100">
                                 <div class="text-gray-900 text-xs">{{ item.name }}</div>
                                 <div class="text-xs text-gray-500 mt-0.5 inline-block bg-gray-100 px-1.5 rounded-sm">{{
                                     item.uom }}</div>
                             </td>
-                            <td class="px-2 py-4 text-xs text-gray-600 text-center border-r border-gray-100">{{
-                                item.location }}</td>
+                            <td class="px-2 py-4 text-xs text-gray-600 text-center border-r border-gray-100">
+                                <div class="text-gray-900 text-xs">{{ item.location }}</div>
+                                <div class="text-xs text-gray-500 mt-0.5 inline-block bg-gray-100 px-1.5 rounded-sm">{{
+                                    item.rackAddress }}</div>
+                            </td>
                             <td class="px-1 py-1 text-right text-xs text-gray-700 font-medium border-r border-gray-200">
                                 {{
                                     formatCurrency(item.price) }}</td>
@@ -500,6 +507,7 @@ const props = defineProps({
 const items = ref([]);
 const statistics = ref({
     totalItems: 0,
+    totalSystemAmount: 0,
     surplusCount: 0,
     discrepancyCount: 0,
     matchCount: 0,

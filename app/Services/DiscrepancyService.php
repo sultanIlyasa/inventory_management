@@ -104,6 +104,7 @@ class DiscrepancyService
                 'name' => $material->description,
                 'uom' => $material->unit_of_measure,
                 'pic' => $material->pic_name,
+                'rackAddress' => $material->rack_address,
                 'location' => $material->location,
                 'usage' => $material->usage,
                 'price' => (float) $discrepancy->price,
@@ -261,6 +262,7 @@ class DiscrepancyService
         $discrepancyAmountPercent = $totalSystemAmount > 0 ? round(($discrepancyAmount / $totalSystemAmount) * 100, 1) : 0;
 
         return [
+            'totalSystemAmount' => $totalSystemAmount,
             'totalItems' => $totalItems,
             'surplusCount' => $surplusCount,
             'discrepancyCount' => $discrepancyCount,

@@ -363,11 +363,11 @@ class AnnualInventoryService
 
         $totalItems = $inventory->items()->count();
         $countedItems = $inventory->items()->where('status', '!=', 'PENDING')->count();
-        $verifiedItems = $inventory->items()->where('status', 'VERIFIED')->count();
 
         if ($totalItems === 0) {
             $inventory->update(['status' => 'Not Checked']);
-        } elseif ($verifiedItems === $totalItems) {
+        } elseif ($countedItems === $totalItems) {
+            // All items have been counted (status is not PENDING)
             $inventory->update(['status' => 'Completed']);
         } elseif ($countedItems > 0) {
             $inventory->update(['status' => 'In Progress']);

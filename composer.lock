@@ -4,8 +4,78 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e77ebe50c2a11c4b9e3eaa67db6451d5",
+    "content-hash": "da48b171e467eabb1c1850147fa79845",
     "packages": [
+        {
+            "name": "anourvalar/office",
+            "version": "2.6.12",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AnourValar/office.git",
+                "reference": "6659d5a74d683383c584cdf72f1471ccf45642cf"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/AnourValar/office/zipball/6659d5a74d683383c584cdf72f1471ccf45642cf",
+                "reference": "6659d5a74d683383c584cdf72f1471ccf45642cf",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.1"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.26",
+                "phpstan/phpstan": "^2.0",
+                "phpunit/phpunit": "^11.0",
+                "squizlabs/php_codesniffer": "^3.7",
+                "vimeo/psalm": "^6.8"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "AnourValar\\Office\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Generate documents from existing Excel & Word templates | Export tables to Excel (Grids)",
+            "homepage": "https://github.com/AnourValar/office",
+            "keywords": [
+                "anourvalar",
+                "contract",
+                "doc",
+                "document",
+                "docx",
+                "engine",
+                "excel",
+                "export",
+                "fill",
+                "generate",
+                "generator",
+                "grid",
+                "markers",
+                "ods",
+                "pdf",
+                "placeholder",
+                "replacers",
+                "report",
+                "table",
+                "template",
+                "templater",
+                "variables",
+                "view",
+                "word",
+                "xls",
+                "xlsx"
+            ],
+            "support": {
+                "issues": "https://github.com/AnourValar/office/issues",
+                "source": "https://github.com/AnourValar/office/tree/2.6.12"
+            },
+            "time": "2026-01-26T09:57:14+00:00"
+        },
         {
             "name": "brick/math",
             "version": "0.14.0",

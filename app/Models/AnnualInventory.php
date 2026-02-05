@@ -21,7 +21,8 @@ class AnnualInventory extends Model
         'date',
         'status',
         'pic_name',
-        'location'
+        'location',
+        'sloc'
     ];
     public function items()
     {

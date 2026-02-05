@@ -8,6 +8,9 @@ use App\Models\Materials;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use AnourValar\Office\SheetsService;
+use AnourValar\Office\Format;
+use ZipArchive;
 
 class AnnualInventoryService
 {
@@ -162,6 +165,7 @@ class AnnualInventoryService
                     'counted_by' => $item->counted_by,
                     'counted_at' => $item->counted_at?->format('Y-m-d H:i:s'),
                     'notes' => $item->notes,
+                    'actual_qty_history' => $item->actual_qty_history?->all(),
                 ];
             });
 
@@ -259,17 +263,26 @@ class AnnualInventoryService
                 $errorMovement = (float) ($data['error_movement'] ?? $item->error_movement ?? 0);
 
                 // Formula: actual - soh + outstanding_gr + outstanding_gi + error_movement
-                $finalDiscrepancy = $actualQty - $soh + $outstandingGR + $outstandingGI + $errorMovement;
+                $finalDiscrepancy = ($actualQty - $soh) - ($outstandingGR + $outstandingGI + $errorMovement);
                 $data['final_discrepancy'] = $finalDiscrepancy;
                 $data['final_discrepancy_amount'] = $finalDiscrepancy * (float) $item->price;
             }
 
-            // Set status to COUNTED and timestamp
+
+            // Set status to COUNTED, timestamp, and build history
             if (isset($data['actual_qty']) && $data['actual_qty'] !== null) {
                 $data['status'] = $data['status'] ?? 'COUNTED';
                 if (!$item->counted_at) {
                     $data['counted_at'] = now();
                 }
+
+                // Add to actual_qty_history
+                $history = $item->actual_qty_history ?? [];
+                $history[] = [
+                    'actual_qty' => $data['actual_qty'],
+                    'counted_at' => now()->format('Y-m-d H:i:s'),
+                ];
+                $data['actual_qty_history'] = $history;
             }
 
             $item->update($data);
@@ -696,6 +709,7 @@ class AnnualInventoryService
                     'counted_by' => $item->counted_by,
                     'counted_at' => $item->counted_at,
                     'notes' => $item->notes,
+                    'actual_qty_history' => $item->actual_qty_history ?? [],
                 ];
             })->all(),
             'pagination' => [
@@ -1254,12 +1268,10 @@ class AnnualInventoryService
         ]);
     }
 
-    /**
-     * Export PIDs with actual quantities to Excel
-     */
     public function exportToExcel(array $filters = [])
     {
-        $query = AnnualInventory::with('items');
+        // Build query WITHOUT eager loading items (load per-PID to save memory)
+        $query = AnnualInventory::query();
 
         if (!empty($filters['search'])) {
             $search = $filters['search'];
@@ -1277,83 +1289,406 @@ class AnnualInventoryService
             $query->where('status', $filters['status']);
         }
 
-        $pids = $query->orderBy('pid', 'asc')->get();
-
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-
-        // Headers
-        $headers = [
-            'PID',
-            'Location',
-            'PIC',
-            'Status',
-            'Material Number',
-            'Description',
-            'Rack',
-            'UoM',
-            'System Qty',
-            'SOH',
-            'Actual Qty',
-            'Discrepancy',
-            'Price',
-            'Discrepancy Amount',
-            'Counted By',
-            'Counted At',
-            'Item Status'
-        ];
-
-        $col = 'A';
-        foreach ($headers as $header) {
-            $sheet->setCellValue($col . '1', $header);
-            $sheet->getStyle($col . '1')->getFont()->setBold(true);
-            $sheet->getStyle($col . '1')->getFill()
-                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                ->getStartColor()->setRGB('E5E7EB');
-            $col++;
+        // Optional: allow selecting explicit PIDs
+        if (!empty($filters['pids']) && is_array($filters['pids'])) {
+            $query->whereIn('pid', $filters['pids']);
         }
 
-        $row = 2;
-        foreach ($pids as $pid) {
-            foreach ($pid->items as $item) {
-                $discrepancy = ($item->actual_qty !== null && $item->soh !== null)
-                    ? $item->actual_qty - $item->soh
-                    : null;
-                $discrepancyAmount = $discrepancy !== null ? $discrepancy * $item->price : null;
+        $query->orderBy('pid', 'asc');
 
-                $sheet->setCellValue('A' . $row, $pid->pid);
-                $sheet->setCellValue('B' . $row, $pid->location);
-                $sheet->setCellValue('C' . $row, $pid->pic_name);
-                $sheet->setCellValue('D' . $row, $pid->status);
-                $sheet->setCellValue('E' . $row, $item->material_number);
-                $sheet->setCellValue('F' . $row, $item->description);
-                $sheet->setCellValue('G' . $row, $item->rack_address);
-                $sheet->setCellValue('H' . $row, $item->unit_of_measure);
-                $sheet->setCellValue('I' . $row, $item->system_qty);
-                $sheet->setCellValue('J' . $row, $item->soh);
-                $sheet->setCellValue('K' . $row, $item->actual_qty);
-                $sheet->setCellValue('L' . $row, $discrepancy);
-                $sheet->setCellValue('M' . $row, $item->price);
-                $sheet->setCellValue('N' . $row, $discrepancyAmount);
-                $sheet->setCellValue('O' . $row, $item->counted_by);
-                $sheet->setCellValue('P' . $row, $item->counted_at);
-                $sheet->setCellValue('Q' . $row, $item->status);
+        // Check if any data exists
+        $count = $query->count();
+        if ($count === 0) {
+            return null;
+        }
+
+        // mode: auto | single | zip | csv (fallback)
+        $mode = $filters['mode'] ?? 'auto';
+
+        // If CSV mode requested (memory-efficient fallback)
+        if ($mode === 'csv') {
+            return $this->downloadCsvExport($query);
+        }
+
+        // Template - check if exists
+        $template = storage_path('app/templates/worksheet_template.xlsx');
+        if (!file_exists($template)) {
+            // Fallback to CSV if template missing
+            return $this->downloadCsvExport($query);
+        }
+        $format = Format::Xlsx;
+
+        // If single mode or auto with 1 PID
+        if ($mode === 'single' || ($mode === 'auto' && $count === 1)) {
+            $pid = $this->resolveSinglePidFromQuery($query, $filters);
+            if (!$pid) {
+                return null;
+            }
+            // Load items only for this single PID
+            $pid->load('items');
+            return $this->downloadSingleWorksheet($pid, $template, $format);
+        }
+
+        // For large exports (>20 PIDs), use CSV to avoid memory issues
+        if ($count > 20) {
+            return $this->downloadCsvExport($query);
+        }
+
+        // Otherwise zip (multi or forced zip) - use chunked processing
+        try {
+            return $this->downloadZipWorksheetChunked($query, $template, $format);
+        } catch (\Throwable $e) {
+            // Memory error - fallback to CSV
+            gc_collect_cycles();
+            return $this->downloadCsvExport($query);
+        }
+    }
+
+    /**
+     * Resolve single PID from query (memory efficient)
+     */
+    private function resolveSinglePidFromQuery($query, array $filters)
+    {
+        if (!empty($filters['pid'])) {
+            $found = (clone $query)->where('pid', $filters['pid'])->first();
+            if ($found) return $found;
+        }
+        return $query->first();
+    }
+
+    /**
+     * Download single worksheet using template with PhpSpreadsheet directly
+     * More memory efficient than SheetsService
+     */
+    private function downloadSingleWorksheet($pid, string $template, Format $format)
+    {
+        // Try to increase memory limit for this operation
+        $originalMemoryLimit = ini_get('memory_limit');
+        @ini_set('memory_limit', '1G');
+
+        DB::disableQueryLog();
+        \Log::info('Export: Starting template-based export', [
+            'pid' => $pid->pid,
+            'memory_limit' => ini_get('memory_limit'),
+            'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB'
+        ]);
+
+        try {
+            // Load template with PhpSpreadsheet directly (not SheetsService)
+            $spreadsheet = IOFactory::load($template);
+            $sheet = $spreadsheet->getActiveSheet();
+
+            // Fill header data based on template structure
+            // D11 [plant], D12 [sloc], D13 [pid], D14 [doc_date]
+            $sheet->setCellValue('D11', $pid->plant ?? '2000 - Sunter 2');
+            $sheet->setCellValue('D12', $pid->sloc ?? $pid->location ?? '');
+            $sheet->setCellValue('D13', $pid->pid);
+            $sheet->setCellValue('D14', optional($pid->date)->format('n/j/Y h:i:s A') ?? now()->format('n/j/Y h:i:s A'));
+
+            // Data starts at row 23
+            // Columns: B [no], C [material_number], D [description], E [batch], F [rack_address], G [uom], H [checking]
+            $dataStartRow = 23;
+
+            // Use raw query with cursor for memory efficiency
+            $items = DB::table('annual_inventory_items')
+                ->select(['material_number', 'description', 'rack_address', 'unit_of_measure', 'actual_qty'])
+                ->where('annual_inventory_id', $pid->id)
+                ->cursor();
+
+            $row = $dataStartRow;
+            $no = 1;
+            foreach ($items as $item) {
+                $sheet->setCellValue('B' . $row, $no);
+                $sheet->setCellValue('C' . $row, $item->material_number);
+                $sheet->setCellValue('D' . $row, $item->description);
+                $sheet->setCellValue('E' . $row, ''); // Batch
+                $sheet->setCellValue('F' . $row, $item->rack_address);
+                $sheet->setCellValue('G' . $row, $item->unit_of_measure);
+                $sheet->setCellValue('H' . $row, $item->actual_qty ?? '');
                 $row++;
+                $no++;
+            }
+
+            $safePid = preg_replace('/[^A-Za-z0-9_\-]/', '_', (string) $pid->pid);
+            $filename = "Worksheet_{$safePid}_" . now()->format('Ymd_His') . ".xlsx";
+
+            $tmpFile = storage_path('app/tmp/' . $filename);
+            if (!is_dir(dirname($tmpFile))) {
+                mkdir(dirname($tmpFile), 0777, true);
+            }
+
+            $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+            $writer->save($tmpFile);
+
+            // Cleanup memory
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet, $writer, $items);
+            gc_collect_cycles();
+
+            // Restore original memory limit
+            @ini_set('memory_limit', $originalMemoryLimit);
+
+            \Log::info('Export: Template-based export completed', ['file' => $tmpFile]);
+
+            return response()->download($tmpFile, $filename)->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            \Log::error('Export: Template-based export failed', [
+                'error' => $e->getMessage(),
+                'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB'
+            ]);
+
+            // Cleanup on error
+            if (isset($spreadsheet)) {
+                $spreadsheet->disconnectWorksheets();
+                unset($spreadsheet);
+            }
+            gc_collect_cycles();
+
+            // Restore memory limit
+            @ini_set('memory_limit', $originalMemoryLimit);
+
+            // Fallback to CSV
+            return $this->downloadSinglePidCsv($pid);
+        }
+    }
+
+    /**
+     * CSV fallback for single PID export
+     */
+    private function downloadSinglePidCsv($pid)
+    {
+        $safePid = preg_replace('/[^A-Za-z0-9_\-]/', '_', (string) $pid->pid);
+        $filename = "Worksheet_{$safePid}_" . now()->format('Ymd_His') . ".csv";
+        $tmpPath = storage_path('app/tmp/' . $filename);
+
+        if (!is_dir(dirname($tmpPath))) {
+            mkdir(dirname($tmpPath), 0777, true);
+        }
+
+        $handle = fopen($tmpPath, 'w');
+        fwrite($handle, "\xEF\xBB\xBF"); // BOM
+
+        // Header info
+        fputcsv($handle, ['PID', $pid->pid]);
+        fputcsv($handle, ['Location', $pid->location]);
+        fputcsv($handle, ['Date', optional($pid->date)->format('Y-m-d')]);
+        fputcsv($handle, []);
+
+        // Items header
+        fputcsv($handle, ['Material Number', 'Description', 'Rack Address', 'UoM', 'Actual Qty']);
+
+        // Items data using cursor
+        $items = DB::table('annual_inventory_items')
+            ->select(['material_number', 'description', 'rack_address', 'unit_of_measure', 'actual_qty'])
+            ->where('annual_inventory_id', $pid->id)
+            ->cursor();
+
+        foreach ($items as $item) {
+            fputcsv($handle, [
+                $item->material_number,
+                $item->description,
+                $item->rack_address,
+                $item->unit_of_measure,
+                $item->actual_qty,
+            ]);
+        }
+
+        fclose($handle);
+
+        return response()->download($tmpPath, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ])->deleteFileAfterSend(true);
+    }
+
+
+    /**
+     * Optimized Zip Download using template with PhpSpreadsheet directly
+     */
+    private function downloadZipWorksheetChunked($query, string $template, Format $format)
+    {
+        set_time_limit(0);
+        DB::disableQueryLog();
+
+        $zipName = 'annual_inventory_worksheets_' . now()->format('Ymd_His') . '.zip';
+        $zipPath = storage_path('app/tmp/' . $zipName);
+
+        if (!is_dir(dirname($zipPath))) {
+            mkdir(dirname($zipPath), 0777, true);
+        }
+
+        $zip = new \ZipArchive();
+        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            throw new \Exception('Failed to create ZIP file');
+        }
+
+        $counter = 0;
+
+        // Process each PID one at a time
+        foreach ($query->cursor() as $pid) {
+            // Generate Excel from template for this PID
+            $binary = $this->generateTemplateExcelBinary($pid, $template);
+
+            $safePid = preg_replace('/[^A-Za-z0-9_\-]/', '_', (string) $pid->pid);
+            $localName = "Worksheet_{$safePid}.xlsx";
+
+            $zip->addFromString($localName, $binary);
+
+            unset($binary);
+            $counter++;
+
+            // Garbage collect every 2 files (more aggressive for template-based)
+            if ($counter % 2 === 0) {
+                gc_collect_cycles();
             }
         }
 
-        // Auto-size columns
-        foreach (range('A', 'Q') as $columnID) {
-            $sheet->getColumnDimension($columnID)->setAutoSize(true);
+        $zip->close();
+
+        return response()->download($zipPath, $zipName)->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Generate Excel binary from template for a single PID (memory efficient)
+     */
+    private function generateTemplateExcelBinary($pid, string $template): string
+    {
+        // Load fresh copy of template
+        $spreadsheet = IOFactory::load($template);
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Fill header data
+        $sheet->setCellValue('D11', $pid->plant ?? '2000 - Sunter 2');
+        $sheet->setCellValue('D12', $pid->sloc ?? $pid->location ?? '');
+        $sheet->setCellValue('D13', $pid->pid);
+        $sheet->setCellValue('D14', optional($pid->date)->format('n/j/Y h:i:s A') ?? now()->format('n/j/Y h:i:s A'));
+
+        // Data starts at row 23
+        $dataStartRow = 23;
+
+        $items = DB::table('annual_inventory_items')
+            ->select(['material_number', 'description', 'rack_address', 'unit_of_measure', 'actual_qty'])
+            ->where('annual_inventory_id', $pid->id)
+            ->cursor();
+
+        $row = $dataStartRow;
+        $no = 1;
+        foreach ($items as $item) {
+            $sheet->setCellValue('B' . $row, $no);
+            $sheet->setCellValue('C' . $row, $item->material_number);
+            $sheet->setCellValue('D' . $row, $item->description);
+            $sheet->setCellValue('E' . $row, ''); // Batch
+            $sheet->setCellValue('F' . $row, $item->rack_address);
+            $sheet->setCellValue('G' . $row, $item->unit_of_measure);
+            $sheet->setCellValue('H' . $row, $item->actual_qty ?? '');
+            $row++;
+            $no++;
         }
 
+        // Write to memory stream
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
-        $filename = 'annual_inventory_' . date('Y-m-d_His') . '.xlsx';
 
-        return response()->streamDownload(function () use ($writer) {
-            $writer->save('php://output');
-        }, $filename, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ob_start();
+        $writer->save('php://output');
+        $binary = ob_get_clean();
+
+        // Cleanup
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet, $writer);
+
+        return $binary;
+    }
+
+    /**
+     * Memory-efficient CSV export fallback
+     */
+    private function downloadCsvExport($query)
+    {
+        set_time_limit(0);
+        DB::disableQueryLog();
+
+        $filename = 'annual_inventory_export_' . now()->format('Ymd_His') . '.csv';
+        $tmpPath = storage_path('app/tmp/' . $filename);
+
+        if (!is_dir(dirname($tmpPath))) {
+            mkdir(dirname($tmpPath), 0777, true);
+        }
+
+        $handle = fopen($tmpPath, 'w');
+
+        // Write BOM for Excel UTF-8 compatibility
+        fwrite($handle, "\xEF\xBB\xBF");
+
+        // Write header
+        fputcsv($handle, [
+            'PID',
+            'Location',
+            'Material Number',
+            'Description',
+            'Rack Address',
+            'UoM',
+            'Actual Qty',
+            'Status',
+            'Counted By',
+            'Counted At',
         ]);
+
+        // Process PIDs using cursor for memory efficiency
+        foreach ($query->cursor() as $pid) {
+            $items = DB::table('annual_inventory_items')
+                ->select(['material_number', 'description', 'rack_address', 'unit_of_measure', 'actual_qty', 'status', 'counted_by', 'counted_at'])
+                ->where('annual_inventory_id', $pid->id)
+                ->cursor();
+
+            foreach ($items as $item) {
+                fputcsv($handle, [
+                    $pid->pid,
+                    $pid->location,
+                    $item->material_number,
+                    $item->description,
+                    $item->rack_address,
+                    $item->unit_of_measure,
+                    $item->actual_qty,
+                    $item->status,
+                    $item->counted_by,
+                    $item->counted_at,
+                ]);
+            }
+
+            unset($items);
+        }
+
+        fclose($handle);
+
+        return response()->download($tmpPath, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ])->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Matches your template markers exactly:
+     * D11 [plant], D12 [sloc], D13 [pid], D14 [doc_date], D15 [sheet_name]
+     * Row 23: B [items.no], C [items.material_number], D [items.description],
+     *         E [items.batch], F [items.rack_address], G [items.uom], H [items.checking]
+     */
+    private function buildTemplateData($pid): array
+    {
+        return [
+            'plant'      => $pid->plant ?? '2000 - Sunter 2',
+            'sloc'       => $pid->sloc ?? ($pid->location ?? ''),
+            'pid'        => $pid->pid,
+            'doc_date'   => optional($pid->date)->format('n/j/Y h:i:s A') ?? now()->format('n/j/Y h:i:s A'),
+            'sheet_name' => $pid->sheet_name ?? 'Worksheet Inv. Workshop',
+
+            'items' => $pid->items->values()->map(function ($item) {
+                return [
+                    'material_number' => $item->material_number,
+                    'description'     => $item->description,
+                    'batch'           => '',
+                    'rack_address'    => $item->rack_address,
+                    'uom'             => $item->unit_of_measure,
+                    'checking'        => $item->actual_qty ?? '',
+                ];
+            })->all(),
+        ];
     }
 }

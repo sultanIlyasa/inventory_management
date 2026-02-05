@@ -25,7 +25,8 @@ class AnnualInventoryItems extends Model
         'counted_by',
         'counted_at',
         'image_path',
-        'notes'
+        'notes',
+        'actual_qty_history'
     ];
     protected $casts = [
         'counted_at' => 'datetime',
@@ -37,6 +38,7 @@ class AnnualInventoryItems extends Model
         'error_movement' => 'decimal:2',
         'final_discrepancy' => 'decimal:2',
         'final_discrepancy_amount' => 'decimal:2',
+        'actual_qty_history' => 'array'
     ];
     public function annualInventory()
     {

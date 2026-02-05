@@ -106,6 +106,7 @@
                                                 <th class="p-2 border text-xs lg:text-sm">Description</th>
                                                 <th class="p-2 border text-xs lg:text-sm">Rack</th>
                                                 <th class="p-2 border text-xs lg:text-sm">UoM</th>
+                                                <th class="p-2 border text-xs lg:text-sm">SoH</th>
                                                 <th class="p-2 border text-xs lg:text-sm bg-blue-100">Actual Qty</th>
                                                 <th class="p-2 border text-xs lg:text-sm">Status</th>
                                                 <th class="p-2 border text-xs lg:text-sm">Action</th>
@@ -124,6 +125,8 @@
                                                 <td class="border p-2 text-xs lg:text-sm">{{ item.rack_address || '-' }}
                                                 </td>
                                                 <td class="border p-2 text-xs lg:text-sm">{{ item.unit_of_measure }}
+                                                </td>
+                                                <td class="border p-2 text-xs lg:text-sm">{{ item.soh }}
                                                 </td>
 
                                                 <td class="border p-2 text-xs lg:text-sm bg-blue-50">

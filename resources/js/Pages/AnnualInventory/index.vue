@@ -1,22 +1,3 @@
-Here is the optimized, mobile-responsive version of your template.
-
-I have focused on **vertical space economy** (so users don't have to scroll past a huge header to see data) and **touch
-targets**.
-
-### Key Changes Made:
-
-1. **Compact Statistics:** Reduced padding and font sizes on mobile to prevent numbers from wrapping awkwardly.
-2. **Optimized Toolbar (Search/Filter/Actions):**
-* **Filters:** On mobile, the dropdowns now sit side-by-side (`w-1/2`) instead of stacking vertically, saving screen
-height.
-* **Action Buttons:** Converted from a vertical stack (which took up massive space) to a **3-column grid** on mobile.
-
-
-3. **Refined Mobile Cards:** Tightened padding inside the cards so more items are visible on the viewport.
-4. **Responsive Modals:** Adjusted modal padding and widths to ensure they fit comfortably on smaller screens without
-cutoff.
-
-```html
 <template>
     <MainAppLayout title="Annual Inventory" subtitle="Manage annual inventory PIDs">
         <div class="min-h-screen w-full overflow-hidden bg-gray-50">
@@ -99,29 +80,63 @@ cutoff.
                                         </div>
                                     </div>
 
-                                    <div class="grid grid-cols-3 sm:flex sm:flex-row gap-2 lg:gap-3 w-full lg:w-auto">
+                                    <div class="flex flex-wrap sm:flex-row gap-2 lg:gap-3 w-full lg:w-auto">
                                         <button @click="fetchPIDs"
-                                            class="w-full sm:w-auto px-2 sm:px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+                                            class="flex-1 sm:flex-none px-2 sm:px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
                                             <RefreshCw class="w-4 h-4" />
                                             <span>Refresh</span>
                                         </button>
-                                        <button @click="downloadPIDExcel"
-                                            class="w-full sm:w-auto px-2 sm:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
-                                            <Download class="w-4 h-4" />
-                                            <span>Download All Data</span>
+                                        <button @click="downloadPIDExcel('selected')" :disabled="isDownloading || selectedPids.length === 0"
+                                            class="flex-1 sm:flex-none px-2 sm:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+                                            <Loader2 v-if="isDownloading" class="w-4 h-4 animate-spin" />
+                                            <Download v-else class="w-4 h-4" />
+                                            <span>{{ selectedPids.length > 0 ? `Download (${selectedPids.length})` : 'Select PIDs' }}</span>
+                                        </button>
+                                        <button @click="downloadPIDExcel('all')" :disabled="isDownloading"
+                                            class="flex-1 sm:flex-none px-2 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+                                            <Loader2 v-if="isDownloading" class="w-4 h-4 animate-spin" />
+                                            <Download v-else class="w-4 h-4" />
+                                            <span>Download All</span>
+                                        </button>
+                                        <button @click="downloadPIDExcel('all', 'csv')" :disabled="isDownloading"
+                                            class="flex-1 sm:flex-none px-2 sm:px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2"
+                                            title="CSV format - faster and more reliable for large data">
+                                            <Loader2 v-if="isDownloading" class="w-4 h-4 animate-spin" />
+                                            <Download v-else class="w-4 h-4" />
+                                            <span>CSV</span>
                                         </button>
                                         <button @click="openUploadModal"
-                                            class="w-full sm:w-auto px-2 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+                                            class="flex-1 sm:flex-none px-2 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
                                             <Upload class="w-4 h-4" />
                                             <span>Upload</span>
                                         </button>
                                     </div>
                                 </div>
 
+                                <!-- Selection info bar -->
+                                <div v-if="selectedPids.length > 0"
+                                    class="flex items-center justify-between bg-purple-50 border border-purple-200 rounded-lg px-4 py-2">
+                                    <span class="text-sm text-purple-700 font-medium">
+                                        {{ selectedPids.length }} PID{{ selectedPids.length > 1 ? 's' : '' }} selected
+                                    </span>
+                                    <button @click="selectedPids = []"
+                                        class="text-sm text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1">
+                                        <X class="w-4 h-4" />
+                                        Clear Selection
+                                    </button>
+                                </div>
+
                                 <div class="hidden md:block overflow-x-auto rounded-lg border border-gray-200">
                                     <table class="w-full border-collapse">
                                         <thead>
                                             <tr class="bg-gray-100/50">
+                                                <th class="p-3 border-b text-center w-10">
+                                                    <input type="checkbox"
+                                                        :checked="isAllSelected"
+                                                        :indeterminate="isIndeterminate"
+                                                        @change="toggleSelectAll"
+                                                        class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
+                                                </th>
                                                 <th
                                                     class="p-3 border-b text-xs font-semibold text-gray-600 uppercase tracking-wider text-left w-12">
                                                     No</th>
@@ -147,7 +162,14 @@ cutoff.
                                         </thead>
                                         <tbody class="divide-y divide-gray-200">
                                             <tr v-for="(item, index) in inventoryItems" :key="item.id"
-                                                class="hover:bg-gray-50 transition-colors">
+                                                class="hover:bg-gray-50 transition-colors"
+                                                :class="{ 'bg-purple-50': selectedPids.includes(item.pid) }">
+                                                <td class="p-3 text-center">
+                                                    <input type="checkbox"
+                                                        :value="item.pid"
+                                                        v-model="selectedPids"
+                                                        class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
+                                                </td>
                                                 <td class="p-3 text-sm text-gray-600">
                                                     {{ (pagination.current_page - 1) * pagination.per_page + index + 1
                                                     }}
@@ -209,7 +231,7 @@ cutoff.
                                                 </td>
                                             </tr>
                                             <tr v-if="!inventoryItems.length">
-                                                <td colspan="7" class="p-8 text-center text-gray-500 text-sm">
+                                                <td colspan="8" class="p-8 text-center text-gray-500 text-sm">
                                                     <div class="flex flex-col items-center gap-2">
                                                         <FileText class="w-8 h-8 text-gray-300" />
                                                         <p>No inventory records found</p>
@@ -222,10 +244,15 @@ cutoff.
 
                                 <div class="md:hidden space-y-3">
                                     <div v-for="(item, index) in inventoryItems" :key="item.id"
-                                        class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden active:shadow-md transition-shadow">
+                                        class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden active:shadow-md transition-shadow"
+                                        :class="{ 'border-purple-400 bg-purple-50/30': selectedPids.includes(item.pid) }">
                                         <div
                                             class="bg-gray-50/50 px-3 py-2.5 flex items-center justify-between border-b border-gray-100">
                                             <div class="flex items-center gap-2">
+                                                <input type="checkbox"
+                                                    :value="item.pid"
+                                                    v-model="selectedPids"
+                                                    class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
                                                 <span
                                                     class="bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded">
                                                     #{{ (pagination.current_page - 1) * pagination.per_page + index + 1
@@ -563,6 +590,38 @@ const showDeleteModal = ref(false);
 const deleteItem = ref(null);
 const isDeleting = ref(false);
 
+// Selection state
+const selectedPids = ref([]);
+
+const isAllSelected = computed(() => {
+    return inventoryItems.value.length > 0 &&
+           inventoryItems.value.every(item => selectedPids.value.includes(item.pid));
+});
+
+const isIndeterminate = computed(() => {
+    return selectedPids.value.length > 0 &&
+           !isAllSelected.value &&
+           inventoryItems.value.some(item => selectedPids.value.includes(item.pid));
+});
+
+const toggleSelectAll = () => {
+    if (isAllSelected.value) {
+        // Deselect all items on current page
+        const currentPagePids = inventoryItems.value.map(item => item.pid);
+        selectedPids.value = selectedPids.value.filter(pid => !currentPagePids.includes(pid));
+    } else {
+        // Select all items on current page
+        const currentPagePids = inventoryItems.value.map(item => item.pid);
+        const newSelection = [...selectedPids.value];
+        currentPagePids.forEach(pid => {
+            if (!newSelection.includes(pid)) {
+                newSelection.push(pid);
+            }
+        });
+        selectedPids.value = newSelection;
+    }
+};
+
 // --- FETCH DATA ---
 const fetchPIDs = async (page = 1) => {
     isLoading.value = true;
@@ -636,13 +695,95 @@ const navigateToDetail = (pid) => {
 };
 
 // --- DOWNLOAD EXCEL ---
-const downloadPIDExcel = () => {
-    const params = new URLSearchParams();
-    if (searchQuery.value) params.append('search', searchQuery.value);
-    if (locationFilter.value) params.append('location', locationFilter.value);
-    if (statusFilter.value) params.append('status', statusFilter.value);
+const isDownloading = ref(false);
 
-    window.location.href = `/api/annual-inventory/export?${params.toString()}`;
+const downloadPIDExcel = async (mode = 'all', format = 'auto') => {
+    // Validate selected mode
+    if (mode === 'selected' && selectedPids.value.length === 0) {
+        alert('Please select at least one PID to download.');
+        return;
+    }
+
+    const params = new URLSearchParams();
+
+    if (mode === 'selected') {
+        // Download only selected PIDs
+        selectedPids.value.forEach(pid => params.append('pids[]', pid));
+    } else {
+        // Download all with current filters
+        if (searchQuery.value) params.append('search', searchQuery.value);
+        if (locationFilter.value) params.append('location', locationFilter.value);
+        if (statusFilter.value) params.append('status', statusFilter.value);
+    }
+
+    // Add format parameter (auto, csv, single, zip)
+    if (format !== 'auto') {
+        params.append('mode', format);
+    }
+
+    isDownloading.value = true;
+    try {
+        const response = await axios.get(`/api/annual-inventory/export?${params.toString()}`, {
+            responseType: 'blob',
+            timeout: 300000, // 5 minutes timeout
+        });
+
+        // Check if response is JSON error (blob containing JSON)
+        if (response.data.type === 'application/json') {
+            const text = await response.data.text();
+            const json = JSON.parse(text);
+            throw new Error(json.message || 'Export failed');
+        }
+
+        // Extract filename from Content-Disposition header
+        const contentDisposition = response.headers['content-disposition'];
+        let filename = 'annual_inventory_export.xlsx';
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename="?(.+)"?/);
+            if (match) filename = match[1].replace(/"/g, '');
+        }
+
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        // Clear selection after successful download
+        if (mode === 'selected') {
+            selectedPids.value = [];
+        }
+    } catch (error) {
+        if (error.response?.status === 404) {
+            alert('No data found for export.');
+        } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+            // Timeout - suggest CSV download
+            const useCSV = confirm('Export timed out. Would you like to try CSV format instead? (faster and more reliable)');
+            if (useCSV) {
+                await downloadPIDExcel(mode, 'csv');
+            }
+        } else {
+            console.error('Failed to download:', error);
+            // Try to get error message from blob
+            let errorMessage = error.message;
+            if (error.response?.data instanceof Blob) {
+                try {
+                    const text = await error.response.data.text();
+                    const json = JSON.parse(text);
+                    errorMessage = json.message || errorMessage;
+                } catch (e) {
+                    // ignore parse error
+                }
+            }
+            alert('Failed to download: ' + errorMessage + '\n\nTip: Try using CSV format for large exports.');
+        }
+    } finally {
+        isDownloading.value = false;
+    }
 };
 
 // --- DOWNLOAD TEMPLATE ---

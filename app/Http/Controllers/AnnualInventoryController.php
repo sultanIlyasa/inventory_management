@@ -328,13 +328,49 @@ class AnnualInventoryController extends Controller
      */
     public function export(Request $request)
     {
+        // Handle pids parameter - can be comma-separated string or array
+        $pids = $request->query('pids');
+        if (is_string($pids) && !empty($pids)) {
+            $pids = array_map('trim', explode(',', $pids));
+        }
+
         $filters = [
             'search' => $request->query('search'),
             'location' => $request->query('location'),
             'status' => $request->query('status'),
+            'pids' => $pids,
+            'mode' => $request->query('mode', 'auto'), // auto | single | zip
+            'pid' => $request->query('pid'), // specific single PID to export
         ];
 
-        return $this->service->exportToExcel($filters);
+        try {
+            \Log::info('Export: Request received', $filters);
+
+            $result = $this->service->exportToExcel($filters);
+
+            if ($result === null) {
+                \Log::warning('Export: No data found');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No data found for export.',
+                ], 404);
+            }
+
+            \Log::info('Export: Returning response');
+            return $result;
+        } catch (\Throwable $e) {
+            \Log::error('Export: Failed', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Export failed: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

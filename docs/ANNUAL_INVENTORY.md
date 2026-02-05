@@ -46,21 +46,41 @@ The Annual Inventory feature allows warehouse staff to perform physical inventor
 | description | string | Material description |
 | rack_address | string | Storage location |
 | unit_of_measure | string | UoM |
-| system_qty | integer | System quantity |
-| soh | integer | Stock on hand |
-| actual_qty | integer | Physical count (nullable) |
-| price | integer | Unit price |
-| outstanding_gr | integer | Outstanding goods receipt |
-| outstanding_gi | integer | Outstanding goods issue |
-| error_movement | integer | Movement errors |
-| final_discrepancy | integer | Calculated discrepancy |
+| system_qty | decimal | System quantity |
+| soh | decimal | Stock on hand |
+| actual_qty | decimal | Physical count (nullable) |
+| price | decimal | Unit price |
+| outstanding_gr | decimal | Outstanding goods receipt |
+| outstanding_gi | decimal | Outstanding goods issue |
+| error_movement | decimal | Movement errors |
+| final_discrepancy | decimal | Calculated discrepancy |
 | final_discrepancy_amount | decimal | Discrepancy value |
 | status | string | PENDING / COUNTED / VERIFIED |
 | counted_by | string | Counter name |
 | counted_at | datetime | Count timestamp |
 | image_path | string | S3 image path |
 | notes | text | Optional notes |
+| actual_qty_history | json | Array of qty revision history |
 | timestamps | | created_at, updated_at |
+
+#### `actual_qty_history` JSON Structure
+
+Each entry in the history array contains:
+
+```json
+[
+  {
+    "actual_qty": 100,
+    "counted_by": "John Doe",
+    "counted_at": "2026-02-04 10:30:00"
+  },
+  {
+    "actual_qty": 105,
+    "counted_by": "Jane Smith",
+    "counted_at": "2026-02-04 14:15:00"
+  }
+]
+```
 
 ## API Endpoints
 
@@ -90,6 +110,7 @@ The Annual Inventory feature allows warehouse staff to perform physical inventor
 |--------|----------|-------------|
 | GET | `/api/annual-inventory/discrepancy` | Get discrepancy items with filters |
 | GET | `/api/annual-inventory/discrepancy/template` | Download discrepancy Excel template |
+| GET | `/api/annual-inventory/discrepancy/export` | Export discrepancy data to Excel |
 | POST | `/api/annual-inventory/discrepancy/import` | Import discrepancy data from Excel |
 | POST | `/api/annual-inventory/discrepancy/bulk-update` | Bulk update SOH/GR/GI/Error |
 
@@ -159,6 +180,7 @@ The Annual Inventory feature allows warehouse staff to perform physical inventor
 
 - **Header Actions**:
   - Download Template - Excel template for bulk import
+  - Download Excel - Export discrepancy data with filters
   - Upload Excel - Import discrepancy adjustments
   - Save All Changes - Save modified items
   - Refresh - Reload data
@@ -173,7 +195,7 @@ The Annual Inventory feature allows warehouse staff to perform physical inventor
 - **Table Columns**:
   - Material Number, Name, Rack, Price
   - SOH (editable)
-  - Actual Qty (from counting)
+  - Actual Qty (from counting) with Edit button
   - Initial Gap (Actual - SOH)
   - Outstanding GR (editable, +)
   - Outstanding GI (editable, -)
@@ -181,6 +203,15 @@ The Annual Inventory feature allows warehouse staff to perform physical inventor
   - Final Discrepancy (calculated)
   - Final Amount (calculated)
 - **Pagination**: 50 items per page
+- **Edit Actual Qty Modal**:
+  - Shows material info (number, description, current qty)
+  - Displays quantity revision history table
+  - Input field for new actual quantity
+  - Saves and recalculates discrepancy automatically
+- **Unsaved Changes Protection**:
+  - Browser beforeunload warning on refresh/close/URL change
+  - Confirmation dialog on navigation, pagination, filter change
+  - Prevents accidental data loss
 
 ## Bulk Upload Feature
 
@@ -244,13 +275,68 @@ Each file upload returns:
 |---------|
 | PID, Location, PIC, Status, Material Number, Description, Rack, UoM, System Qty, SOH, Actual Qty, Discrepancy, Price, Discrepancy Amount, Counted By, Counted At, Item Status |
 
+## Edit Actual Qty Feature
+
+The discrepancy page allows editing the actual quantity with full revision history tracking.
+
+### How It Works
+
+1. Click the pencil icon next to any item's Actual Qty
+2. Modal opens showing:
+   - Material information (number, description, current qty)
+   - Quantity revision history table (all previous entries)
+   - Input field for new quantity
+3. Enter new quantity and click "Save Changes"
+4. System automatically:
+   - Updates actual_qty
+   - Appends entry to actual_qty_history
+   - Recalculates final_discrepancy and final_discrepancy_amount
+   - Updates counted_at timestamp
+
+### History Table Columns
+
+| Column | Description |
+|--------|-------------|
+| # | Revision number |
+| Qty | Quantity value at that revision |
+| Counted By | Person who entered the count |
+| Date/Time | When the count was recorded |
+
+## Unsaved Changes Protection
+
+The discrepancy page protects against accidental data loss.
+
+### Protected Actions
+
+| Action | Behavior |
+|--------|----------|
+| Browser refresh/close | Native browser "Leave site?" dialog |
+| Navigation (links, back) | Custom confirmation dialog |
+| Refresh button | Confirmation if unsaved changes |
+| Pagination | Confirmation if unsaved changes |
+| Filter change | Confirmation if unsaved changes |
+| Search | Confirmation if unsaved changes |
+
+### Skipped Confirmation
+
+- Initial page load
+- After successful save
+- After successful import
+
 ## Discrepancy Calculation
 
 ```
 Initial Gap = Actual Qty - SOH
-Final Discrepancy = Actual Qty - SOH + Outstanding GR + Outstanding GI + Error Movement
+Moving Data = Outstanding GR + Outstanding GI + Error Movement
+Final Discrepancy = Initial Gap - Moving Data
+                  = (Actual Qty - SOH) - (Outstanding GR + Outstanding GI + Error Movement)
 Final Discrepancy Amount = Final Discrepancy × Unit Price
 ```
+
+**Note**:
+- Positive Final Discrepancy = Surplus (actual > expected)
+- Negative Final Discrepancy = Shortage (actual < expected)
+- Outstanding GI values are typically negative
 
 ## Status Flow
 

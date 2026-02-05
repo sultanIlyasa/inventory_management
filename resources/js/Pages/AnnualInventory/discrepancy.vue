@@ -271,14 +271,14 @@
                     <div class="bg-gray-50 p-3 border-t border-gray-200 flex justify-between items-center">
                         <div class="flex flex-col">
                             <span class="text-[10px] text-gray-500 uppercase font-bold">Final Variance</span>
-                            <span class="text-sm font-bold" :class="getGapColor(getFinalDiscrepancy(item))">
-                                {{ formatNumber(getFinalDiscrepancy(item)) }} Qty
+                            <span class="text-sm font-bold" :class="getGapColor(getFinalDiscrepancy(item).val)">
+                                {{ formatNumber(getFinalDiscrepancy(item).val) }} Qty
                             </span>
                         </div>
                         <div class="text-right">
                             <span class="text-sm font-bold"
-                                :class="getGapColor(getFinalDiscrepancy(item) * (item.price || 0))">
-                                {{ formatCurrency(getFinalDiscrepancy(item) * (item.price || 0)) }}
+                                :class="getGapColor(getFinalDiscrepancy(item).val * (item.price || 0))">
+                                {{ formatCurrency(getFinalDiscrepancy(item).val * (item.price || 0)) }}
                             </span>
                         </div>
                     </div>
@@ -368,6 +368,11 @@
                                     class="text-[11px] text-gray-400 font-medium mt-1 whitespace-nowrap">
                                     {{ formatCompactTimestamp(item.counted_at) }}
                                 </div>
+                                <button @click="openEditActualQtyModal(item)"
+                                    class="mt-1 p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                                    title="Edit Actual Qty">
+                                    <Pencil class="w-3.5 h-3.5" />
+                                </button>
                             </td>
 
                             <td class="px-4 py-4 text-center font-mono text-sm font-bold border-r border-blue-100 group-hover:bg-blue-50/30 transition-colors"
@@ -405,7 +410,7 @@
                                         {{ formatNumber(getFinalDiscrepancy(item).val) }}
                                     </div>
                                 </div>
-                                <div v-if="getFinalDiscrepancy(item.val) === 0"
+                                <div v-if="getFinalDiscrepancy(item).val === 0"
                                     class="text-[10px] font-bold text-green-600 uppercase tracking-wider mt-1">Matched
                                 </div>
                                 <div v-else class="text-[10px] font-bold text-red-500 uppercase tracking-wider mt-1">
@@ -415,8 +420,8 @@
                             </td>
 
                             <td class="px-4 py-4 text-right bg-white border-l border-gray-1200 group-hover:bg-gray-50 font-medium"
-                                :class="getGapColor(getFinalDiscrepancy(item) * (item.price || 0))">
-                                {{ formatCurrency(getFinalDiscrepancy(item) * (item.price || 0)) }}
+                                :class="getGapColor(getFinalDiscrepancy(item).val * (item.price || 0))">
+                                {{ formatCurrency(getFinalDiscrepancy(item).val * (item.price || 0)) }}
                             </td>
                         </tr>
                     </tbody>
@@ -428,7 +433,7 @@
                     <div class="text-sm text-gray-600 order-2 md:order-1">
                         <span class="md:hidden">Page {{ pagination.current_page }} / {{ pagination.last_page }}</span>
                         <span class="hidden md:inline">Page {{ pagination.current_page }} of {{ pagination.last_page
-                            }}</span>
+                        }}</span>
                     </div>
 
                     <div class="flex gap-2 order-1 md:order-2">
@@ -472,12 +477,160 @@
                 </div>
             </div>
         </div>
+        <!-- Submit Confirmation Modal -->
+        <Modal :show="showSubmitModal" @close="closeSubmitModal" max-width="md">
+            <div class="p-4 sm:p-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div
+                        class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <Check class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                    </div>
+                    <h2 class="text-base sm:text-lg font-semibold text-gray-900">Confirm Stock Count</h2>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 space-y-2">
+                    <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
+                        <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ itemToSubmit?.material_number
+                        }}</span>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span class="text-xs sm:text-sm text-gray-600">Description:</span>
+                        <span class="text-xs sm:text-sm font-medium text-gray-900">{{ itemToSubmit?.description
+                            }}</span>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:justify-between items-center gap-1 pt-2">
+                        <label class="text-xs sm:text-sm text-gray-600 font-medium">Actual Count:</label>
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <input v-model="editingQty" type="number" min="0"
+                                class="w-full sm:w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-bold text-lg text-blue-600 text-center" />
+                            <span class="text-sm font-medium text-gray-500">{{ itemToSubmit?.unit_of_measure }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
+                    Are you sure you want to submit this count?
+                </p>
+
+                <div class="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+                    <button @click="closeSubmitModal"
+                        class="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300 transition order-2 sm:order-1">
+                        Cancel
+                    </button>
+                    <button @click="confirmSubmit" :disabled="isSaving"
+                        class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 transition order-1 sm:order-2">
+                        {{ isSaving ? 'Saving...' : 'Confirm Submit' }}
+                    </button>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- Edit Actual Qty Modal -->
+        <Modal :show="showEditActualQtyModal" @close="closeEditActualQtyModal" max-width="lg">
+            <div class="p-4 sm:p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-blue-100 rounded-lg">
+                            <Pencil class="w-5 h-5 text-blue-600" />
+                        </div>
+                        <h2 class="text-base sm:text-lg font-semibold text-gray-900">Edit Actual Quantity</h2>
+                    </div>
+                    <button @click="closeEditActualQtyModal" class="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                        <X class="w-5 h-5 text-gray-500" />
+                    </button>
+                </div>
+
+                <!-- Item Info -->
+                <div class="bg-gray-50 rounded-lg p-3 sm:p-4 mb-4 space-y-2">
+                    <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
+                        <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ editingItem?.material_number
+                        }}</span>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span class="text-xs sm:text-sm text-gray-600">Description:</span>
+                        <span class="text-xs sm:text-sm font-medium text-gray-900 text-right">{{
+                            editingItem?.description
+                        }}</span>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span class="text-xs sm:text-sm text-gray-600">Current Actual Qty:</span>
+                        <span class="text-xs sm:text-sm font-bold text-blue-600">{{
+                            formatNumber(editingItem?.actual_qty) }} {{
+                                editingItem?.unit_of_measure }}</span>
+                    </div>
+                </div>
+
+                <!-- History Section -->
+                <div class="mb-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <History class="w-4 h-4 text-gray-500" />
+                        <h3 class="text-sm font-semibold text-gray-700">Quantity History</h3>
+                    </div>
+                    <div v-if="editingItem?.actual_qty_history?.length > 0"
+                        class="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">#</th>
+                                    <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600">Qty</th>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Date/Time</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr v-for="(history, index) in editingItem.actual_qty_history" :key="index"
+                                    class="hover:bg-gray-50"
+                                    :class="{ 'bg-blue-50': index === editingItem.actual_qty_history.length - 1 }">
+                                    <td class="px-3 py-2 text-gray-500">{{ index + 1 }}</td>
+                                    <td class="px-3 py-2 text-right font-semibold text-gray-800">{{
+                                        formatNumber(history.actual_qty) }}</td>
+                                    <td class="px-3 py-2 text-gray-500 text-xs">{{ history.counted_at }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div v-else
+                        class="text-center py-4 text-gray-500 text-sm border border-gray-200 rounded-lg bg-gray-50">
+                        No history available
+                    </div>
+                </div>
+
+                <!-- New Quantity Input -->
+                <div class="bg-blue-50 rounded-lg p-4 mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">New Actual Quantity</label>
+                    <div class="flex items-center gap-3">
+                        <input v-model.number="newActualQty" type="number" min="0" step="1"
+                            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg font-bold text-center"
+                            placeholder="Enter new quantity" />
+                        <span class="text-sm font-medium text-gray-500">{{ editingItem?.unit_of_measure }}</span>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+                    <button @click="closeEditActualQtyModal"
+                        class="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition order-2 sm:order-1">
+                        Cancel
+                    </button>
+                    <button @click="saveActualQty"
+                        :disabled="savingActualQty || newActualQty === null || newActualQty === editingItem?.actual_qty"
+                        class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition order-1 sm:order-2 flex items-center justify-center gap-2">
+                        <Loader2 v-if="savingActualQty" class="w-4 h-4 animate-spin" />
+                        {{ savingActualQty ? 'Saving...' : 'Save Changes' }}
+                    </button>
+                </div>
+            </div>
+        </Modal>
     </MainAppLayout>
+
+
 </template>
 
 <script setup>
 import MainAppLayout from '@/Layouts/MainAppLayout.vue';
-import { ref, computed, onMounted, watch } from 'vue';
+import Modal from '@/Components/Modal.vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import {
     ArrowLeft,
@@ -488,7 +641,13 @@ import {
     DollarSign,
     Loader2,
     Download,
-    Upload
+    Upload,
+    Pencil,
+    History,
+    X,
+    Check,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-vue-next';
 import axios from 'axios';
 
@@ -538,6 +697,17 @@ const locations = ref([]);
 
 let searchTimeout = null;
 
+const showSubmitModal = ref(false);
+const itemToSubmit = ref(null);
+const editingQty = ref(null);     // ✅ must be number/null, not false
+const isSaving = ref(false);      // ✅ used in template
+
+const showEditActualQtyModal = ref(false);
+const editingItem = ref(null);        // selected item snapshot for modal
+const editingItemId = ref(null);      // keep id stable
+const newActualQty = ref(null);
+const savingActualQty = ref(false);
+const loadingActualQtyHistory = ref(false);
 // Computed
 const hasChanges = computed(() => items.value.some(item => item._dirty));
 
@@ -612,7 +782,7 @@ const handleFileUpload = async (event) => {
         if (response.data.success) {
             successMessage.value = `Excel imported successfully! Updated: ${response.data.updated} items`;
             setTimeout(() => successMessage.value = null, 5000);
-            await fetchData(1);
+            await fetchData(1, true); // skipConfirm - just imported
         }
     } catch (err) {
         error.value = 'Failed to upload Excel: ' + (err.response?.data?.message || err.message);
@@ -622,8 +792,19 @@ const handleFileUpload = async (event) => {
     }
 };
 
+// Check for unsaved changes before action
+const confirmIfUnsaved = (message = 'You have unsaved changes. Are you sure you want to continue?') => {
+    if (hasChanges.value) {
+        return confirm(message);
+    }
+    return true;
+};
+
 // Fetch discrepancy data
-const fetchData = async (page = 1) => {
+const fetchData = async (page = 1, skipConfirm = false) => {
+    if (!skipConfirm && !confirmIfUnsaved('You have unsaved changes. Refreshing will discard them. Continue?')) {
+        return;
+    }
     loading.value = true;
     error.value = null;
 
@@ -729,7 +910,7 @@ const saveAllChanges = async () => {
             });
 
             // Refresh to get updated calculations
-            await fetchData(pagination.value.current_page);
+            await fetchData(pagination.value.current_page, true); // skipConfirm - just saved
         }
     } catch (err) {
         error.value = 'Failed to save: ' + (err.response?.data?.message || err.message);
@@ -740,21 +921,30 @@ const saveAllChanges = async () => {
 
 // Filter handlers
 const handleFilterChange = () => {
-    fetchData(1);
+    if (!confirmIfUnsaved('You have unsaved changes. Changing filter will discard them. Continue?')) {
+        return;
+    }
+    fetchData(1, true); // skipConfirm since we already confirmed
 };
 
 // Search with debounce
 watch(searchQuery, () => {
     if (searchTimeout) clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
-        fetchData(1);
+        if (!confirmIfUnsaved('You have unsaved changes. Searching will discard them. Continue?')) {
+            return;
+        }
+        fetchData(1, true); // skipConfirm since we already confirmed
     }, 500);
 });
 
 // Pagination
 const goToPage = (page) => {
     if (page >= 1 && page <= pagination.value.last_page) {
-        fetchData(page);
+        if (!confirmIfUnsaved('You have unsaved changes. Changing page will discard them. Continue?')) {
+            return;
+        }
+        fetchData(page, true); // skipConfirm since we already confirmed
     }
 };
 
@@ -837,10 +1027,137 @@ const formatCompactTimestamp = (timestampStr) => {
     }).format(date).replace(',', '');
 };
 
+
+const closeSubmitModal = () => {
+    showSubmitModal.value = false;
+    itemToSubmit.value = null;
+    editingQty.value = null;
+}
+
+// Edit Actual Qty Modal Functions
+const openEditActualQtyModal = async (item) => {
+    // ✅ keep stable id + snapshot for modal
+    editingItemId.value = item.id;
+    editingItem.value = { ...item }; // snapshot (prevents reactive weirdness)
+    newActualQty.value = item.actual_qty ?? 0;
+    showEditActualQtyModal.value = true;
+
+    // ✅ fetch history if not present (optional but recommended)
+    // If your backend already includes history in list response, this will just skip.
+    if (!Array.isArray(item.actual_qty_history)) {
+        loadingActualQtyHistory.value = true;
+        try {
+            // Adjust endpoint if yours differs:
+            const res = await axios.get(`/api/annual-inventory/items/${item.id}`);
+            if (res.data?.success) {
+                editingItem.value = {
+                    ...editingItem.value,
+                    ...res.data.data,
+                    actual_qty_history: res.data.data.actual_qty_history || [],
+                };
+            }
+        } catch (e) {
+            // don't hard-fail modal, just show "No history"
+            editingItem.value.actual_qty_history = [];
+        } finally {
+            loadingActualQtyHistory.value = false;
+        }
+    }
+};
+
+const closeEditActualQtyModal = () => {
+    showEditActualQtyModal.value = false;
+    editingItem.value = null;
+    editingItemId.value = null;
+    newActualQty.value = null;
+    loadingActualQtyHistory.value = false;
+};
+
+const saveActualQty = async () => {
+    const id = editingItemId.value;
+    if (!id) return;
+
+    const nextQty = Number(newActualQty.value);
+    const currentQty = Number(editingItem.value?.actual_qty ?? 0);
+
+    if (!Number.isFinite(nextQty) || nextQty < 0) return;
+    if (nextQty === currentQty) return;
+
+    savingActualQty.value = true;
+    error.value = null;
+
+    try {
+        const response = await axios.put(`/api/annual-inventory/items/${id}`, {
+            actual_qty: nextQty,
+        });
+
+        if (response.data.success) {
+            // ✅ update the row in current table without relying on editingItem ref
+            const idx = items.value.findIndex((i) => i.id === id);
+            if (idx !== -1) {
+                items.value[idx].actual_qty = nextQty;
+                items.value[idx].actual_qty_history = response.data.data?.actual_qty_history ?? items.value[idx].actual_qty_history ?? [];
+                items.value[idx].counted_at = response.data.data?.counted_at ?? items.value[idx].counted_at;
+            }
+
+            successMessage.value = 'Actual quantity updated successfully';
+            setTimeout(() => (successMessage.value = null), 3000);
+
+            closeEditActualQtyModal();
+
+            // ✅ refresh to recalc stats/gaps
+            await fetchData(pagination.value.current_page, true);
+        }
+    } catch (err) {
+        error.value = 'Failed to update: ' + (err.response?.data?.message || err.message);
+    } finally {
+        savingActualQty.value = false;
+    }
+};
+
+
 // Lifecycle
+const handleBeforeUnload = (e) => {
+    if (hasChanges.value) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+    }
+};
+
+let removeInertiaListener = null;
+
 onMounted(() => {
     fetchPIDs();
     fetchLocations();
-    fetchData();
+    fetchData(1, true); // skipConfirm - initial load
+
+    // Browser navigation (refresh, close tab, URL change)
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Inertia SPA navigation
+    removeInertiaListener = router.on('before', (event) => {
+        if (hasChanges.value) {
+            if (!confirm('You have unsaved changes. Are you sure you want to leave this page?')) {
+                event.preventDefault();
+            }
+        }
+    });
 });
+
+onBeforeUnmount(() => {
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+    if (removeInertiaListener) {
+        removeInertiaListener();
+    }
+});
+
+// --- HELPERS ---
+const showSaveMessage = (message, type) => {
+    saveMessage.value = { message, type };
+    setTimeout(() => {
+        saveMessage.value = null;
+    }, 3000);
+};
+
 </script>

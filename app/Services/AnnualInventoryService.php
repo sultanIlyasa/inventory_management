@@ -677,7 +677,7 @@ class AnnualInventoryService
         // Build statistics query with the same filters applied
         $statsQuery = AnnualInventoryItems::query()
             ->join('annual_inventories', 'annual_inventory_items.annual_inventory_id', '=', 'annual_inventories.id')
-            ->where('annual_inventory_items.status', '!=', 'PENDING');
+            ->select('annual_inventory_items.*');
 
         // Apply same filters to stats query
         $this->applyDiscrepancyFilters($statsQuery, $filters, true);
@@ -777,6 +777,7 @@ class AnnualInventoryService
 
     /**
      * Calculate discrepancy statistics with percentages
+     * Computes discrepancy on-the-fly from raw fields to match frontend formula
      */
     private function calculateDiscrepancyStatistics($items): array
     {
@@ -789,10 +790,18 @@ class AnnualInventoryService
         $totalAmount = 0;
 
         foreach ($items as $item) {
-            $finalDiscrepancy = (float) ($item->final_discrepancy ?? 0);
-            $finalDiscrepancyAmount = (float) ($item->final_discrepancy_amount ?? 0);
             $actualQty = (float) ($item->actual_qty ?? 0);
+            $soh = (float) ($item->soh ?? 0);
+            $outstandingGR = (float) ($item->outstanding_gr ?? 0);
+            $outstandingGI = (float) ($item->outstanding_gi ?? 0);
+            $errorMovement = (float) ($item->error_movement ?? 0);
             $price = (float) ($item->price ?? 0);
+
+            // Compute discrepancy from raw fields (matches frontend getFinalDiscrepancy)
+            $initialGap = $actualQty - $soh;
+            $finalDiscrepancy = $initialGap - $outstandingGR + $outstandingGI + $errorMovement;
+            $finalDiscrepancyAmount = $finalDiscrepancy * $price;
+
             $initialAmount = $actualQty * $price;
 
             // Calculate totals

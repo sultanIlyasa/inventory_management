@@ -698,8 +698,10 @@ class AnnualInventoryService
                     'unit_of_measure' => $item->unit_of_measure,
                     'system_qty' => (float) $item->system_qty,
                     'soh' => $item->soh !== null ? (float) $item->soh : null,
+                    'soh_updated_at' => $item->soh_updated_at,
                     'actual_qty' => $item->actual_qty !== null ? (float) $item->actual_qty : null,
                     'price' => (float) $item->price,
+                    'price_updated_at' => $item->price_updated_at,
                     'outstanding_gr' => $item->outstanding_gr !== null ? (float) $item->outstanding_gr : null,
                     'outstanding_gi' => $item->outstanding_gi !== null ? (float) $item->outstanding_gi : null,
                     'error_movement' => $item->error_movement !== null ? (float) $item->error_movement : null,
@@ -871,6 +873,11 @@ class AnnualInventoryService
                     'outstanding_gi' => (float) $outstandingGI,
                     'error_movement' => (float) $errorMovement,
                 ];
+
+                // Update SOH timestamp if SOH value changed
+                if (isset($itemData['soh']) && (float) $itemData['soh'] !== (float) ($item->soh ?? 0)) {
+                    $updateData['soh_updated_at'] = now();
+                }
 
                 // Recalculate final discrepancy if actual_qty exists
                 if ($item->actual_qty !== null) {

@@ -240,6 +240,9 @@
                                 <input type="number" v-model.number="item.soh" @input="markDirty(item)"
                                     class="w-full border-green-200 bg-green-50/20 rounded-md text-center font-bold text-sm focus:ring-2 focus:ring-green-400 focus:border-green-400 py-2"
                                     placeholder="0" />
+                                <div v-if="item.soh_updated_at" class="text-[9px] text-green-500 text-center">
+                                    {{ formatCompactTimestamp(item.soh_updated_at) }}
+                                </div>
                             </div>
 
                             <div class="space-y-1">
@@ -355,10 +358,13 @@
                             </td>
 
                             <td
-                                class="px-3 py-3 bg-green-50/10 border-r border-green-100 group-hover:bg-green-50/30 transition-colors">
+                                class="px-3 py-2 bg-green-50/10 border-r border-green-100 group-hover:bg-green-50/30 transition-colors">
                                 <input type="number" v-model.number="item.soh" @input="markDirty(item)"
                                     class="w-full border-gray-300 rounded-md text-right font-medium text-sm focus:ring-2 focus:ring-green-400 focus:border-green-400 shadow-sm px-2 py-1.5 transition-all"
                                     placeholder="0" />
+                                <div v-if="item.soh_updated_at" class="text-[10px] text-green-500 text-right mt-1">
+                                    {{ formatCompactTimestamp(item.soh_updated_at) }}
+                                </div>
                             </td>
 
                             <td
@@ -812,7 +818,6 @@ const fetchData = async (page = 1, skipConfirm = false) => {
         const params = {
             per_page: pagination.value.per_page,
             page: page,
-            counted_only: true, // Only show items that have been counted
         };
 
         if (selectedPID.value) {

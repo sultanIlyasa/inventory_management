@@ -15,7 +15,9 @@ class AnnualInventoryItems extends Model
         'system_qty',
         'actual_qty',
         'price',
+        'price_updated_at',
         'soh',
+        'soh_updated_at',
         'outstanding_gr',
         'outstanding_gi',
         'error_movement',
@@ -30,6 +32,8 @@ class AnnualInventoryItems extends Model
     ];
     protected $casts = [
         'counted_at' => 'datetime',
+        'price_updated_at' => 'datetime',
+        'soh_updated_at' => 'datetime',
         'system_qty' => 'decimal:2',
         'actual_qty' => 'decimal:2',
         'price' => 'decimal:2',

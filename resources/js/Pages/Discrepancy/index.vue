@@ -484,7 +484,8 @@
 <script setup>
 import MainAppLayout from '@/Layouts/MainAppLayout.vue';
 import SearchBar from '@/Components/SearchBar.vue';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 
 // Props

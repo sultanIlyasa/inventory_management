@@ -14,7 +14,7 @@ use ZipArchive;
 
 class AnnualInventoryService
 {
-    const MAX_ITEMS_PER_PID = 200;
+    const MAX_ITEMS_PER_PID = 400;
 
     /**
      * Search PID Number
@@ -1318,19 +1318,13 @@ class AnnualInventoryService
             return null;
         }
 
-        // mode: auto | single | zip | csv (fallback)
+        // mode: auto | single | zip
         $mode = $filters['mode'] ?? 'auto';
-
-        // If CSV mode requested (memory-efficient fallback)
-        if ($mode === 'csv') {
-            return $this->downloadCsvExport($query);
-        }
 
         // Template - check if exists
         $template = storage_path('app/templates/worksheet_template.xlsx');
         if (!file_exists($template)) {
-            // Fallback to CSV if template missing
-            return $this->downloadCsvExport($query);
+            throw new \Exception('Export template file not found: worksheet_template.xlsx');
         }
         $format = Format::Xlsx;
 
@@ -1340,24 +1334,12 @@ class AnnualInventoryService
             if (!$pid) {
                 return null;
             }
-            // Load items only for this single PID
-            $pid->load('items');
+            // No eager loading needed - downloadSingleWorksheet uses raw queries
             return $this->downloadSingleWorksheet($pid, $template, $format);
         }
 
-        // For large exports (>20 PIDs), use CSV to avoid memory issues
-        if ($count > 20) {
-            return $this->downloadCsvExport($query);
-        }
-
-        // Otherwise zip (multi or forced zip) - use chunked processing
-        try {
-            return $this->downloadZipWorksheetChunked($query, $template, $format);
-        } catch (\Throwable $e) {
-            // Memory error - fallback to CSV
-            gc_collect_cycles();
-            return $this->downloadCsvExport($query);
-        }
+        // Otherwise zip (multi or forced zip)
+        return $this->downloadZipWorksheetChunked($query, $template, $format);
     }
 
     /**
@@ -1459,63 +1441,11 @@ class AnnualInventoryService
                 unset($spreadsheet);
             }
             gc_collect_cycles();
-
-            // Restore memory limit
             @ini_set('memory_limit', $originalMemoryLimit);
 
-            // Fallback to CSV
-            return $this->downloadSinglePidCsv($pid);
+            throw $e;
         }
     }
-
-    /**
-     * CSV fallback for single PID export
-     */
-    private function downloadSinglePidCsv($pid)
-    {
-        $safePid = preg_replace('/[^A-Za-z0-9_\-]/', '_', (string) $pid->pid);
-        $filename = "Worksheet_{$safePid}_" . now()->format('Ymd_His') . ".csv";
-        $tmpPath = storage_path('app/tmp/' . $filename);
-
-        if (!is_dir(dirname($tmpPath))) {
-            mkdir(dirname($tmpPath), 0777, true);
-        }
-
-        $handle = fopen($tmpPath, 'w');
-        fwrite($handle, "\xEF\xBB\xBF"); // BOM
-
-        // Header info
-        fputcsv($handle, ['PID', $pid->pid]);
-        fputcsv($handle, ['Location', $pid->location]);
-        fputcsv($handle, ['Date', optional($pid->date)->format('Y-m-d')]);
-        fputcsv($handle, []);
-
-        // Items header
-        fputcsv($handle, ['Material Number', 'Description', 'Rack Address', 'UoM', 'Actual Qty']);
-
-        // Items data using cursor
-        $items = DB::table('annual_inventory_items')
-            ->select(['material_number', 'description', 'rack_address', 'unit_of_measure', 'actual_qty'])
-            ->where('annual_inventory_id', $pid->id)
-            ->cursor();
-
-        foreach ($items as $item) {
-            fputcsv($handle, [
-                $item->material_number,
-                $item->description,
-                $item->rack_address,
-                $item->unit_of_measure,
-                $item->actual_qty,
-            ]);
-        }
-
-        fclose($handle);
-
-        return response()->download($tmpPath, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ])->deleteFileAfterSend(true);
-    }
-
 
     /**
      * Optimized Zip Download using template with PhpSpreadsheet directly
@@ -1612,72 +1542,6 @@ class AnnualInventoryService
         unset($spreadsheet, $writer);
 
         return $binary;
-    }
-
-    /**
-     * Memory-efficient CSV export fallback
-     */
-    private function downloadCsvExport($query)
-    {
-        set_time_limit(0);
-        DB::disableQueryLog();
-
-        $filename = 'annual_inventory_export_' . now()->format('Ymd_His') . '.csv';
-        $tmpPath = storage_path('app/tmp/' . $filename);
-
-        if (!is_dir(dirname($tmpPath))) {
-            mkdir(dirname($tmpPath), 0777, true);
-        }
-
-        $handle = fopen($tmpPath, 'w');
-
-        // Write BOM for Excel UTF-8 compatibility
-        fwrite($handle, "\xEF\xBB\xBF");
-
-        // Write header
-        fputcsv($handle, [
-            'PID',
-            'Location',
-            'Material Number',
-            'Description',
-            'Rack Address',
-            'UoM',
-            'Actual Qty',
-            'Status',
-            'Counted By',
-            'Counted At',
-        ]);
-
-        // Process PIDs using cursor for memory efficiency
-        foreach ($query->cursor() as $pid) {
-            $items = DB::table('annual_inventory_items')
-                ->select(['material_number', 'description', 'rack_address', 'unit_of_measure', 'actual_qty', 'status', 'counted_by', 'counted_at'])
-                ->where('annual_inventory_id', $pid->id)
-                ->cursor();
-
-            foreach ($items as $item) {
-                fputcsv($handle, [
-                    $pid->pid,
-                    $pid->location,
-                    $item->material_number,
-                    $item->description,
-                    $item->rack_address,
-                    $item->unit_of_measure,
-                    $item->actual_qty,
-                    $item->status,
-                    $item->counted_by,
-                    $item->counted_at,
-                ]);
-            }
-
-            unset($items);
-        }
-
-        fclose($handle);
-
-        return response()->download($tmpPath, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ])->deleteFileAfterSend(true);
     }
 
     /**

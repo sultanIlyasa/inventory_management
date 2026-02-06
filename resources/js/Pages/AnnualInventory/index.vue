@@ -98,13 +98,6 @@
                                             <Download v-else class="w-4 h-4" />
                                             <span>Download All</span>
                                         </button>
-                                        <button @click="downloadPIDExcel('all', 'csv')" :disabled="isDownloading"
-                                            class="flex-1 sm:flex-none px-2 sm:px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2"
-                                            title="CSV format - faster and more reliable for large data">
-                                            <Loader2 v-if="isDownloading" class="w-4 h-4 animate-spin" />
-                                            <Download v-else class="w-4 h-4" />
-                                            <span>CSV</span>
-                                        </button>
                                         <button @click="openUploadModal"
                                             class="flex-1 sm:flex-none px-2 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
                                             <Upload class="w-4 h-4" />
@@ -761,11 +754,7 @@ const downloadPIDExcel = async (mode = 'all', format = 'auto') => {
         if (error.response?.status === 404) {
             alert('No data found for export.');
         } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-            // Timeout - suggest CSV download
-            const useCSV = confirm('Export timed out. Would you like to try CSV format instead? (faster and more reliable)');
-            if (useCSV) {
-                await downloadPIDExcel(mode, 'csv');
-            }
+            alert('Export timed out. Please try again or contact support.');
         } else {
             console.error('Failed to download:', error);
             // Try to get error message from blob
@@ -779,7 +768,7 @@ const downloadPIDExcel = async (mode = 'all', format = 'auto') => {
                     // ignore parse error
                 }
             }
-            alert('Failed to download: ' + errorMessage + '\n\nTip: Try using CSV format for large exports.');
+            alert('Failed to download: ' + errorMessage);
         }
     } finally {
         isDownloading.value = false;

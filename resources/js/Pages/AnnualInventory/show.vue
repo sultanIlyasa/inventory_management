@@ -539,15 +539,7 @@ const fetchPIDData = async (page = 1) => {
 };
 
 // --- COMPUTED ---
-const filteredItems = computed(() => {
-    if (!rackSortOrder.value) return items.value;
-    return [...items.value].sort((a, b) => {
-        const rackA = (a.rack_address || '').toLowerCase();
-        const rackB = (b.rack_address || '').toLowerCase();
-        const cmp = rackA.localeCompare(rackB);
-        return rackSortOrder.value === 'asc' ? cmp : -cmp;
-    });
-});
+const filteredItems = computed(() => items.value);
 
 const pendingCount = computed(() => statistics.value.pending);
 const countedCount = computed(() => statistics.value.counted);

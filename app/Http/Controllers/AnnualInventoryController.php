@@ -247,9 +247,15 @@ class AnnualInventoryController extends Controller
      * GET /api/annual-inventory/statistics
      * Get dashboard statistics
      */
-    public function statistics(): JsonResponse
+    public function statistics(Request $request): JsonResponse
     {
-        $data = $this->service->getStatistics();
+        $filters = [
+            'search' => $request->query('search'),
+            'location' => $request->query('location'),
+            'status' => $request->query('status'),
+        ];
+
+        $data = $this->service->getStatistics($filters);
 
         return response()->json([
             'success' => true,
@@ -382,8 +388,10 @@ class AnnualInventoryController extends Controller
         $perPage = $request->query('per_page', 50);
         $page = $request->query('page', 1);
         $search = $request->query('search', '');
+        $sortBy = $request->query('sort_by', 'material_number');
+        $sortOrder = $request->query('sort_order', 'asc');
 
-        $data = $this->service->getByPIDWithPagination($pid, $perPage, $page, $search);
+        $data = $this->service->getByPIDWithPagination($pid, $perPage, $page, $search, $sortBy, $sortOrder);
 
         if (!$data) {
             return response()->json([

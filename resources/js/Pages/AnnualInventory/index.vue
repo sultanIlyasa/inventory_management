@@ -642,7 +642,12 @@ const fetchPIDs = async (page = 1) => {
 
 const fetchStatistics = async () => {
     try {
-        const response = await axios.get('/api/annual-inventory/statistics');
+        const params = new URLSearchParams();
+        if (searchQuery.value) params.append('search', searchQuery.value);
+        if (locationFilter.value) params.append('location', locationFilter.value);
+        if (statusFilter.value) params.append('status', statusFilter.value);
+
+        const response = await axios.get(`/api/annual-inventory/statistics?${params.toString()}`);
         if (response.data.success) {
             statistics.value = response.data.data;
         }
@@ -668,11 +673,13 @@ watch(searchQuery, () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
         fetchPIDs(1);
+        fetchStatistics();
     }, 300);
 });
 
 watch([locationFilter, statusFilter], () => {
     fetchPIDs(1);
+    fetchStatistics();
 });
 
 // --- PAGINATION ---

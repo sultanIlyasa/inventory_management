@@ -528,16 +528,37 @@ class AnnualInventoryService
     /**
      * Get statistics for dashboard
      */
-    public function getStatistics(): array
+    public function getStatistics(array $filters = []): array
     {
-        $totalPIDs = AnnualInventory::count();
-        $completedPIDs = AnnualInventory::where('status', 'Completed')->count();
-        $inProgressPIDs = AnnualInventory::where('status', 'In Progress')->count();
-        $notCheckedPIDs = AnnualInventory::where('status', 'Not Checked')->count();
+        $pidQuery = AnnualInventory::query();
 
-        $totalItems = AnnualInventoryItems::count();
-        $countedItems = AnnualInventoryItems::where('status', '!=', 'PENDING')->count();
-        $pendingItems = AnnualInventoryItems::where('status', 'PENDING')->count();
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $pidQuery->where(function ($q) use ($search) {
+                $q->where('pid', 'LIKE', "%{$search}%")
+                  ->orWhere('pic_name', 'LIKE', "%{$search}%");
+            });
+        }
+
+        if (!empty($filters['location'])) {
+            $pidQuery->where('location', $filters['location']);
+        }
+
+        if (!empty($filters['status'])) {
+            $pidQuery->where('status', $filters['status']);
+        }
+
+        $filteredPidIds = $pidQuery->pluck('id');
+
+        $totalPIDs = $filteredPidIds->count();
+        $completedPIDs = (clone $pidQuery)->where('status', 'Completed')->count();
+        $inProgressPIDs = (clone $pidQuery)->where('status', 'In Progress')->count();
+        $notCheckedPIDs = (clone $pidQuery)->where('status', 'Not Checked')->count();
+
+        $itemQuery = AnnualInventoryItems::whereIn('annual_inventory_id', $filteredPidIds);
+        $totalItems = (clone $itemQuery)->count();
+        $countedItems = (clone $itemQuery)->where('status', '!=', 'PENDING')->count();
+        $pendingItems = (clone $itemQuery)->where('status', 'PENDING')->count();
 
         return [
             'pids' => [
@@ -968,7 +989,7 @@ class AnnualInventoryService
     /**
      * Get PID by PID number with pagination for items
      */
-    public function getByPIDWithPagination(string $pid, int $perPage = 50, int $page = 1, string $search = ''): ?array
+    public function getByPIDWithPagination(string $pid, int $perPage = 50, int $page = 1, string $search = '', string $sortBy = 'material_number', string $sortOrder = 'asc'): ?array
     {
         $inventory = AnnualInventory::where('pid', $pid)->first();
 
@@ -986,7 +1007,11 @@ class AnnualInventoryService
             });
         }
 
-        $paginated = $query->orderBy('material_number', 'asc')->paginate($perPage, ['*'], 'page', $page);
+        $allowedSortColumns = ['material_number', 'rack_address', 'description', 'status'];
+        $sortBy = in_array($sortBy, $allowedSortColumns) ? $sortBy : 'material_number';
+        $sortOrder = in_array($sortOrder, ['asc', 'desc']) ? $sortOrder : 'asc';
+
+        $paginated = $query->orderBy($sortBy, $sortOrder)->paginate($perPage, ['*'], 'page', $page);
 
         // Count statistics (from all items, not just paginated)
         $allItems = AnnualInventoryItems::where('annual_inventory_id', $inventory->id);

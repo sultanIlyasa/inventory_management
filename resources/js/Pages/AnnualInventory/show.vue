@@ -42,6 +42,18 @@
                                     </button>
                                 </div>
 
+                                <!-- Sort Button (Mobile) -->
+                                <div class="md:hidden">
+                                    <button @click="toggleRackSort"
+                                        class="w-full flex items-center justify-center gap-2 px-3 py-2 border rounded-lg text-sm transition-colors"
+                                        :class="rackSortOrder ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'">
+                                        <ArrowUp v-if="rackSortOrder === 'asc'" class="w-4 h-4" />
+                                        <ArrowDown v-else-if="rackSortOrder === 'desc'" class="w-4 h-4" />
+                                        <ArrowUpDown v-else class="w-4 h-4" />
+                                        <span>Rack: {{ rackSortOrder === 'asc' ? 'A → Z' : rackSortOrder === 'desc' ? 'Z → A' : 'Unsorted' }}</span>
+                                    </button>
+                                </div>
+
                                 <!-- Statistics & Actions -->
                                 <div class="flex flex-col lg:flex-row gap-3 lg:gap-4">
                                     <!-- Statistics Badges -->
@@ -104,7 +116,15 @@
                                                 <th class="p-2 border text-xs lg:text-sm">No</th>
                                                 <th class="p-2 border text-xs lg:text-sm">Material Number</th>
                                                 <th class="p-2 border text-xs lg:text-sm">Description</th>
-                                                <th class="p-2 border text-xs lg:text-sm">Rack</th>
+                                                <th class="p-2 border text-xs lg:text-sm cursor-pointer select-none hover:bg-gray-300 transition-colors"
+                                                    @click="toggleRackSort">
+                                                    <span class="inline-flex items-center gap-1">
+                                                        Rack
+                                                        <ArrowUp v-if="rackSortOrder === 'asc'" class="w-3 h-3" />
+                                                        <ArrowDown v-else-if="rackSortOrder === 'desc'" class="w-3 h-3" />
+                                                        <ArrowUpDown v-else class="w-3 h-3 opacity-40" />
+                                                    </span>
+                                                </th>
                                                 <th class="p-2 border text-xs lg:text-sm">UoM</th>
                                                 <th class="p-2 border text-xs lg:text-sm">SoH</th>
                                                 <th class="p-2 border text-xs lg:text-sm bg-blue-100">Actual Qty</th>
@@ -433,6 +453,9 @@ import {
     CheckCircle,
     ChevronLeft,
     ChevronRight,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
     Image as ImageIcon
 } from 'lucide-vue-next';
 import axios from 'axios';
@@ -453,6 +476,7 @@ const items = ref([]);
 const isLoading = ref(true);
 const isSaving = ref(false);
 const searchQuery = ref('');
+const rackSortOrder = ref(null); // null | 'asc' | 'desc'
 const saveMessage = ref(null);
 const countedByName = ref('');
 const pagination = ref({
@@ -486,6 +510,10 @@ const fetchPIDData = async (page = 1) => {
         params.append('page', page);
         params.append('per_page', pagination.value.per_page);
         if (searchQuery.value) params.append('search', searchQuery.value);
+        if (rackSortOrder.value) {
+            params.append('sort_by', 'rack_address');
+            params.append('sort_order', rackSortOrder.value);
+        }
 
         const response = await axios.get(`/api/annual-inventory/by-pid/${encodeURIComponent(props.pid)}?${params.toString()}`);
         if (response.data.success) {
@@ -507,7 +535,15 @@ const fetchPIDData = async (page = 1) => {
 };
 
 // --- COMPUTED ---
-const filteredItems = computed(() => items.value);
+const filteredItems = computed(() => {
+    if (!rackSortOrder.value) return items.value;
+    return [...items.value].sort((a, b) => {
+        const rackA = (a.rack_address || '').toLowerCase();
+        const rackB = (b.rack_address || '').toLowerCase();
+        const cmp = rackA.localeCompare(rackB);
+        return rackSortOrder.value === 'asc' ? cmp : -cmp;
+    });
+});
 
 const pendingCount = computed(() => statistics.value.pending);
 const countedCount = computed(() => statistics.value.counted);
@@ -529,6 +565,14 @@ const goToPage = (page) => {
     if (page >= 1 && page <= pagination.value.last_page) {
         fetchPIDData(page);
     }
+};
+
+// --- SORT ---
+const toggleRackSort = () => {
+    if (rackSortOrder.value === null) rackSortOrder.value = 'asc';
+    else if (rackSortOrder.value === 'asc') rackSortOrder.value = 'desc';
+    else rackSortOrder.value = null;
+    fetchPIDData(1);
 };
 
 // --- HANDLERS ---

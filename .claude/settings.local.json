@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(php artisan migrate:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git check-ignore:*)"
     ]
   }
 }

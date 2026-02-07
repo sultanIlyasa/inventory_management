@@ -228,7 +228,7 @@
                                                 <p class="text-sm font-medium text-gray-900">{{ item.description }}</p>
                                             </div>
 
-                                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                            <div class="grid grid-cols-3 gap-2 text-xs">
                                                 <div class="bg-gray-50 px-2 py-1 rounded">
                                                     <p class="text-gray-600">Rack</p>
                                                     <p class="font-semibold text-gray-900">{{ item.rack_address || '-'
@@ -239,6 +239,10 @@
                                                     <p class="text-gray-600">UoM</p>
                                                     <p class="font-semibold text-gray-900">{{ item.unit_of_measure }}
                                                     </p>
+                                                </div>
+                                                <div class="bg-gray-50 px-2 py-1 rounded">
+                                                    <p class="text-gray-600">SoH</p>
+                                                    <p class="font-semibold text-gray-900">{{ item.soh }}</p>
                                                 </div>
                                             </div>
 

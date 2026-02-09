@@ -62,12 +62,6 @@
                             <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': loading }" />
                             <span class="hidden sm:inline">Refresh</span>
                         </button>
-                        <button @click="recalculateDiscrepancy" :disabled="isRecalculating"
-                            class="col-span-2 sm:col-span-1 px-3 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-xs md:text-sm">
-                            <Loader2 v-if="isRecalculating" class="w-4 h-4 animate-spin" />
-                            <IterationCcw v-else class="w-4 h-4" />
-                            <span class="hidden sm:inline">{{ isRecalculating ? 'Recalculating...' : 'Recalculate' }}</span>
-                        </button>
                     </div>
                 </div>
 
@@ -1451,9 +1445,11 @@ const handleBeforeUnload = (e) => {
 
 let removeInertiaListener = null;
 
-onMounted(() => {
+onMounted(async () => {
     fetchPIDs();
     fetchLocations();
+    // Recalculate stored discrepancy values before loading data
+    await axios.post('/api/annual-inventory/recalculate-discrepancy').catch(() => {});
     fetchData(1, true); // skipConfirm - initial load
 
     // Browser navigation (refresh, close tab, URL change)

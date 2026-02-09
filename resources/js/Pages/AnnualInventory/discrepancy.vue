@@ -1382,23 +1382,36 @@ const tableScrollRef = ref(null);
 const isDragging = ref(false);
 const dragStartX = ref(0);
 const scrollStartX = ref(0);
+const isPointerDown = ref(false);
+const DRAG_THRESHOLD = 5; // px - movement below this allows text selection
 
 const onDragStart = (e) => {
-    // Don't drag if clicking on inputs, buttons, or select elements
     if (e.target.closest('input, button, select, a, label')) return;
-    isDragging.value = true;
+    isPointerDown.value = true;
+    isDragging.value = false;
     dragStartX.value = e.clientX;
     scrollStartX.value = tableScrollRef.value.scrollLeft;
-    e.preventDefault();
 };
 
 const onDragMove = (e) => {
-    if (!isDragging.value) return;
+    if (!isPointerDown.value) return;
     const dx = e.clientX - dragStartX.value;
-    tableScrollRef.value.scrollLeft = scrollStartX.value - dx;
+
+    // Only start dragging after exceeding the threshold
+    if (!isDragging.value && Math.abs(dx) >= DRAG_THRESHOLD) {
+        isDragging.value = true;
+        // Clear any accidental text selection when drag starts
+        window.getSelection()?.removeAllRanges();
+    }
+
+    if (isDragging.value) {
+        e.preventDefault();
+        tableScrollRef.value.scrollLeft = scrollStartX.value - dx;
+    }
 };
 
 const onDragEnd = () => {
+    isPointerDown.value = false;
     isDragging.value = false;
 };
 
@@ -1451,5 +1464,10 @@ const showSaveMessage = (message, type) => {
 <style scoped>
 .cursor-grabbing {
     user-select: none;
+    cursor: grabbing;
+}
+
+.cursor-grab {
+    cursor: grab;
 }
 </style>

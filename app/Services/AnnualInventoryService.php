@@ -536,7 +536,7 @@ class AnnualInventoryService
             $search = $filters['search'];
             $pidQuery->where(function ($q) use ($search) {
                 $q->where('pid', 'LIKE', "%{$search}%")
-                  ->orWhere('pic_name', 'LIKE', "%{$search}%");
+                    ->orWhere('pic_name', 'LIKE', "%{$search}%");
             });
         }
 
@@ -707,6 +707,22 @@ class AnnualInventoryService
         $allItems = $statsQuery->get();
         $statistics = $this->calculateDiscrepancyStatistics($allItems);
 
+        // Progress query — same base filters but ignores counted_only
+        $progressFilters = $filters;
+        unset($progressFilters['counted_only']);
+        $progressQuery = AnnualInventoryItems::query()
+            ->join('annual_inventories', 'annual_inventory_items.annual_inventory_id', '=', 'annual_inventories.id')
+            ->select('annual_inventory_items.status');
+        $this->applyDiscrepancyFilters($progressQuery, $progressFilters, true);
+
+        $progressTotal = (clone $progressQuery)->count();
+        $progressCounted = (clone $progressQuery)->where('annual_inventory_items.status', '!=', 'PENDING')->count();
+
+        $statistics['progressTotal'] = $progressTotal;
+        $statistics['countedItems'] = $progressCounted;
+        $statistics['pendingItems'] = $progressTotal - $progressCounted;
+        $statistics['countedPercent'] = $progressTotal > 0 ? round(($progressCounted / $progressTotal) * 100, 1) : 0;
+
         return [
             'items' => $paginated->map(function ($item) {
                 return [
@@ -794,7 +810,37 @@ class AnnualInventoryService
         if (!empty($filters['counted_only']) && $filters['counted_only'] !== 'false') {
             $query->where('annual_inventory_items.status', '!=', 'PENDING');
         }
+        // Apply sorting
+        $sortBy = $filters['sort_by'] ?? null;
+        $sortOrder = $filters['sort_order'] ?? 'asc';
+
+        if ($sortBy === 'final_discrepancy') {
+            $query->orderBy('annual_inventory_items.final_discrepancy', $sortOrder);
+        } elseif ($sortBy === 'final_discrepancy_amount') {
+            $query->orderBy('annual_inventory_items.final_discrepancy_amount', $sortOrder);
+        }
     }
+
+    /**
+     *
+     * Get Discrepancy Progress Bar
+     */
+
+    public function getDiscrepancyProgressBar(): array
+    {
+        $stats = AnnualInventoryItems::selectRaw("
+        COUNT(*) as allItems,
+        SUM(CASE WHEN status != 'PENDING' THEN 1 ELSE 0 END) as countedItems
+    ")->first();
+
+        $allItems = (int) ($stats->allItems ?? 0);
+        $countedItems = (int) ($stats->countedItems ?? 0);
+
+        $progress = $allItems > 0 ? round(($countedItems / $allItems) * 100, 1) : 0.0;
+
+        return compact('allItems', 'countedItems', 'progress');
+    }
+
 
     /**
      * Calculate discrepancy statistics with percentages
@@ -1390,11 +1436,7 @@ class AnnualInventoryService
         @ini_set('memory_limit', '1G');
 
         DB::disableQueryLog();
-        \Log::info('Export: Starting template-based export', [
-            'pid' => $pid->pid,
-            'memory_limit' => ini_get('memory_limit'),
-            'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB'
-        ]);
+
 
         try {
             // Load template with PhpSpreadsheet directly (not SheetsService)
@@ -1451,15 +1493,9 @@ class AnnualInventoryService
             // Restore original memory limit
             @ini_set('memory_limit', $originalMemoryLimit);
 
-            \Log::info('Export: Template-based export completed', ['file' => $tmpFile]);
 
             return response()->download($tmpFile, $filename)->deleteFileAfterSend(true);
         } catch (\Throwable $e) {
-            \Log::error('Export: Template-based export failed', [
-                'error' => $e->getMessage(),
-                'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB'
-            ]);
-
             // Cleanup on error
             if (isset($spreadsheet)) {
                 $spreadsheet->disconnectWorksheets();

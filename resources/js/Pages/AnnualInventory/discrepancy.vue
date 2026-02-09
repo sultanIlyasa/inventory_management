@@ -65,6 +65,38 @@
                     </div>
                 </div>
 
+                <!-- Counting Progress Bar -->
+                <div class="px-4 md:px-6 py-3 border-b border-gray-100">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wide">Counting
+                                Progress</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs md:text-sm font-bold"
+                                :class="statistics.countedPercent === 100 ? 'text-green-600' : 'text-blue-600'">
+                                {{ statistics.countedItems }} / {{ statistics.progressTotal }}
+                            </span>
+                            <span class="text-xs font-bold px-1.5 py-0.5 rounded"
+                                :class="statistics.countedPercent === 100 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'">
+                                {{ statistics.countedPercent }}%
+                            </span>
+                        </div>
+                    </div>
+                    <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-500 ease-out"
+                            :class="statistics.countedPercent === 100 ? 'bg-green-500' : 'bg-blue-500'"
+                            :style="{ width: `${statistics.countedPercent}%` }">
+                        </div>
+                    </div>
+                    <div class="flex justify-between mt-1.5 text-[10px] md:text-xs text-gray-500">
+                        <span>Counted: <span class="font-semibold text-gray-700">{{ statistics.countedItems
+                                }}</span></span>
+                        <span>Pending: <span class="font-semibold text-gray-700">{{ statistics.pendingItems
+                                }}</span></span>
+                    </div>
+                </div>
+
                 <div
                     class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-200 bg-gray-50/50 rounded-b-xl">
                     <div class="p-4">
@@ -293,19 +325,20 @@
                     <thead>
                         <tr
                             class="bg-gray-50/80 text-xs text-gray-600 uppercase font-semibold border-b border-gray-200 leading-tight">
-                            <th class="px-4 py-3 min-w-[120px] border-r border-gray-100">Material No.</th>
-                            <th class="px-4 py-3 min-w-[200px] border-r border-gray-100">Material Name</th>
-                            <th class="px-4 py-3 border-r border-gray-100">Rack</th>
-                            <th class="px-4 py-3 text-center border-r border-gray-200">Price</th>
+                            <th class="px-2 py-1 min-w-[120px] border-r border-gray-100">PID.</th>
+                            <th class="px-2 py-1 min-w-[120px] border-r border-gray-100">Material No.</th>
+                            <th class="px-2 py-1 min-w-[200px] border-r border-gray-100">Material Name</th>
+                            <th class="px-2 py-1 border-r border-gray-100">Rack</th>
+                            <th class="px-2 py-1 text-center border-r border-gray-200">Price</th>
 
-                            <th class="px-4 py-3 w-28 bg-green-50/30 text-green-700 border-r border-green-100">
+                            <th class="px-2 py-1 w-28 bg-green-50/30 text-green-700 border-r border-green-100">
                                 SOH<br><span class="text-[10px]">(Editable)</span>
                             </th>
-                            <th class="px-4 py-3 text-center bg-blue-50/30 border-r border-blue-100">
+                            <th class="px-2 py-1 text-center bg-blue-50/30 border-r border-blue-100">
                                 Actual<br><span class="text-[10px] opacity-70">(Count)</span>
                             </th>
                             <th
-                                class="px-4 py-3 text-center font-bold text-gray-700 bg-blue-50/30 border-r border-blue-100">
+                                class="px-2 py-1 text-center font-bold text-gray-700 bg-blue-50/30 border-r border-blue-100">
                                 Initial<br>Gap
                             </th>
 
@@ -319,8 +352,27 @@
                                 Error<br><span class="text-[10px]">(Mvmt)</span>
                             </th>
 
-                            <th class="px-4 py-3 text-center bg-gray-50 border-l border-gray-200">Final Qty</th>
-                            <th class="px-4 py-3 text-center bg-gray-50 border-l border-gray-200">Final Amount</th>
+                            <th class="px-4 py-3 text-center bg-gray-50 border-l border-gray-200">Final Gap</th>
+                            <th class="px-2 py-1 text-xs text-center bg-gray-50 border-l border-gray-200">Final Counted
+                                Qty</th>
+                            <th class="px-4 py-3 text-center sticky right-0 bg-gray-50 shadow-sm border-l border-gray-200 align-bottom cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                                @click="handleSort('final_discrepancy_amount')">
+                                <div class="flex items-center justify-center gap-1">
+                                    <span>Final Amount</span>
+                                    <div class="flex flex-col">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3"
+                                            :class="sortBy === 'final_discrepancy_amount' && sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-400'"
+                                            fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M7 14l5-5 5 5z" />
+                                        </svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 -mt-1"
+                                            :class="sortBy === 'final_discrepancy_amount' && sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-400'"
+                                            fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M7 10l5 5 5-5z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -341,19 +393,22 @@
                             class="group hover:bg-gray-50 transition-colors relative"
                             :class="{ 'bg-yellow-50': item._dirty }">
 
-                            <td class="px-4 py-4 font-medium text-gray-900 border-r border-gray-100">
+                            <td class="px-1 py-1 text-xs font-medium text-gray-900 border-r border-gray-100">
+                                {{ item.pid }}
+                            </td>
+                            <td class="px-1 py-1 text-xs font-medium text-gray-900 border-r border-gray-100">
                                 {{ item.material_number }}
                             </td>
-                            <td class="px-4 py-3 border-r border-gray-100">
-                                <div class="text-gray-900 text-sm">{{ item.description }}</div>
+                            <td class="px-1 py-1 border-r border-gray-100">
+                                <div class="text-gray-900 text-xs">{{ item.description }}</div>
                                 <div class="text-xs text-gray-500 mt-0.5 inline-block bg-gray-100 px-1.5 rounded-sm">
                                     {{ item.unit_of_measure }}
                                 </div>
                             </td>
-                            <td class="px-2 py-4 text-sm text-gray-600 text-center border-r border-gray-100">
+                            <td class="px-2 py-4 text-xs text-gray-600 text-center border-r border-gray-100">
                                 {{ item.rack_address || '-' }}
                             </td>
-                            <td class="px-1 py-1 text-right text-gray-700 font-medium border-r border-gray-200">
+                            <td class="px-1 py-1 text-xs text-right text-gray-700 font-medium border-r border-gray-200">
                                 {{ formatCurrency(item.price) }}
                             </td>
 
@@ -421,11 +476,17 @@
                                 </div>
                                 <div v-else class="text-[10px] font-bold text-red-500 uppercase tracking-wider mt-1">
                                     Variance</div>
-                                <span class="inline-block text-xs px-3 py-1 rounded-md bg-gray-50 border"> SOH: {{
-                                    getFinalDiscrepancy(item).predictedSOH }}</span>
+
+                            </td>
+                            <td>
+                                <div
+                                    class="px-1 py-1 text-center bg-white border-l border-gray-200 group-hover:bg-gray-50">
+                                    <span class="inline-block text-xs px-3 py-1 rounded-md bg-gray-50 border">
+                                        {{ getFinalDiscrepancy(item).predictedSOH }}</span>
+                                </div>
                             </td>
 
-                            <td class="px-4 py-4 text-right bg-white border-l border-gray-1200 group-hover:bg-gray-50 font-medium"
+                            <td class="px-4 py-4 text-xs text-right bg-white border-l border-gray-200 group-hover:bg-gray-50 font-medium whitespace-nowrap tabular-nums"
                                 :class="getGapColor(getFinalDiscrepancy(item).val * (item.price || 0))">
                                 {{ formatCurrency(getFinalDiscrepancy(item).val * (item.price || 0)) }}
                             </td>
@@ -439,7 +500,7 @@
                     <div class="text-sm text-gray-600 order-2 md:order-1">
                         <span class="md:hidden">Page {{ pagination.current_page }} / {{ pagination.last_page }}</span>
                         <span class="hidden md:inline">Page {{ pagination.current_page }} of {{ pagination.last_page
-                        }}</span>
+                            }}</span>
                     </div>
 
                     <div class="flex gap-2 order-1 md:order-2">
@@ -498,12 +559,12 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
                         <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ itemToSubmit?.material_number
-                        }}</span>
+                            }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Description:</span>
                         <span class="text-xs sm:text-sm font-medium text-gray-900">{{ itemToSubmit?.description
-                            }}</span>
+                        }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between items-center gap-1 pt-2">
                         <label class="text-xs sm:text-sm text-gray-600 font-medium">Actual Count:</label>
@@ -552,13 +613,13 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
                         <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ editingItem?.material_number
-                        }}</span>
+                            }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Description:</span>
                         <span class="text-xs sm:text-sm font-medium text-gray-900 text-right">{{
                             editingItem?.description
-                        }}</span>
+                            }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Current Actual Qty:</span>
@@ -671,6 +732,10 @@ const pids = ref([]);
 const pidData = ref(null);
 const statistics = ref({
     totalItems: 0,
+    progressTotal: 0,
+    countedItems: 0,
+    pendingItems: 0,
+    countedPercent: 0,
     surplusCount: 0,
     discrepancyCount: 0,
     matchCount: 0,
@@ -693,6 +758,8 @@ const selectedPID = ref(props.pid_id || '');
 const selectedStatus = ref('');
 const selectedDiscrepancy = ref('');
 const selectedLocation = ref('');
+const sortBy = ref(null);
+const sortOrder = ref('asc');
 const searchQuery = ref('');
 const loading = ref(false);
 const saving = ref(false);
@@ -798,6 +865,20 @@ const handleFileUpload = async (event) => {
     }
 };
 
+//handle sort
+const handleSort = (column) => {
+    if (sortBy.value === column) {
+        // Toggle sort order if clicking the same column
+        sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        // Set new column and default to ascending
+        sortBy.value = column;
+        sortOrder.value = 'asc';
+    }
+    fetchData(1); // Reset to page 1 when sorting changes
+};
+
+
 // Check for unsaved changes before action
 const confirmIfUnsaved = (message = 'You have unsaved changes. Are you sure you want to continue?') => {
     if (hasChanges.value) {
@@ -839,6 +920,12 @@ const fetchData = async (page = 1, skipConfirm = false) => {
         if (searchQuery.value) {
             params.search = searchQuery.value;
         }
+
+        if (sortBy.value) {
+            params.sort_by = sortBy.value;
+            params.sort_order = sortOrder.value;
+        }
+
 
         const response = await axios.get('/api/annual-inventory/discrepancy', { params });
 

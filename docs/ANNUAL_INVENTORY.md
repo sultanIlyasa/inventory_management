@@ -92,7 +92,7 @@ Each entry in the history array contains:
 | GET | `/api/annual-inventory/search?q=` | Search PIDs by number or PIC |
 | GET | `/api/annual-inventory/{id}` | Get single PID with all items (by ID) |
 | GET | `/api/annual-inventory/pid/{pid}` | Get PID by exact PID number |
-| GET | `/api/annual-inventory/by-pid/{pid}` | Get PID with paginated items (by PID number) |
+| GET | `/api/annual-inventory/by-pid/{pid}` | Get PID with paginated items, supports sorting |
 | PUT | `/api/annual-inventory/{id}` | Update PID details (pid, location, pic_name) |
 | DELETE | `/api/annual-inventory/{id}` | Delete PID and all items |
 
@@ -121,22 +121,63 @@ Each entry in the history array contains:
 | GET | `/api/annual-inventory/template` | Download PID import Excel template |
 | POST | `/api/annual-inventory/importpid` | Import PIDs from Excel (supports bulk upload) |
 | GET | `/api/annual-inventory/export` | Export PIDs with actual qty to Excel |
-| GET | `/api/annual-inventory/statistics` | Get dashboard statistics |
+| GET | `/api/annual-inventory/statistics` | Get dashboard statistics (supports filters) |
 | GET | `/api/annual-inventory/locations` | Get unique locations |
 | GET | `/api/annual-inventory/pids-dropdown` | Get PIDs for dropdown filter |
+
+### Query Parameters
+
+#### `/api/annual-inventory/by-pid/{pid}`
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| page | 1 | Page number |
+| per_page | 50 | Items per page |
+| search | | Search material number, description, or rack |
+| sort_by | material_number | Sort column (allowed: `material_number`, `rack_address`, `description`, `status`) |
+| sort_order | asc | Sort direction (`asc` or `desc`) |
+
+#### `/api/annual-inventory/statistics`
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| search | | Search PID number or PIC name |
+| location | | Filter by location |
+| status | | Filter by PID status |
+
+Statistics respond to the same filters as the index page, so stats update in real-time as filters are applied.
+
+#### `/api/annual-inventory/discrepancy`
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| page | 1 | Page number |
+| per_page | 50 | Items per page |
+| pid_id | | Filter by PID |
+| status | | Filter by item status |
+| discrepancy_type | | Filter by type: `surplus`, `shortage`, `match` |
+| location | | Filter by location |
+| search | | Search material number, description, or PID |
+| counted_only | true | Show only counted items (status != PENDING) |
 
 ## Frontend Pages
 
 ### Index Page (`/annual-inventory`)
 
 - **Statistics Cards**: Total PIDs, Completed, In Progress, Completion Rate
-- **Search Bar**: Search by PID number or PIC name
+  - Statistics update dynamically based on active filters (search, location, status)
+- **Search Bar**: Search by PID number or PIC name (debounced 300ms)
 - **Filters**: Location, Status
 - **Actions**:
   - Refresh - Reload data
-  - Download Template - Download PID import Excel template
-  - Download Excel - Export PIDs with actual quantities
-  - Upload PID - Import new PIDs from Excel (supports bulk upload)
+  - Download Selected - Download selected PIDs as Excel (checkbox selection)
+  - Download All - Export all PIDs with current filters
+  - Upload - Import new PIDs from Excel (supports bulk upload)
+- **Checkbox Selection**:
+  - Per-row checkboxes for selecting PIDs
+  - Select all checkbox in header (with indeterminate state)
+  - Selection info bar showing count with clear button
+  - Selected PIDs used for targeted Excel download
 - **Bulk Upload Feature**:
   - Select multiple Excel files at once
   - File list display with remove buttons
@@ -162,15 +203,27 @@ Each entry in the history array contains:
 - **Header**: PID number, location, date
 - **Statistics**: Total items, Pending, Counted, Progress percentage
 - **Search**: Filter items by material number, description, rack
+- **Rack Address Sorting**: Server-side sort toggle (unsorted / A-Z / Z-A)
+  - Desktop: Click "Rack" column header to cycle sort order (icon indicator)
+  - Mobile: Dedicated sort button below search bar showing current state
+  - Sort is applied server-side for correct pagination across pages
+  - Allowed sort columns: `material_number`, `rack_address`, `description`, `status`
 - **Pagination**: 50 items per page with navigation controls
 - **Table Columns**:
   - Material Number
   - Description
-  - Rack Address
+  - Rack Address (sortable)
   - UoM
+  - SoH (Stock on Hand)
   - Actual Qty (main input)
   - Status
   - Actions (Submit, Camera)
+- **Mobile Card View**:
+  - Material number and status in card header
+  - Description
+  - 3-column grid: Rack, UoM, SoH
+  - Actual Qty input with Submit button
+  - Image upload in card footer
 - **Features**:
   - Individual item submit with confirmation modal
   - Save All button for bulk save
@@ -184,23 +237,32 @@ Each entry in the history array contains:
   - Upload Excel - Import discrepancy adjustments
   - Save All Changes - Save modified items
   - Refresh - Reload data
+- **Counting Progress Bar**:
+  - Shows counted items vs total items ratio
+  - Percentage badge (green at 100%, blue otherwise)
+  - Visual bar with color transition
+  - Counted and Pending counts below bar
+  - Updates based on active filters (PID, location, search)
+  - Progress ignores `counted_only` filter to show true completion ratio
 - **Statistics Cards**:
   - Operational Impact: Surplus Items (+), Shortage Items (-)
   - Financial Impact: Surplus Amount, Shortage Amount
+  - Stats reflect only counted items (filtered by `counted_only`)
 - **Filters**:
   - Location - Filter by warehouse location
   - PID - Filter by specific PID
-  - Discrepancy - Surplus/Shortage/Match
-  - Search - Material number or description
+  - Type - Surplus/Shortage/Match (discrepancy type)
+  - Search - Material number, description, or PID
 - **Table Columns**:
-  - Material Number, Name, Rack, Price
+  - PID, Material Number, Material Name, Rack, Price
   - SOH (editable)
   - Actual Qty (from counting) with Edit button
   - Initial Gap (Actual - SOH)
   - Outstanding GR (editable, +)
   - Outstanding GI (editable, -)
   - Error Movement (editable)
-  - Final Discrepancy (calculated)
+  - Final Gap (calculated)
+  - Final Counted Qty (predicted SOH)
   - Final Amount (calculated)
 - **Pagination**: 50 items per page
 - **Edit Actual Qty Modal**:
@@ -213,24 +275,34 @@ Each entry in the history array contains:
   - Confirmation dialog on navigation, pagination, filter change
   - Prevents accidental data loss
 
+### Discrepancy Statistics Architecture
+
+The discrepancy page uses three separate queries for different concerns:
+
+| Query | Purpose | `counted_only` applied? | `discrepancy_type` applied? |
+|-------|---------|-------------------------|-----------------------------|
+| Main query | Table data (paginated) | Yes | Yes |
+| Stats query | Surplus/shortage/match calculations | Yes | No |
+| Progress query | Counted vs total progress bar | No | No |
+
+This ensures:
+- The table only shows counted items (default behavior)
+- Discrepancy stats (surplus/shortage/match) are calculated from counted items only
+- The progress bar shows true completion ratio across all items matching base filters
+
 ## Bulk Upload Feature
 
 The index page supports uploading multiple Excel files at once for PID import:
 
 ### How It Works
 
-1. Click "Upload PID" button to open upload modal
-2. Click "Choose Files" to select multiple Excel files
+1. Click "Upload" button to open upload modal
+2. Click to select multiple Excel files
 3. Selected files appear in a list with remove buttons
-4. Click "Upload All" to start processing
+4. Click "Start Upload" to start processing
 5. Progress bar shows current file being processed (x of y)
 6. Each file shows individual result (success or error)
-7. Summary totals displayed after all files complete:
-   - Files processed
-   - Total PIDs created across all files
-   - Total PIDs updated across all files
-   - Total items created across all files
-   - Count of failed files
+7. After upload: data, statistics, and locations are refreshed automatically
 
 ### Upload Response Format
 
@@ -269,11 +341,15 @@ Each file upload returns:
 | F | Price | 150000 |
 | G | Location | Sunter_1 |
 
-### Export Format (Download Excel)
+### Worksheet Export (Download Excel)
 
-| Columns |
-|---------|
-| PID, Location, PIC, Status, Material Number, Description, Rack, UoM, System Qty, SOH, Actual Qty, Discrepancy, Price, Discrepancy Amount, Counted By, Counted At, Item Status |
+Uses a template file at `storage/app/templates/worksheet_template.xlsx`. Template files must be committed to git (whitelisted in `storage/app/.gitignore`).
+
+Template structure:
+- D11: Plant, D12: SLOC, D13: PID, D14: Doc Date
+- Row 23 onwards: Item data (No, Material Number, Description, Batch, Rack Address, UoM, Checking)
+
+Supports single PID download (`.xlsx`) or multi-PID download (`.zip`).
 
 ## Edit Actual Qty Feature
 
@@ -299,7 +375,6 @@ The discrepancy page allows editing the actual quantity with full revision histo
 |--------|-------------|
 | # | Revision number |
 | Qty | Quantity value at that revision |
-| Counted By | Person who entered the count |
 | Date/Time | When the count was recorded |
 
 ## Unsaved Changes Protection
@@ -311,7 +386,7 @@ The discrepancy page protects against accidental data loss.
 | Action | Behavior |
 |--------|----------|
 | Browser refresh/close | Native browser "Leave site?" dialog |
-| Navigation (links, back) | Custom confirmation dialog |
+| Navigation (links, back) | Custom confirmation dialog via Inertia router |
 | Refresh button | Confirmation if unsaved changes |
 | Pagination | Confirmation if unsaved changes |
 | Filter change | Confirmation if unsaved changes |
@@ -327,10 +402,9 @@ The discrepancy page protects against accidental data loss.
 
 ```
 Initial Gap = Actual Qty - SOH
-Moving Data = Outstanding GR + Outstanding GI + Error Movement
-Final Discrepancy = Initial Gap - Moving Data
-                  = (Actual Qty - SOH) - (Outstanding GR + Outstanding GI + Error Movement)
-Final Discrepancy Amount = Final Discrepancy × Unit Price
+Final Discrepancy = Initial Gap - Outstanding GR + Outstanding GI + Error Movement
+                  = (Actual Qty - SOH) - Outstanding GR + Outstanding GI + Error Movement
+Final Discrepancy Amount = Final Discrepancy x Unit Price
 ```
 
 **Note**:
@@ -343,8 +417,8 @@ Final Discrepancy Amount = Final Discrepancy × Unit Price
 ### PID Status
 
 ```
-Not Checked → In Progress → Completed
-     ↑              ↑            ↑
+Not Checked -> In Progress -> Completed
+     |              |            |
   No items    Some items    All items
   counted      counted       verified
 ```
@@ -352,8 +426,8 @@ Not Checked → In Progress → Completed
 ### Item Status
 
 ```
-PENDING → COUNTED → VERIFIED
-    ↑         ↑          ↑
+PENDING -> COUNTED -> VERIFIED
+    |         |          |
   Initial   Actual    Confirmed
   state     qty set   by admin
 ```
@@ -378,9 +452,15 @@ database/
 
 resources/js/Pages/
 └── AnnualInventory/
-    ├── index.vue        # PID list with edit/delete/export
-    ├── show.vue         # Counting page with pagination
-    └── discrepancy.vue  # Discrepancy analysis with import/export
+    ├── index.vue        # PID list with edit/delete/export, filter-reactive stats
+    ├── show.vue         # Counting page with pagination and rack address sorting
+    └── discrepancy.vue  # Discrepancy analysis with progress bar, import/export
+
+storage/app/
+└── templates/
+    ├── worksheet_template.xlsx   # Excel export template
+    ├── worksheet_template.xls
+    └── discrepancy_import_template.md
 
 routes/
 ├── api.php      # API routes
@@ -402,10 +482,16 @@ Content-Type: application/json
 }
 ```
 
-### API: Get PID with pagination (by PID number)
+### API: Get PID with pagination and sorting
 
 ```bash
-GET /api/annual-inventory/by-pid/PID-2026-001?page=1&per_page=50&search=MAT
+GET /api/annual-inventory/by-pid/PID-2026-001?page=1&per_page=50&search=MAT&sort_by=rack_address&sort_order=asc
+```
+
+### API: Get statistics with filters
+
+```bash
+GET /api/annual-inventory/statistics?location=Sunter_1&status=Completed
 ```
 
 ### API: Get discrepancy items with filters
@@ -433,8 +519,8 @@ GET /api/annual-inventory/export?location=Sunter_1&status=Completed
 
 ```
 Annual Inventory (ClipboardList icon)
-├── PID List        → /annual-inventory
-└── Discrepancy     → /annual-inventory/discrepancy
+├── PID List        -> /annual-inventory
+└── Discrepancy     -> /annual-inventory/discrepancy
 ```
 
 ## Troubleshooting
@@ -459,3 +545,11 @@ Annual Inventory (ClipboardList icon)
 5. **Cannot access PID by URL**
    - URL now uses PID number, not database ID
    - Example: `/annual-inventory/PID-2026-001`
+
+6. **Template files missing on production**
+   - Ensure `storage/app/templates/` is committed to git
+   - Check `storage/app/.gitignore` whitelists `!templates/` and `!templates/**`
+
+7. **Progress bar shows 100% on discrepancy page**
+   - The progress query intentionally ignores `counted_only` filter
+   - If still 100%, all items matching the current filters have been counted

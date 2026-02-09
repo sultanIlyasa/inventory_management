@@ -152,7 +152,7 @@
                                                 <td class="border p-2 text-xs lg:text-sm bg-blue-50">
                                                     <input :value="item.actual_qty"
                                                         @input="handleActualQtyChange(item, $event.target.value)"
-                                                        :disabled="item.status !== 'PENDING'"
+                                                        :disabled="item.status === 'VERIFIED'"
                                                         type="number" min="0"
                                                         class="w-20 px-2 py-1 text-sm border-2 border-blue-300 rounded text-center focus:ring-2 focus:ring-blue-500 font-medium disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
                                                         placeholder="Qty" />

@@ -350,27 +350,15 @@ class AnnualInventoryController extends Controller
         ];
 
         try {
-            \Log::info('Export: Request received', $filters);
 
             $result = $this->service->exportToExcel($filters);
 
             if ($result === null) {
-                \Log::warning('Export: No data found');
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No data found for export.',
-                ], 404);
             }
 
-            \Log::info('Export: Returning response');
             return $result;
         } catch (\Throwable $e) {
-            \Log::error('Export: Failed', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
+
 
             return response()->json([
                 'success' => false,
@@ -388,7 +376,7 @@ class AnnualInventoryController extends Controller
         $perPage = $request->query('per_page', 50);
         $page = $request->query('page', 1);
         $search = $request->query('search', '');
-        $sortBy = $request->query('sort_by', 'material_number');
+        $sortBy = $request->query('sort_by', 'rack_addres');
         $sortOrder = $request->query('sort_order', 'asc');
 
         $data = $this->service->getByPIDWithPagination($pid, $perPage, $page, $search, $sortBy, $sortOrder);
@@ -418,7 +406,9 @@ class AnnualInventoryController extends Controller
             'search' => $request->query('search'),
             'discrepancy_type' => $request->query('discrepancy_type'),
             'location' => $request->query('location'),
-            'counted_only' => $request->query('counted_only', false),
+            'sort_by' => $request->query('sort_by'),
+            'sort_order' => $request->query('sort_order', 'asc'),
+            'counted_only' => $request->query('counted_only', true),
         ];
 
         $perPage = $request->query('per_page', 50);

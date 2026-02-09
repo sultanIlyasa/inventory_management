@@ -12,7 +12,7 @@
                             <div class="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200">
                                 <p class="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wide">Total PIDs</p>
                                 <p class="text-xl sm:text-2xl font-bold text-gray-800 truncate">{{ statistics.pids.total
-                                }}</p>
+                                    }}</p>
                             </div>
                             <div class="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-200">
                                 <p class="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wide">Completed</p>
@@ -86,11 +86,13 @@
                                             <RefreshCw class="w-4 h-4" />
                                             <span>Refresh</span>
                                         </button>
-                                        <button @click="downloadPIDExcel('selected')" :disabled="isDownloading || selectedPids.length === 0"
+                                        <button @click="downloadPIDExcel('selected')"
+                                            :disabled="isDownloading || selectedPids.length === 0"
                                             class="flex-1 sm:flex-none px-2 sm:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
                                             <Loader2 v-if="isDownloading" class="w-4 h-4 animate-spin" />
                                             <Download v-else class="w-4 h-4" />
-                                            <span>{{ selectedPids.length > 0 ? `Download (${selectedPids.length})` : 'Select PIDs' }}</span>
+                                            <span>{{ selectedPids.length > 0 ? `Download (${selectedPids.length})` :
+                                                'Select PIDs' }}</span>
                                         </button>
                                         <button @click="downloadPIDExcel('all')" :disabled="isDownloading"
                                             class="flex-1 sm:flex-none px-2 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
@@ -102,6 +104,12 @@
                                             class="flex-1 sm:flex-none px-2 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
                                             <Upload class="w-4 h-4" />
                                             <span>Upload</span>
+                                        </button>
+                                        <button @click="syncPicAndGroupLeader" :disabled="isSyncing"
+                                            class="flex-1 sm:flex-none px-2 sm:px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50 transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+                                            <Loader2 v-if="isSyncing" class="w-4 h-4 animate-spin" />
+                                            <RefreshCw v-else class="w-4 h-4" />
+                                            <span>{{ isSyncing ? 'Syncing...' : 'Sync PIC & GL' }}</span>
                                         </button>
                                     </div>
                                 </div>
@@ -124,10 +132,8 @@
                                         <thead>
                                             <tr class="bg-gray-100/50">
                                                 <th class="p-3 border-b text-center w-10">
-                                                    <input type="checkbox"
-                                                        :checked="isAllSelected"
-                                                        :indeterminate="isIndeterminate"
-                                                        @change="toggleSelectAll"
+                                                    <input type="checkbox" :checked="isAllSelected"
+                                                        :indeterminate="isIndeterminate" @change="toggleSelectAll"
                                                         class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
                                                 </th>
                                                 <th
@@ -158,9 +164,7 @@
                                                 class="hover:bg-gray-50 transition-colors"
                                                 :class="{ 'bg-purple-50': selectedPids.includes(item.pid) }">
                                                 <td class="p-3 text-center">
-                                                    <input type="checkbox"
-                                                        :value="item.pid"
-                                                        v-model="selectedPids"
+                                                    <input type="checkbox" :value="item.pid" v-model="selectedPids"
                                                         class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
                                                 </td>
                                                 <td class="p-3 text-sm text-gray-600">
@@ -189,7 +193,7 @@
                                                                 :style="{ width: `${item.progress}%` }"></div>
                                                         </div>
                                                         <span class="text-[10px] text-gray-500">{{ item.counted_count
-                                                            }}/{{ item.items_count }}</span>
+                                                        }}/{{ item.items_count }}</span>
                                                     </div>
                                                 </td>
                                                 <td class="p-3 text-sm text-center">
@@ -242,9 +246,7 @@
                                         <div
                                             class="bg-gray-50/50 px-3 py-2.5 flex items-center justify-between border-b border-gray-100">
                                             <div class="flex items-center gap-2">
-                                                <input type="checkbox"
-                                                    :value="item.pid"
-                                                    v-model="selectedPids"
+                                                <input type="checkbox" :value="item.pid" v-model="selectedPids"
                                                     class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
                                                 <span
                                                     class="bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded">
@@ -287,7 +289,7 @@
                                                 <div class="flex justify-between items-center mb-1">
                                                     <span class="text-[10px] text-gray-500 uppercase">Progress</span>
                                                     <span class="text-xs font-bold text-blue-600">{{ item.counted_count
-                                                        }}/{{ item.items_count }}</span>
+                                                    }}/{{ item.items_count }}</span>
                                                 </div>
                                                 <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                                     <div class="h-full bg-blue-500 rounded-full transition-all"
@@ -423,7 +425,7 @@
                 <p class="text-xs sm:text-sm text-gray-600 mb-6 leading-relaxed">
                     Are you sure you want to delete PID <strong>{{ deleteItem?.pid }}</strong>?
                     This will also delete all <span class="font-medium text-red-600">{{ deleteItem?.items_count || 0
-                        }}</span>
+                    }}</span>
                     associated items.
                 </p>
 
@@ -583,18 +585,21 @@ const showDeleteModal = ref(false);
 const deleteItem = ref(null);
 const isDeleting = ref(false);
 
+// Sync state
+const isSyncing = ref(false);
+
 // Selection state
 const selectedPids = ref([]);
 
 const isAllSelected = computed(() => {
     return inventoryItems.value.length > 0 &&
-           inventoryItems.value.every(item => selectedPids.value.includes(item.pid));
+        inventoryItems.value.every(item => selectedPids.value.includes(item.pid));
 });
 
 const isIndeterminate = computed(() => {
     return selectedPids.value.length > 0 &&
-           !isAllSelected.value &&
-           inventoryItems.value.some(item => selectedPids.value.includes(item.pid));
+        !isAllSelected.value &&
+        inventoryItems.value.some(item => selectedPids.value.includes(item.pid));
 });
 
 const toggleSelectAll = () => {
@@ -639,6 +644,7 @@ const fetchPIDs = async (page = 1) => {
         isLoading.value = false;
     }
 };
+
 
 const fetchStatistics = async () => {
     try {
@@ -967,6 +973,23 @@ const uploadAllFiles = async () => {
     isUploading.value = false;
 };
 
+
+// --- SYNC PIC & GROUP LEADER ---
+const syncPicAndGroupLeader = async () => {
+    isSyncing.value = true;
+    try {
+        const response = await axios.post('/api/annual-inventory/sync-pic-gl');
+        if (response.data.success) {
+            alert(`Synced ${response.data.updated} PIDs with PIC & Group Leader`);
+            await fetchPIDs(pagination.value.current_page);
+        }
+    } catch (error) {
+        console.error('Failed to sync:', error);
+        alert('Failed to sync: ' + (error.response?.data?.message || error.message));
+    } finally {
+        isSyncing.value = false;
+    }
+};
 
 // --- LIFECYCLE ---
 onMounted(() => {

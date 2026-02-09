@@ -521,4 +521,19 @@ class AnnualInventoryController extends Controller
             'errors' => $result['errors'] ?? [],
         ]);
     }
+
+    /**
+     * POST /api/annual-inventory/sync-pic-gl
+     * Sync pic_input and group_leader for all existing PIDs based on sloc
+     */
+    public function syncPicAndGroupLeader(): JsonResponse
+    {
+        $result = $this->service->syncPicAndGroupLeader();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Synced {$result['updated']} PIDs with pic_input and group_leader",
+            'updated' => $result['updated'],
+        ]);
+    }
 }

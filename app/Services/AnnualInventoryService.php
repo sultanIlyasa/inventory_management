@@ -113,6 +113,9 @@ class AnnualInventoryService
                     'items_count' => $itemsCount,
                     'counted_count' => $countedCount,
                     'progress' => $itemsCount > 0 ? round(($countedCount / $itemsCount) * 100, 1) : 0,
+                    'group_leader' => $inventory->group_leader,
+                    'pic_input' => $inventory->pic_input,
+                    'sloc' => $inventory->sloc
                 ];
             })->all(),
             'pagination' => [
@@ -908,7 +911,7 @@ class AnnualInventoryService
 
         // Optional: overall discrepancy impact vs system value (useful KPI)
         $overallDiscrepancyImpactPercent = $systemAmount > 0
-            ? round(($totalDiscrepancyAbs / $systemAmount) * 100, 2)
+            ? round(($totalDiscrepancyAbs / $systemAmount) * 100, 1)
             : 0.0;
 
         return [
@@ -1476,8 +1479,12 @@ class AnnualInventoryService
 
             // Fill header data based on template structure
             // D11 [plant], D12 [sloc], D13 [pid], D14 [doc_date]
-            $sheet->setCellValue('D11', $pid->plant ?? '2000 - Sunter 2');
-            $sheet->setCellValue('D12', $pid->sloc ?? $pid->location ?? '');
+            $sheet->setCellValue('E6', $pid->group_leader ?? '');
+            $sheet->setCellValue('F6', $pid->pic_name ?? '');
+            $sheet->setCellValue('G6', $pid->pic_input ?? '');
+            $sheet->setCellValue('H6', $pid->group_leader ?? '');
+            $sheet->setCellValue('D11', $pid->sloc ?? '2000 - Sunter 2');
+            $sheet->setCellValue('D12', $pid->location ?? '');
             $sheet->setCellValue('D13', $pid->pid);
             $sheet->setCellValue('D14', optional($pid->date)->format('n/j/Y h:i:s A') ?? now()->format('n/j/Y h:i:s A'));
 
@@ -1634,6 +1641,34 @@ class AnnualInventoryService
         unset($spreadsheet, $writer);
 
         return $binary;
+    }
+
+    /**
+     * Sync pic_input and group_leader for all existing PIDs based on sloc mapping
+     */
+    public function syncPicAndGroupLeader(): array
+    {
+        $updated = 0;
+
+        AnnualInventory::whereNotNull('location')
+            ->where('location', '!=', '')
+            ->each(function (AnnualInventory $inventory) use (&$updated) {
+                $oldPic = $inventory->pic_input;
+                $oldGL = $inventory->group_leader;
+                $newSloc = $inventory->sloc;
+
+                $inventory->assignPicAndGroupLeader();
+
+                if ($inventory->pic_input !== $oldPic || $inventory->group_leader !== $oldGL || $inventory->sloc !== $newSloc) {
+                    $inventory->saveQuietly();
+                    $updated++;
+                }
+            });
+
+        return [
+            'success' => true,
+            'updated' => $updated,
+        ];
     }
 
     /**

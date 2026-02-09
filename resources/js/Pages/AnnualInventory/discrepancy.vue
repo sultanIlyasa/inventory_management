@@ -91,9 +91,9 @@
                     </div>
                     <div class="flex justify-between mt-1.5 text-[10px] md:text-xs text-gray-500">
                         <span>Counted: <span class="font-semibold text-gray-700">{{ statistics.countedItems
-                        }}</span></span>
+                                }}</span></span>
                         <span>Pending: <span class="font-semibold text-gray-700">{{ statistics.pendingItems
-                        }}</span></span>
+                                }}</span></span>
                     </div>
                 </div>
 
@@ -106,13 +106,47 @@
                             </div>
                             <h3 class="text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wide">Operational
                                 Impact</h3>
+                            <div class="relative group">
+                                <button type="button"
+                                    class="w-4 h-4 rounded-full border border-gray-300 text-gray-500 flex items-center justify-center text-[10px]
+                                    hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    aria-label="Operational impact info">
+                                    ?
+                                </button>
+                                <div class="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2
+                                    rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg
+                                    opacity-0 group-hover:opacity-100 transition-opacity">
+                                    Shows <span class="font-semibold">counted-only</span> items. Counts how many items
+                                    have Final Gap &gt; 0 (surplus) or &lt; 0 (shortage).
+                                    <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2
+                                        h-2 w-2 rotate-45 bg-gray-900"></div>
+                                </div>
+                            </div>
                             <span class="ml-auto text-[10px] md:text-xs text-gray-500">Total:
                                 {{ statistics.totalItems }}</span>
                         </div>
                         <div class="grid grid-cols-2 gap-3 md:gap-4">
                             <div class="bg-blue-50 p-2 md:p-3 rounded-lg shadow-sm border border-blue-100">
-                                <span class="block text-xs md:text-sm text-blue-600 font-bold mb-1">Discrepancy Items
-                                    (+)</span>
+                                <div class="flex items-center gap-1 mb-1">
+                                    <span class="text-xs md:text-sm text-blue-600 font-bold">Discrepancy Items
+                                        (+)</span>
+                                    <div class="relative group">
+                                        <button type="button" class="w-3.5 h-3.5 rounded-full border border-blue-300 text-blue-500 flex items-center justify-center text-[9px]
+                                            hover:bg-blue-100 hover:text-blue-700 focus:outline-none"
+                                            aria-label="Surplus items info">
+                                            ?
+                                        </button>
+                                        <div class="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2
+                                            rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg
+                                            opacity-0 group-hover:opacity-100 transition-opacity">
+                                            Count of items where <span class="font-semibold">Final Gap &gt;
+                                                0</span>.<br>
+                                            Percentage = Surplus Count / Total Items.
+                                            <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2
+                                                h-2 w-2 rotate-45 bg-gray-900"></div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
                                     <span class="text-base md:text-lg font-bold text-blue-800">
                                         {{ statistics.surplusCount }}</span>
@@ -123,8 +157,25 @@
                                 </div>
                             </div>
                             <div class="bg-red-50 p-2 md:p-3 rounded-lg shadow-sm border border-red-100">
-                                <span class="block text-xs md:text-sm text-red-600 font-bold mb-1">Discrepancy Items
-                                    (-)</span>
+                                <div class="flex items-center gap-1 mb-1">
+                                    <span class="text-xs md:text-sm text-red-600 font-bold">Discrepancy Items (-)</span>
+                                    <div class="relative group">
+                                        <button type="button" class="w-3.5 h-3.5 rounded-full border border-red-300 text-red-500 flex items-center justify-center text-[9px]
+                                            hover:bg-red-100 hover:text-red-700 focus:outline-none"
+                                            aria-label="Shortage items info">
+                                            ?
+                                        </button>
+                                        <div class="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2
+                                            rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg
+                                            opacity-0 group-hover:opacity-100 transition-opacity">
+                                            Count of items where <span class="font-semibold">Final Gap &lt;
+                                                0</span>.<br>
+                                            Percentage = Shortage Count / Total Items.
+                                            <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2
+                                                h-2 w-2 rotate-45 bg-gray-900"></div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
                                     <span class="text-base md:text-lg font-bold text-red-800">{{
                                         statistics.shortageCount }}</span>
@@ -144,30 +195,48 @@
                             </div>
                             <h3 class="text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wide">Financial
                                 Impact</h3>
-                            <!-- ? hover popover -->
                             <div class="relative group">
-                                <button type="button" class="w-4 h-4 rounded-full border border-gray-300 text-gray-500 flex items-center justify-center text-[10px]
-             hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                <button type="button"
+                                    class="w-4 h-4 rounded-full border border-gray-300 text-gray-500 flex items-center justify-center text-[10px]
+                                    hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     aria-label="Financial impact info">
                                     ?
                                 </button>
-
-                                <!-- Popover -->
-                                <div class="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2
-             rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg
-             opacity-0 group-hover:opacity-100 transition-opacity">
-                                    This section shows <span class="font-semibold">counted-only</span>
+                                <div class="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2
+                                    rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg
+                                    opacity-0 group-hover:opacity-100 transition-opacity">
+                                    Shows <span class="font-semibold">counted-only</span> items.<br>
+                                    Amounts = Final Gap x Price per item, summed by surplus/shortage.
                                     <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2
-               h-2 w-2 rotate-45 bg-gray-900"></div>
+                                        h-2 w-2 rotate-45 bg-gray-900"></div>
                                 </div>
                             </div>
                             <span class="ml-auto text-[10px] md:text-xs text-gray-500">Match: {{
                                 statistics.matchCountPercent }}%</span>
                         </div>
                         <div class="grid grid-cols-2 gap-3 md:gap-4">
+                            <!-- Financial Impact -->
                             <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm border border-blue-100">
-                                <span class="block text-xs md:text-sm text-blue-600 font-bold mb-1">Discrepancy Amount
-                                    (+) </span>
+                                <div class="flex items-center gap-1 mb-1">
+                                    <span class="text-xs md:text-sm text-blue-600 font-bold">Discrepancy Amount
+                                        (+)</span>
+                                    <div class="relative group">
+                                        <button type="button" class="w-3.5 h-3.5 rounded-full border border-blue-300 text-blue-500 flex items-center justify-center text-[9px]
+                                            hover:bg-blue-100 hover:text-blue-700 focus:outline-none"
+                                            aria-label="Surplus amount info">
+                                            ?
+                                        </button>
+                                        <div class="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2
+                                            rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg
+                                            opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <span class="font-semibold">Sum of (Final Gap x Price)</span> for items
+                                            where Final Gap &gt; 0.<br>
+                                            Percentage = Surplus Amount / System Amount.
+                                            <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2
+                                                h-2 w-2 rotate-45 bg-gray-900"></div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="flex flex-col xl:flex-row xl:items-baseline gap-1">
                                     <span class="text-sm md:text-lg font-bold text-gray-800 break-all">{{
                                         formatCurrency(statistics.surplusAmount) }}
@@ -179,8 +248,26 @@
                                 </div>
                             </div>
                             <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm border border-red-100">
-                                <span class="block text-xs md:text-sm text-red-600 font-bold mb-1">Discrepancy Amount
-                                    (-) </span>
+                                <div class="flex items-center gap-1 mb-1">
+                                    <span class="text-xs md:text-sm text-red-600 font-bold">Discrepancy Amount
+                                        (-)</span>
+                                    <div class="relative group">
+                                        <button type="button" class="w-3.5 h-3.5 rounded-full border border-red-300 text-red-500 flex items-center justify-center text-[9px]
+                                            hover:bg-red-100 hover:text-red-700 focus:outline-none"
+                                            aria-label="Shortage amount info">
+                                            ?
+                                        </button>
+                                        <div class="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2
+                                            rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg
+                                            opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <span class="font-semibold">Sum of |Final Gap x Price|</span> for items
+                                            where Final Gap &lt; 0.<br>
+                                            Percentage = Shortage Amount / System Amount.
+                                            <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2
+                                                h-2 w-2 rotate-45 bg-gray-900"></div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="flex flex-col xl:flex-row xl:items-baseline gap-1">
                                     <span class="text-sm md:text-lg font-bold text-gray-800 break-all">{{
                                         formatCurrency(statistics.shortageAmount) }}
@@ -193,14 +280,53 @@
                             </div>
                             <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm border"
                                 :class="statistics.nettDiscrepancyAmount >= 0 ? 'border-blue-100' : 'border-red-100'">
-                                <span class="block text-xs md:text-sm text-gray-600 font-bold mb-1">Nett Discrepancy</span>
+                                <div class="flex items-center gap-1 mb-1">
+                                    <span class="text-xs md:text-sm text-gray-600 font-bold">Nett Discrepancy</span>
+                                    <div class="relative group">
+                                        <button type="button" class="w-3.5 h-3.5 rounded-full border border-gray-300 text-gray-500 flex items-center justify-center text-[9px]
+                                            hover:bg-gray-100 hover:text-gray-700 focus:outline-none"
+                                            aria-label="Nett discrepancy info">
+                                            ?
+                                        </button>
+                                        <div class="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2
+                                            rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg
+                                            opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <span class="font-semibold">Sum of all (Final Gap x Price)</span>,
+                                            signed.<br>
+                                            Positive = net surplus, Negative = net shortage.
+                                            <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2
+                                                h-2 w-2 rotate-45 bg-gray-900"></div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <span class="text-sm md:text-lg font-bold break-all"
                                     :class="statistics.nettDiscrepancyAmount > 0 ? 'text-blue-700' : statistics.nettDiscrepancyAmount < 0 ? 'text-red-700' : 'text-gray-800'">
                                     {{ formatCurrency(statistics.nettDiscrepancyAmount) }}
                                 </span>
+                                <span class="text-[10px] font-semibold  px-1.5 py-0.5 rounded w-fit"
+                                    :class="statistics.overallDiscrepancyImpactPercent === 100 ? 'bg-green-100 text-green-700' : 'bg-gray-100 '">
+                                    {{ statistics.overallDiscrepancyImpactPercent }}%
+                                </span>
                             </div>
                             <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm border border-gray-200">
-                                <span class="block text-xs md:text-sm text-gray-600 font-bold mb-1">System Amount</span>
+                                <div class="flex items-center gap-1 mb-1">
+                                    <span class="text-xs md:text-sm text-gray-600 font-bold">System Amount</span>
+                                    <div class="relative group">
+                                        <button type="button" class="w-3.5 h-3.5 rounded-full border border-gray-300 text-gray-500 flex items-center justify-center text-[9px]
+                                            hover:bg-gray-100 hover:text-gray-700 focus:outline-none"
+                                            aria-label="System amount info">
+                                            ?
+                                        </button>
+                                        <div class="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2
+                                            rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg
+                                            opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <span class="font-semibold">Sum of (SOH x Price)</span> across all counted
+                                            items.
+                                            <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2
+                                                h-2 w-2 rotate-45 bg-gray-900"></div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <span class="text-sm md:text-lg font-bold text-gray-800 break-all">
                                     {{ formatCurrency(statistics.systemAmount) }}
                                 </span>
@@ -537,7 +663,7 @@
                     <div class="text-sm text-gray-600 order-2 md:order-1">
                         <span class="md:hidden">Page {{ pagination.current_page }} / {{ pagination.last_page }}</span>
                         <span class="hidden md:inline">Page {{ pagination.current_page }} of {{ pagination.last_page
-                        }}</span>
+                            }}</span>
                     </div>
 
                     <div class="flex gap-2 order-1 md:order-2">
@@ -596,12 +722,12 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
                         <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ itemToSubmit?.material_number
-                        }}</span>
+                            }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Description:</span>
                         <span class="text-xs sm:text-sm font-medium text-gray-900">{{ itemToSubmit?.description
-                            }}</span>
+                        }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between items-center gap-1 pt-2">
                         <label class="text-xs sm:text-sm text-gray-600 font-medium">Actual Count:</label>
@@ -650,13 +776,13 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
                         <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ editingItem?.material_number
-                        }}</span>
+                            }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Description:</span>
                         <span class="text-xs sm:text-sm font-medium text-gray-900 text-right">{{
                             editingItem?.description
-                        }}</span>
+                            }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Current Actual Qty:</span>

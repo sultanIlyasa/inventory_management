@@ -848,13 +848,18 @@ class AnnualInventoryService
      */
     private function calculateDiscrepancyStatistics($items): array
     {
-        $totalItems = count($items);
-        $surplusCount = 0;
-        $discrepancyCount = 0;
-        $matchCount = 0;
-        $surplusAmount = 0;
-        $discrepancyAmount = 0;
-        $totalAmount = 0;
+        // Counts
+        $totalItems = is_countable($items) ? count($items) : 0;
+        $surplusCount = 0;    // finalDiscrepancy > 0
+        $shortageCount = 0;   // finalDiscrepancy < 0
+        $matchCount = 0;      // finalDiscrepancy == 0
+
+        // Monetary values
+        $systemAmount = 0.0;              // Σ(SoH × price)
+        $actualAmount = 0.0;              // Σ(ActualQty × price)
+        $surplusAmount = 0.0;             // Σ(positive discrepancy × price)
+        $shortageAmountAbs = 0.0;         // Σ(abs(negative discrepancy × price))
+        $nettDiscrepancyAmount = 0.0;     // Σ(discrepancy × price) (can be + or -)
 
         foreach ($items as $item) {
             $actualQty = (float) ($item->actual_qty ?? 0);
@@ -864,53 +869,79 @@ class AnnualInventoryService
             $errorMovement = (float) ($item->error_movement ?? 0);
             $price = (float) ($item->price ?? 0);
 
-            // Compute discrepancy from raw fields (matches frontend getFinalDiscrepancy)
+            // Values
+            $systemLineAmount = $soh * $price;
+            $actualLineAmount = $actualQty * $price;
+
+            $systemAmount += $systemLineAmount;
+            $actualAmount += $actualLineAmount;
+
+            // Discrepancy (matches FE getFinalDiscrepancy)
             $initialGap = $actualQty - $soh;
             $finalDiscrepancy = $initialGap - $outstandingGR + $outstandingGI + $errorMovement;
             $finalDiscrepancyAmount = $finalDiscrepancy * $price;
 
-            $initialAmount = $actualQty * $price;
+            // Net discrepancy across all items (signed)
+            $nettDiscrepancyAmount += $finalDiscrepancyAmount;
 
-            // Calculate totals
+            // Buckets
             if ($finalDiscrepancy > 0) {
                 $surplusCount++;
-                $surplusAmount += $finalDiscrepancyAmount;
-                $totalAmount += $initialAmount;
+                $surplusAmount += $finalDiscrepancyAmount; // positive
             } elseif ($finalDiscrepancy < 0) {
-                $discrepancyCount++;
-                $discrepancyAmount += $finalDiscrepancyAmount;
-                $totalAmount += $initialAmount;
+                $shortageCount++;
+                $shortageAmountAbs += abs($finalDiscrepancyAmount); // store as positive magnitude
             } else {
                 $matchCount++;
-                $totalAmount += $initialAmount;
             }
         }
 
-        // Calculate percentages
-        $surplusCountPercent = $totalItems > 0 ? round(($surplusCount / $totalItems) * 100, 1) : 0;
-        $discrepancyCountPercent = $totalItems > 0 ? round(($discrepancyCount / $totalItems) * 100, 1) : 0;
-        $matchCountPercent = $totalItems > 0 ? round(($matchCount / $totalItems) * 100, 1) : 0;
+        // Count percentages (of total items)
+        $surplusCountPercent  = $totalItems > 0 ? round(($surplusCount / $totalItems) * 100, 1) : 0.0;
+        $shortageCountPercent = $totalItems > 0 ? round(($shortageCount / $totalItems) * 100, 1) : 0.0;
+        $matchCountPercent    = $totalItems > 0 ? round(($matchCount / $totalItems) * 100, 1) : 0.0;
 
-        // For amount percentages, calculate based on total absolute amounts
-        $totalAbsAmount = $totalAmount > 0 ? abs($totalAmount) : 0;
-        $surplusAmountPercent = $totalAbsAmount > 0 ? round((abs($surplusAmount) / $totalAbsAmount) * 100, 1) : 0;
-        $discrepancyAmountPercent = $totalAbsAmount > 0 ? round((abs($discrepancyAmount) / $totalAbsAmount) * 100, 1) : 0;
+        $totalDiscrepancyAbs = abs($surplusAmount) + $shortageAmountAbs;
+
+        $surplusAmountPercent  = $totalDiscrepancyAbs > 0 ? round((abs($surplusAmount) / $systemAmount) * 100, 1) : 0.0;
+        $shortageAmountPercent = $totalDiscrepancyAbs > 0 ? round(($shortageAmountAbs / $systemAmount) * 100, 1) : 0.0;
+
+        // Optional: overall discrepancy impact vs system value (useful KPI)
+        $overallDiscrepancyImpactPercent = $systemAmount > 0
+            ? round(($totalDiscrepancyAbs / $systemAmount) * 100, 2)
+            : 0.0;
 
         return [
+            // counts
             'totalItems' => $totalItems,
             'surplusCount' => $surplusCount,
-            'discrepancyCount' => $discrepancyCount,
+            'shortageCount' => $shortageCount,
             'matchCount' => $matchCount,
-            'surplusAmount' => (float) $surplusAmount,
-            'discrepancyAmount' => (float) abs($discrepancyAmount),
+
+            // amounts (raw)
+            'systemAmount' => (float) $systemAmount,
+            'actualAmount' => (float) $actualAmount,
+            'nettDiscrepancyAmount' => (float) $nettDiscrepancyAmount, // signed net (+/-)
+
+            // amounts (bucketed magnitudes)
+            'surplusAmount' => (float) $surplusAmount,                 // positive
+            'shortageAmount' => (float) $shortageAmountAbs,            // positive magnitude
+            'totalDiscrepancyAbs' => (float) $totalDiscrepancyAbs,
+
+            // count percentages
             'surplusCountPercent' => $surplusCountPercent,
-            'discrepancyCountPercent' => $discrepancyCountPercent,
+            'shortageCountPercent' => $shortageCountPercent,
             'matchCountPercent' => $matchCountPercent,
-            'totalAmount' => $totalAbsAmount,
+
+            // amount percentages (within discrepancy impact)
             'surplusAmountPercent' => $surplusAmountPercent,
-            'discrepancyAmountPercent' => $discrepancyAmountPercent,
+            'shortageAmountPercent' => $shortageAmountPercent,
+
+            // optional KPI
+            'overallDiscrepancyImpactPercent' => $overallDiscrepancyImpactPercent,
         ];
     }
+
 
     /**
      * Bulk update discrepancy fields (SOH, outstanding GR/GI, error movement)

@@ -91,9 +91,9 @@
                     </div>
                     <div class="flex justify-between mt-1.5 text-[10px] md:text-xs text-gray-500">
                         <span>Counted: <span class="font-semibold text-gray-700">{{ statistics.countedItems
-                                }}</span></span>
+                        }}</span></span>
                         <span>Pending: <span class="font-semibold text-gray-700">{{ statistics.pendingItems
-                                }}</span></span>
+                        }}</span></span>
                     </div>
                 </div>
 
@@ -127,10 +127,10 @@
                                     (-)</span>
                                 <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
                                     <span class="text-base md:text-lg font-bold text-red-800">{{
-                                        statistics.discrepancyCount }}</span>
+                                        statistics.shortageCount }}</span>
                                     <span
                                         class="text-[10px] font-semibold text-red-600 bg-red-100 px-1.5 py-0.5 rounded w-fit">
-                                        {{ statistics.discrepancyCountPercent }}%
+                                        {{ statistics.shortageCountPercent }}%
                                     </span>
                                 </div>
                             </div>
@@ -144,6 +144,23 @@
                             </div>
                             <h3 class="text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wide">Financial
                                 Impact</h3>
+                            <!-- ? hover popover -->
+                            <div class="relative group">
+                                <button type="button" class="w-4 h-4 rounded-full border border-gray-300 text-gray-500 flex items-center justify-center text-[10px]
+             hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    aria-label="Financial impact info">
+                                    ?
+                                </button>
+
+                                <!-- Popover -->
+                                <div class="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2
+             rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg
+             opacity-0 group-hover:opacity-100 transition-opacity">
+                                    This section shows <span class="font-semibold">counted-only</span>
+                                    <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2
+               h-2 w-2 rotate-45 bg-gray-900"></div>
+                                </div>
+                            </div>
                             <span class="ml-auto text-[10px] md:text-xs text-gray-500">Match: {{
                                 statistics.matchCountPercent }}%</span>
                         </div>
@@ -166,13 +183,27 @@
                                     (-) </span>
                                 <div class="flex flex-col xl:flex-row xl:items-baseline gap-1">
                                     <span class="text-sm md:text-lg font-bold text-gray-800 break-all">{{
-                                        formatCurrency(statistics.discrepancyAmount) }}
+                                        formatCurrency(statistics.shortageAmount) }}
                                     </span>
                                     <span
                                         class="text-[10px] font-semibold text-red-600 bg-red-100 px-1.5 py-0.5 rounded w-fit">
-                                        {{ statistics.discrepancyAmountPercent }}%
+                                        {{ statistics.shortageAmountPercent }}%
                                     </span>
                                 </div>
+                            </div>
+                            <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm border"
+                                :class="statistics.nettDiscrepancyAmount >= 0 ? 'border-blue-100' : 'border-red-100'">
+                                <span class="block text-xs md:text-sm text-gray-600 font-bold mb-1">Nett Discrepancy</span>
+                                <span class="text-sm md:text-lg font-bold break-all"
+                                    :class="statistics.nettDiscrepancyAmount > 0 ? 'text-blue-700' : statistics.nettDiscrepancyAmount < 0 ? 'text-red-700' : 'text-gray-800'">
+                                    {{ formatCurrency(statistics.nettDiscrepancyAmount) }}
+                                </span>
+                            </div>
+                            <div class="bg-white p-2 md:p-3 rounded-lg shadow-sm border border-gray-200">
+                                <span class="block text-xs md:text-sm text-gray-600 font-bold mb-1">System Amount</span>
+                                <span class="text-sm md:text-lg font-bold text-gray-800 break-all">
+                                    {{ formatCurrency(statistics.systemAmount) }}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -320,7 +351,10 @@
                 </div>
             </div>
 
-            <div class="hidden md:block bg-white shadow-lg rounded-lg border border-gray-200 overflow-x-auto pb-4">
+            <div ref="tableScrollRef"
+                class="hidden md:block bg-white shadow-lg rounded-lg border border-gray-200 overflow-x-auto pb-4"
+                :class="{ 'cursor-grabbing': isDragging, 'cursor-grab': !isDragging }" @mousedown="onDragStart"
+                @mousemove="onDragMove" @mouseup="onDragEnd" @mouseleave="onDragEnd">
                 <table class="w-full text-sm text-left border-collapse">
                     <thead>
                         <tr
@@ -355,7 +389,7 @@
                             <th class="px-4 py-3 text-center bg-gray-50 border-l border-gray-200">Final Gap</th>
                             <th class="px-2 py-1 text-xs text-center bg-gray-50 border-l border-gray-200">Final Counted
                                 Qty</th>
-                            <th class="px-4 py-3 text-center sticky right-0 bg-gray-50 shadow-sm border-l border-gray-200 align-bottom cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                            <th class="px-4 py-3 text-center  bg-gray-50 shadow-sm border-l border-gray-200 align-bottom cursor-pointer hover:bg-gray-100 transition-colors select-none"
                                 @click="handleSort('final_discrepancy_amount')">
                                 <div class="flex items-center justify-center gap-1">
                                     <span>Final Amount</span>
@@ -414,8 +448,8 @@
 
                             <td
                                 class="px-3 py-2 bg-green-50/10 border-r border-green-100 group-hover:bg-green-50/30 transition-colors">
-                                <input type="number" v-model.number="item.soh" @input="markDirty(item)"
-                                    class="w-full border-gray-300 rounded-md text-right font-medium text-sm focus:ring-2 focus:ring-green-400 focus:border-green-400 shadow-sm px-2 py-1.5 transition-all"
+                                <input type="number" v-model.number="item.soh" @input="markDirty(item)" class="w-full min-w-[90px] border-gray-300 rounded-md text-right font-medium text-sm tabular-nums whitespace-nowrap
+           focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 shadow-sm px-2 py-1.5 transition-all"
                                     placeholder="0" />
                                 <div v-if="item.soh_updated_at" class="text-[10px] text-green-500 text-right mt-1">
                                     {{ formatCompactTimestamp(item.soh_updated_at) }}
@@ -442,27 +476,30 @@
                             </td>
 
                             <td
-                                class="px-3 py-3 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors">
+                                class="px-2 py-2 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors min-w-[110px]">
                                 <input type="number" min="0" v-model.number="item.outstanding_gr"
-                                    @input="markDirty(item)"
-                                    class="w-full border-gray-300 rounded-md text-right font-medium text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 shadow-sm px-2 py-1.5 transition-all"
+                                    @input="markDirty(item)" class="w-full min-w-[90px] border-gray-300 rounded-md text-right font-medium text-sm tabular-nums whitespace-nowrap
+           focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 shadow-sm px-2 py-1.5 transition-all"
                                     placeholder="0" />
                             </td>
 
                             <td
-                                class="px-3 py-3 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors">
+                                class="px-2 py-2 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors min-w-[110px]">
                                 <input type="number" :value="item.outstanding_gi"
                                     @input="item.outstanding_gi = -Math.abs($event.target.value); markDirty(item)"
-                                    class="w-full border-gray-300 rounded-md text-right font-medium text-sm focus:ring-2 focus:ring-red-400 focus:border-red-400 shadow-sm px-2 py-1.5 transition-all text-red-600"
+                                    class="w-full min-w-[90px] border-gray-300 rounded-md text-right font-medium text-sm tabular-nums whitespace-nowrap text-red-600
+           focus:ring-2 focus:ring-red-400 focus:border-red-400 shadow-sm px-2 py-1.5 transition-all"
                                     placeholder="0" />
                             </td>
 
                             <td
-                                class="px-3 py-3 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors">
+                                class="px-2 py-2 bg-yellow-50/10 border-r border-yellow-100 group-hover:bg-yellow-50/30 transition-colors min-w-[110px]">
                                 <input type="number" v-model.number="item.error_movement" @input="markDirty(item)"
-                                    class="w-full border-gray-300 rounded-md text-right font-medium text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 shadow-sm px-2 py-1.5 transition-all"
+                                    class="w-full min-w-[90px] border-gray-300 rounded-md text-right font-medium text-sm tabular-nums whitespace-nowrap
+           focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 shadow-sm px-2 py-1.5 transition-all"
                                     placeholder="0" />
                             </td>
+
 
                             <td class="px-4 py-4 text-center bg-white border-l border-gray-200 group-hover:bg-gray-50">
                                 <div class="inline-block px-3 py-1 rounded-md bg-gray-50 border"
@@ -500,7 +537,7 @@
                     <div class="text-sm text-gray-600 order-2 md:order-1">
                         <span class="md:hidden">Page {{ pagination.current_page }} / {{ pagination.last_page }}</span>
                         <span class="hidden md:inline">Page {{ pagination.current_page }} of {{ pagination.last_page
-                            }}</span>
+                        }}</span>
                     </div>
 
                     <div class="flex gap-2 order-1 md:order-2">
@@ -559,12 +596,12 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
                         <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ itemToSubmit?.material_number
-                            }}</span>
+                        }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Description:</span>
                         <span class="text-xs sm:text-sm font-medium text-gray-900">{{ itemToSubmit?.description
-                        }}</span>
+                            }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between items-center gap-1 pt-2">
                         <label class="text-xs sm:text-sm text-gray-600 font-medium">Actual Count:</label>
@@ -613,13 +650,13 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
                         <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ editingItem?.material_number
-                            }}</span>
+                        }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Description:</span>
                         <span class="text-xs sm:text-sm font-medium text-gray-900 text-right">{{
                             editingItem?.description
-                            }}</span>
+                        }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Current Actual Qty:</span>
@@ -715,6 +752,7 @@ import {
     Check,
     ChevronLeft,
     ChevronRight,
+    IterationCcw,
 } from 'lucide-vue-next';
 import axios from 'axios';
 
@@ -741,6 +779,8 @@ const statistics = ref({
     matchCount: 0,
     surplusAmount: 0,
     discrepancyAmount: 0,
+    nettDiscrepancyAmount: 0,
+    systemAmount: 0,
     surplusCountPercent: 0,
     discrepancyCountPercent: 0,
     matchCountPercent: 0,
@@ -1079,10 +1119,13 @@ const getFinalDiscrepancy = (item) => {
     const gr = Number(item.outstanding_gr) || 0;
     const gi = Number(item.outstanding_gi) || 0;
     const err = Number(item.error_movement) || 0;
+    const explainedSystem = gr + gi + err;
+    const finalGap = initialGap - explainedSystem;
+    const predictedSOH = item.soh + finalGap
 
     return {
-        val: initialGap - gr + gi + err,
-        predictedSOH: item.soh + (initialGap - gr + gi + err)
+        val: finalGap,
+        predictedSOH: predictedSOH
     };
 };
 
@@ -1208,6 +1251,31 @@ const saveActualQty = async () => {
 };
 
 
+// --- DRAG TO SCROLL ---
+const tableScrollRef = ref(null);
+const isDragging = ref(false);
+const dragStartX = ref(0);
+const scrollStartX = ref(0);
+
+const onDragStart = (e) => {
+    // Don't drag if clicking on inputs, buttons, or select elements
+    if (e.target.closest('input, button, select, a, label')) return;
+    isDragging.value = true;
+    dragStartX.value = e.clientX;
+    scrollStartX.value = tableScrollRef.value.scrollLeft;
+    e.preventDefault();
+};
+
+const onDragMove = (e) => {
+    if (!isDragging.value) return;
+    const dx = e.clientX - dragStartX.value;
+    tableScrollRef.value.scrollLeft = scrollStartX.value - dx;
+};
+
+const onDragEnd = () => {
+    isDragging.value = false;
+};
+
 // Lifecycle
 const handleBeforeUnload = (e) => {
     if (hasChanges.value) {
@@ -1253,3 +1321,9 @@ const showSaveMessage = (message, type) => {
 };
 
 </script>
+
+<style scoped>
+.cursor-grabbing {
+    user-select: none;
+}
+</style>

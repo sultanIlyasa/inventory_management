@@ -91,9 +91,9 @@
                     </div>
                     <div class="flex justify-between mt-1.5 text-[10px] md:text-xs text-gray-500">
                         <span>Counted: <span class="font-semibold text-gray-700">{{ statistics.countedItems
-                                }}</span></span>
+                        }}</span></span>
                         <span>Pending: <span class="font-semibold text-gray-700">{{ statistics.pendingItems
-                                }}</span></span>
+                        }}</span></span>
                     </div>
                 </div>
 
@@ -358,7 +358,7 @@
                                 class="w-full border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-3 py-2 text-sm">
                                 <option value="">All</option>
                                 <option value="surplus">Surplus</option>
-                                <option value="shortage">Shortage</option>
+                                <option value="shortage">Deficit</option>
                                 <option value="match">Match</option>
                             </select>
                         </div>
@@ -663,7 +663,7 @@
                     <div class="text-sm text-gray-600 order-2 md:order-1">
                         <span class="md:hidden">Page {{ pagination.current_page }} / {{ pagination.last_page }}</span>
                         <span class="hidden md:inline">Page {{ pagination.current_page }} of {{ pagination.last_page
-                            }}</span>
+                        }}</span>
                     </div>
 
                     <div class="flex gap-2 order-1 md:order-2">
@@ -722,12 +722,12 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
                         <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ itemToSubmit?.material_number
-                            }}</span>
+                        }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Description:</span>
                         <span class="text-xs sm:text-sm font-medium text-gray-900">{{ itemToSubmit?.description
-                        }}</span>
+                            }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between items-center gap-1 pt-2">
                         <label class="text-xs sm:text-sm text-gray-600 font-medium">Actual Count:</label>
@@ -776,13 +776,13 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
                         <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ editingItem?.material_number
-                            }}</span>
+                        }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Description:</span>
                         <span class="text-xs sm:text-sm font-medium text-gray-900 text-right">{{
                             editingItem?.description
-                            }}</span>
+                        }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Current Actual Qty:</span>

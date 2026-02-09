@@ -881,7 +881,7 @@ class AnnualInventoryService
 
             // Discrepancy (matches FE getFinalDiscrepancy)
             $initialGap = $actualQty - $soh;
-            $finalDiscrepancy = $initialGap - $outstandingGR + $outstandingGI + $errorMovement;
+            $finalDiscrepancy = $initialGap - ($outstandingGR + $outstandingGI + $errorMovement);
             $finalDiscrepancyAmount = $finalDiscrepancy * $price;
 
             // Net discrepancy across all items (signed)

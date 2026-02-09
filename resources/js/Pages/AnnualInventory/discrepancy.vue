@@ -62,6 +62,12 @@
                             <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': loading }" />
                             <span class="hidden sm:inline">Refresh</span>
                         </button>
+                        <button @click="recalculateDiscrepancy" :disabled="isRecalculating"
+                            class="col-span-2 sm:col-span-1 px-3 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-xs md:text-sm">
+                            <Loader2 v-if="isRecalculating" class="w-4 h-4 animate-spin" />
+                            <IterationCcw v-else class="w-4 h-4" />
+                            <span class="hidden sm:inline">{{ isRecalculating ? 'Recalculating...' : 'Recalculate' }}</span>
+                        </button>
                     </div>
                 </div>
 
@@ -358,7 +364,7 @@
                                 class="w-full border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 px-3 py-2 text-sm">
                                 <option value="">All</option>
                                 <option value="surplus">Surplus</option>
-                                <option value="shortage">Deficit</option>
+                                <option value="deficit">Deficit</option>
                                 <option value="match">Match</option>
                             </select>
                         </div>
@@ -930,6 +936,7 @@ const searchQuery = ref('');
 const loading = ref(false);
 const saving = ref(false);
 const uploading = ref(false);
+const isRecalculating = ref(false);
 const error = ref(null);
 const successMessage = ref(null);
 const locations = ref([]);
@@ -1001,6 +1008,24 @@ const downloadExcel = () => {
 };
 
 // Handle Excel file upload
+// Recalculate all discrepancy values
+const recalculateDiscrepancy = async () => {
+    isRecalculating.value = true;
+    error.value = null;
+    try {
+        const response = await axios.post('/api/annual-inventory/recalculate-discrepancy');
+        if (response.data.success) {
+            successMessage.value = `Recalculated ${response.data.updated} items`;
+            setTimeout(() => successMessage.value = null, 3000);
+            await fetchData(pagination.value.current_page, true);
+        }
+    } catch (err) {
+        error.value = 'Recalculation failed: ' + (err.response?.data?.message || err.message);
+    } finally {
+        isRecalculating.value = false;
+    }
+};
+
 const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;

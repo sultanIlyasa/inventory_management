@@ -536,4 +536,19 @@ class AnnualInventoryController extends Controller
             'updated' => $result['updated'],
         ]);
     }
+
+    /**
+     * POST /api/annual-inventory/recalculate-discrepancy
+     * Recalculate final_discrepancy for all counted items
+     */
+    public function recalculateDiscrepancy(): JsonResponse
+    {
+        $result = $this->service->recalculateDiscrepancy();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Recalculated {$result['updated']} items",
+            'updated' => $result['updated'],
+        ]);
+    }
 }

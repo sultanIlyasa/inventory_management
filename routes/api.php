@@ -42,6 +42,7 @@ Route::get('/annual-inventory/discrepancy/export', [AnnualInventoryController::c
 Route::post('/annual-inventory/discrepancy/import', [AnnualInventoryController::class, 'discrepancyImport']);
 Route::post('/annual-inventory/discrepancy/bulk-update', [AnnualInventoryController::class, 'bulkUpdateDiscrepancy']);
 Route::post('/annual-inventory/sync-pic-gl', [AnnualInventoryController::class, 'syncPicAndGroupLeader']);
+Route::post('/annual-inventory/recalculate-discrepancy', [AnnualInventoryController::class, 'recalculateDiscrepancy']);
 Route::get('/annual-inventory/pids-dropdown', [AnnualInventoryController::class, 'pidsDropdown']);
 Route::get('/annual-inventory/export', [AnnualInventoryController::class, 'export']);
 Route::get('/annual-inventory/pid/{pid}', [AnnualInventoryController::class, 'showByPID']);

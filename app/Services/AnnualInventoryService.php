@@ -793,13 +793,13 @@ class AnnualInventoryService
         if (!$excludeDiscrepancyType && !empty($filters['discrepancy_type'])) {
             switch ($filters['discrepancy_type']) {
                 case 'surplus':
-                    $query->where('annual_inventory_items.final_discrepancy', '>', 0);
+                    $query->where('annual_inventory_items.final_discrepancy_amount', '>', 0);
                     break;
-                case 'shortage':
-                    $query->where('annual_inventory_items.final_discrepancy', '<', 0);
+                case 'deficit':
+                    $query->where('annual_inventory_items.final_discrepancy_amount', '<', 0);
                     break;
                 case 'match':
-                    $query->where('annual_inventory_items.final_discrepancy', '=', 0);
+                    $query->where('annual_inventory_items.final_discrepancy_amount', '=', 0);
                     break;
             }
         }
@@ -993,8 +993,8 @@ class AnnualInventoryService
                 if ($item->actual_qty !== null) {
                     $actualQty = (float) $item->actual_qty;
 
-                    // Formula: actual - soh + outstanding_gr + outstanding_gi + error_movement
-                    $finalDiscrepancy = $actualQty - (float) $soh + (float) $outstandingGR + (float) $outstandingGI + (float) $errorMovement;
+                    // Formula: (actual - soh) - (outstanding_gr + outstanding_gi + error_movement)
+                    $finalDiscrepancy = ($actualQty - (float) $soh) - ((float) $outstandingGR + (float) $outstandingGI + (float) $errorMovement);
                     $updateData['final_discrepancy'] = $finalDiscrepancy;
                     $updateData['final_discrepancy_amount'] = $finalDiscrepancy * (float) $item->price;
                 }
@@ -1252,7 +1252,7 @@ class AnnualInventoryService
                 // Recalculate final discrepancy if actual_qty exists
                 if ($item->actual_qty !== null) {
                     $actualSoh = $soh ?? $item->soh ?? 0;
-                    $finalDiscrepancy = $item->actual_qty - $actualSoh + $outstandingGR + $outstandingGI + $errorMovement;
+                    $finalDiscrepancy = ($item->actual_qty - $actualSoh) - ($outstandingGR + $outstandingGI + $errorMovement);
                     $updateData['final_discrepancy'] = $finalDiscrepancy;
                     $updateData['final_discrepancy_amount'] = $finalDiscrepancy * (float) $item->price;
                 }
@@ -1342,7 +1342,7 @@ class AnnualInventoryService
             $outstandingGR = (float) ($item->outstanding_gr ?? 0);
             $outstandingGI = (float) ($item->outstanding_gi ?? 0);
             $errorMovement = (float) ($item->error_movement ?? 0);
-            $finalDiscrepancy = $initialGap + $outstandingGR + $outstandingGI + $errorMovement;
+            $finalDiscrepancy = $initialGap - ($outstandingGR + $outstandingGI + $errorMovement);
             $price = (float) ($item->price ?? 0);
             $finalAmount = $finalDiscrepancy * $price;
 
@@ -1641,6 +1641,40 @@ class AnnualInventoryService
         unset($spreadsheet, $writer);
 
         return $binary;
+    }
+
+    /**
+     * Recalculate final_discrepancy and final_discrepancy_amount for all counted items
+     */
+    public function recalculateDiscrepancy(): array
+    {
+        $updated = 0;
+
+        AnnualInventoryItems::whereNotNull('actual_qty')
+            ->each(function (AnnualInventoryItems $item) use (&$updated) {
+                $actualQty = (float) $item->actual_qty;
+                $soh = (float) ($item->soh ?? 0);
+                $gr = (float) ($item->outstanding_gr ?? 0);
+                $gi = (float) ($item->outstanding_gi ?? 0);
+                $err = (float) ($item->error_movement ?? 0);
+                $price = (float) ($item->price ?? 0);
+
+                $finalDiscrepancy = ($actualQty - $soh) - ($gr + $gi + $err);
+                $finalAmount = $finalDiscrepancy * $price;
+
+                if ((float) $item->final_discrepancy !== $finalDiscrepancy || (float) $item->final_discrepancy_amount !== $finalAmount) {
+                    $item->update([
+                        'final_discrepancy' => $finalDiscrepancy,
+                        'final_discrepancy_amount' => $finalAmount,
+                    ]);
+                    $updated++;
+                }
+            });
+
+        return [
+            'success' => true,
+            'updated' => $updated,
+        ];
     }
 
     /**

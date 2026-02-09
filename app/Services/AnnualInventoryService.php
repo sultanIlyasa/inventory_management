@@ -904,16 +904,16 @@ class AnnualInventoryService
         $shortageCountPercent = $totalItems > 0 ? round(($shortageCount / $totalItems) * 100, 1) : 0.0;
         $matchCountPercent    = $totalItems > 0 ? round(($matchCount / $totalItems) * 100, 1) : 0.0;
 
-        $totalDiscrepancyAbs = abs($surplusAmount) + $shortageAmountAbs;
+        $totalDiscrepancyAbs = $surplusAmount + $shortageAmountAbs;
 
         $surplusAmountPercent  = $totalDiscrepancyAbs > 0 ? round((abs($surplusAmount) / $systemAmount) * 100, 1) : 0.0;
         $shortageAmountPercent = $totalDiscrepancyAbs > 0 ? round(($shortageAmountAbs / $systemAmount) * 100, 1) : 0.0;
 
         // Optional: overall discrepancy impact vs system value (useful KPI)
         $overallDiscrepancyImpactPercent = $systemAmount > 0
-            ? round(($totalDiscrepancyAbs / $systemAmount) * 100, 1)
+            ? round(($nettDiscrepancyAmount / $systemAmount) * 100, 1)
             : 0.0;
-
+//
         return [
             // counts
             'totalItems' => $totalItems,

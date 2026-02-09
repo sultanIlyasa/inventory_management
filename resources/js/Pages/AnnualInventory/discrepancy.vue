@@ -117,7 +117,7 @@
                                     rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg
                                     opacity-0 group-hover:opacity-100 transition-opacity">
                                     Shows <span class="font-semibold">counted-only</span> items. Counts how many items
-                                    have Final Gap &gt; 0 (surplus) or &lt; 0 (shortage).
+                                    have Final Gap &gt; 0 (surplus) or &lt; 0 (deficit).
                                     <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2
                                         h-2 w-2 rotate-45 bg-gray-900"></div>
                                 </div>
@@ -162,7 +162,7 @@
                                     <div class="relative group">
                                         <button type="button" class="w-3.5 h-3.5 rounded-full border border-red-300 text-red-500 flex items-center justify-center text-[9px]
                                             hover:bg-red-100 hover:text-red-700 focus:outline-none"
-                                            aria-label="Shortage items info">
+                                            aria-label="Deficit items info">
                                             ?
                                         </button>
                                         <div class="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2
@@ -170,7 +170,7 @@
                                             opacity-0 group-hover:opacity-100 transition-opacity">
                                             Count of items where <span class="font-semibold">Final Gap &lt;
                                                 0</span>.<br>
-                                            Percentage = Shortage Count / Total Items.
+                                            Percentage = Deficit Count / Total Items.
                                             <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2
                                                 h-2 w-2 rotate-45 bg-gray-900"></div>
                                         </div>
@@ -206,7 +206,7 @@
                                     rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg
                                     opacity-0 group-hover:opacity-100 transition-opacity">
                                     Shows <span class="font-semibold">counted-only</span> items.<br>
-                                    Amounts = Final Gap x Price per item, summed by surplus/shortage.
+                                    Amounts = Final Gap x Price per item, summed by surplus/Deficit.
                                     <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2
                                         h-2 w-2 rotate-45 bg-gray-900"></div>
                                 </div>
@@ -254,7 +254,7 @@
                                     <div class="relative group">
                                         <button type="button" class="w-3.5 h-3.5 rounded-full border border-red-300 text-red-500 flex items-center justify-center text-[9px]
                                             hover:bg-red-100 hover:text-red-700 focus:outline-none"
-                                            aria-label="Shortage amount info">
+                                            aria-label="Deficit amount info">
                                             ?
                                         </button>
                                         <div class="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2
@@ -262,7 +262,7 @@
                                             opacity-0 group-hover:opacity-100 transition-opacity">
                                             <span class="font-semibold">Sum of |Final Gap x Price|</span> for items
                                             where Final Gap &lt; 0.<br>
-                                            Percentage = Shortage Amount / System Amount.
+                                            Percentage = Deficit Amount / System Amount.
                                             <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2
                                                 h-2 w-2 rotate-45 bg-gray-900"></div>
                                         </div>
@@ -291,9 +291,9 @@
                                         <div class="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2
                                             rounded-lg bg-gray-900 px-3 py-2 text-xs text-white shadow-lg
                                             opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <span class="font-semibold">Sum of all (Final Gap x Price)</span>,
+                                            <span class="font-semibold">Nett Discrepancy</span>,
                                             signed.<br>
-                                            Positive = net surplus, Negative = net shortage.
+                                            Positive = nett surplus, Negative = nett deficit.
                                             <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2
                                                 h-2 w-2 rotate-45 bg-gray-900"></div>
                                         </div>

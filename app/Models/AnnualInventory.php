@@ -45,10 +45,10 @@ class AnnualInventory extends Model
             'sloc' => '2000 - Sunter 2'
         ],
         '2300 - Warehouse Consummable & Tools' => [
-            'sloc' => '2000 - Sunter 1'
+            'sloc' => '1000 - Sunter 1'
         ],
         '5002 - Mach Kaizen' => [
-            'sloc' => '2000 - Sunter 1'
+            'sloc' => '1000 - Sunter 1'
         ],
     ];
 

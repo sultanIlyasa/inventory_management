@@ -91,9 +91,9 @@
                     </div>
                     <div class="flex justify-between mt-1.5 text-[10px] md:text-xs text-gray-500">
                         <span>Counted: <span class="font-semibold text-gray-700">{{ statistics.countedItems
-                        }}</span></span>
+                                }}</span></span>
                         <span>Pending: <span class="font-semibold text-gray-700">{{ statistics.pendingItems
-                        }}</span></span>
+                                }}</span></span>
                     </div>
                 </div>
 
@@ -462,9 +462,17 @@
 
                     <div class="bg-gray-50 p-3 border-t border-gray-200 flex justify-between items-center">
                         <div class="flex flex-col">
-                            <span class="text-[10px] text-gray-500 uppercase font-bold">Final Variance</span>
+                            <span class="text-[10px] text-gray-500 uppercase font-bold">Final Gap</span>
                             <span class="text-sm font-bold" :class="getGapColor(getFinalDiscrepancy(item).val)">
                                 {{ formatNumber(getFinalDiscrepancy(item).val) }} Qty
+                            </span>
+                            <span></span>
+                        </div>
+                        <!-- Final Counted Qty -->
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-gray-500 uppercase font-bold">Final Counted Qty</span>
+                            <span class="text-sm font-bold">
+                                {{ getFinalDiscrepancy(item).predictedSOH }}
                             </span>
                         </div>
                         <div class="flex items-center gap-2">
@@ -670,7 +678,8 @@
                                     :class="item.notes ? 'text-amber-600 hover:bg-amber-50' : 'text-gray-400 hover:bg-gray-100'"
                                     :title="item.notes || 'Add Remarks'">
                                     <MessageSquare class="w-4 h-4" />
-                                    <span v-if="item.notes" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-500 rounded-full"></span>
+                                    <span v-if="item.notes"
+                                        class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-500 rounded-full"></span>
                                 </button>
                             </td>
                         </tr>
@@ -683,7 +692,7 @@
                     <div class="text-sm text-gray-600 order-2 md:order-1">
                         <span class="md:hidden">Page {{ pagination.current_page }} / {{ pagination.last_page }}</span>
                         <span class="hidden md:inline">Page {{ pagination.current_page }} of {{ pagination.last_page
-                        }}</span>
+                            }}</span>
                     </div>
 
                     <div class="flex gap-2 order-1 md:order-2">
@@ -742,12 +751,12 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
                         <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ itemToSubmit?.material_number
-                        }}</span>
+                            }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Description:</span>
                         <span class="text-xs sm:text-sm font-medium text-gray-900">{{ itemToSubmit?.description
-                            }}</span>
+                        }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between items-center gap-1 pt-2">
                         <label class="text-xs sm:text-sm text-gray-600 font-medium">Actual Count:</label>
@@ -796,13 +805,13 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
                         <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ editingItem?.material_number
-                        }}</span>
+                            }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Description:</span>
                         <span class="text-xs sm:text-sm font-medium text-gray-900 text-right">{{
                             editingItem?.description
-                        }}</span>
+                            }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Current Actual Qty:</span>
@@ -891,11 +900,13 @@
                 <div class="bg-gray-50 rounded-lg p-3 sm:p-4 mb-4 space-y-1">
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
-                        <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ notesItem?.material_number }}</span>
+                        <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ notesItem?.material_number
+                            }}</span>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span class="text-xs sm:text-sm text-gray-600">Description:</span>
-                        <span class="text-xs sm:text-sm font-medium text-gray-900 text-right">{{ notesItem?.description }}</span>
+                        <span class="text-xs sm:text-sm font-medium text-gray-900 text-right">{{ notesItem?.description
+                            }}</span>
                     </div>
                 </div>
 
@@ -1567,7 +1578,7 @@ onMounted(async () => {
     fetchPIDs();
     fetchLocations();
     // Recalculate stored discrepancy values before loading data
-    await axios.post('/api/annual-inventory/recalculate-discrepancy').catch(() => {});
+    await axios.post('/api/annual-inventory/recalculate-discrepancy').catch(() => { });
     fetchData(1, true); // skipConfirm - initial load
 
     // Browser navigation (refresh, close tab, URL change)

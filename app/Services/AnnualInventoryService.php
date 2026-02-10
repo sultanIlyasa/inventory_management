@@ -1607,8 +1607,12 @@ class AnnualInventoryService
         $sheet = $spreadsheet->getActiveSheet();
 
         // Fill header data
-        $sheet->setCellValue('D11', $pid->plant ?? '2000 - Sunter 2');
-        $sheet->setCellValue('D12', $pid->sloc ?? $pid->location ?? '');
+        $sheet->setCellValue('E6', $pid->group_leader ?? '');
+        $sheet->setCellValue('F6', $pid->pic_name ?? '');
+        $sheet->setCellValue('G6', $pid->pic_input ?? '');
+        $sheet->setCellValue('H6', $pid->group_leader ?? '');
+        $sheet->setCellValue('D11', $pid->sloc ?? '2000 - Sunter 2');
+        $sheet->setCellValue('D12', $pid->location ?? '');
         $sheet->setCellValue('D13', $pid->pid);
         $sheet->setCellValue('D14', optional($pid->date)->format('n/j/Y h:i:s A') ?? now()->format('n/j/Y h:i:s A'));
 
@@ -1616,7 +1620,7 @@ class AnnualInventoryService
         $dataStartRow = 23;
 
         $items = DB::table('annual_inventory_items')
-            ->select(['material_number', 'description', 'rack_address', 'unit_of_measure', 'actual_qty'])
+            ->select(['material_number', 'description', 'rack_address', 'unit_of_measure', 'final_counted_qty'])
             ->where('annual_inventory_id', $pid->id)
             ->cursor();
 
@@ -1629,7 +1633,7 @@ class AnnualInventoryService
             $sheet->setCellValue('E' . $row, ''); // Batch
             $sheet->setCellValue('F' . $row, $item->rack_address);
             $sheet->setCellValue('G' . $row, $item->unit_of_measure);
-            $sheet->setCellValue('H' . $row, $item->actual_qty ?? '');
+            $sheet->setCellValue('H' . $row, $item->final_counted_qty ?? '0');
             $row++;
             $no++;
         }
@@ -1722,8 +1726,8 @@ class AnnualInventoryService
     private function buildTemplateData($pid): array
     {
         return [
-            'plant'      => $pid->plant ?? '2000 - Sunter 2',
-            'sloc'       => $pid->sloc ?? ($pid->location ?? ''),
+            'plant'      => $pid->sloc ?? '2000 - Sunter 2',
+            'sloc'       => $pid->location ?? '',
             'pid'        => $pid->pid,
             'doc_date'   => optional($pid->date)->format('n/j/Y h:i:s A') ?? now()->format('n/j/Y h:i:s A'),
             'sheet_name' => $pid->sheet_name ?? 'Worksheet Inv. Workshop',

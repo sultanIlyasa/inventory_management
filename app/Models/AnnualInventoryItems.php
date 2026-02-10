@@ -14,6 +14,7 @@ class AnnualInventoryItems extends Model
         'unit_of_measure',
         'system_qty',
         'actual_qty',
+        'final_counted_qty',
         'price',
         'price_updated_at',
         'soh',

@@ -21,6 +21,7 @@ return new class extends Migration
             $table->integer('price');
             $table->integer('soh')->nullable();
             $table->integer('actual_qty')->nullable();
+            $table->integer('system_qty')->nullable();
             $table->integer('outstanding_gr')->nullable();
             $table->integer('outstanding_gi')->nullable();
             $table->integer('error_movement')->nullable();

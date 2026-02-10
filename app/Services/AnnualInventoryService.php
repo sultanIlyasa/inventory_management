@@ -169,6 +169,7 @@ class AnnualInventoryService
                     'counted_at' => $item->counted_at?->format('Y-m-d H:i:s'),
                     'notes' => $item->notes,
                     'actual_qty_history' => $item->actual_qty_history?->all(),
+                    'final_counted_qty' => $item->final_counted_qty !== null ? (float) $item->final_counted_qty : null
                 ];
             });
 
@@ -269,6 +270,7 @@ class AnnualInventoryService
                 $finalDiscrepancy = ($actualQty - $soh) - ($outstandingGR + $outstandingGI + $errorMovement);
                 $data['final_discrepancy'] = $finalDiscrepancy;
                 $data['final_discrepancy_amount'] = $finalDiscrepancy * (float) $item->price;
+                $data['final_counted_qty'] = $soh + $finalDiscrepancy;
             }
 
 
@@ -752,6 +754,7 @@ class AnnualInventoryService
                     'counted_at' => $item->counted_at,
                     'notes' => $item->notes,
                     'actual_qty_history' => $item->actual_qty_history ?? [],
+                    'final_counted_qty' => $item->final_counted_qty !== null ? (float) $item->final_counted_qty : null
                 ];
             })->all(),
             'pagination' => [
@@ -913,7 +916,7 @@ class AnnualInventoryService
         $overallDiscrepancyImpactPercent = $systemAmount > 0
             ? round(($nettDiscrepancyAmount / $systemAmount) * 100, 1)
             : 0.0;
-//
+        //
         return [
             // counts
             'totalItems' => $totalItems,
@@ -997,6 +1000,7 @@ class AnnualInventoryService
                     $finalDiscrepancy = ($actualQty - (float) $soh) - ((float) $outstandingGR + (float) $outstandingGI + (float) $errorMovement);
                     $updateData['final_discrepancy'] = $finalDiscrepancy;
                     $updateData['final_discrepancy_amount'] = $finalDiscrepancy * (float) $item->price;
+                    $updateData['final_counted_qty'] = (float) $soh + $finalDiscrepancy;
                 }
 
                 $item->update($updateData);
@@ -1255,6 +1259,7 @@ class AnnualInventoryService
                     $finalDiscrepancy = ($item->actual_qty - $actualSoh) - ($outstandingGR + $outstandingGI + $errorMovement);
                     $updateData['final_discrepancy'] = $finalDiscrepancy;
                     $updateData['final_discrepancy_amount'] = $finalDiscrepancy * (float) $item->price;
+                    $updateData['final_counted_qty'] = (float) $actualSoh + $finalDiscrepancy;
                 }
 
                 $item->update($updateData);
@@ -1494,7 +1499,7 @@ class AnnualInventoryService
 
             // Use raw query with cursor for memory efficiency
             $items = DB::table('annual_inventory_items')
-                ->select(['material_number', 'description', 'rack_address', 'unit_of_measure', 'actual_qty'])
+                ->select(['material_number', 'description', 'rack_address', 'unit_of_measure', 'final_counted_qty'])
                 ->where('annual_inventory_id', $pid->id)
                 ->cursor();
 
@@ -1507,7 +1512,7 @@ class AnnualInventoryService
                 $sheet->setCellValue('E' . $row, ''); // Batch
                 $sheet->setCellValue('F' . $row, $item->rack_address);
                 $sheet->setCellValue('G' . $row, $item->unit_of_measure);
-                $sheet->setCellValue('H' . $row, $item->actual_qty ?? '');
+                $sheet->setCellValue('H' . $row, $item->final_counted_qty ?? '0');
                 $row++;
                 $no++;
             }
@@ -1662,10 +1667,13 @@ class AnnualInventoryService
                 $finalDiscrepancy = ($actualQty - $soh) - ($gr + $gi + $err);
                 $finalAmount = $finalDiscrepancy * $price;
 
-                if ((float) $item->final_discrepancy !== $finalDiscrepancy || (float) $item->final_discrepancy_amount !== $finalAmount) {
+                $finalCountedQty = $soh + $finalDiscrepancy;
+
+                if ((float) $item->final_discrepancy !== $finalDiscrepancy || (float) $item->final_discrepancy_amount !== $finalAmount || (float) ($item->final_counted_qty ?? 0) !== $finalCountedQty) {
                     $item->update([
                         'final_discrepancy' => $finalDiscrepancy,
                         'final_discrepancy_amount' => $finalAmount,
+                        'final_counted_qty' => $finalCountedQty,
                     ]);
                     $updated++;
                 }

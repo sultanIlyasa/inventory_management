@@ -467,11 +467,21 @@
                                 {{ formatNumber(getFinalDiscrepancy(item).val) }} Qty
                             </span>
                         </div>
-                        <div class="text-right">
-                            <span class="text-sm font-bold"
-                                :class="getGapColor(getFinalDiscrepancy(item).val * (item.price || 0))">
-                                {{ formatCurrency(getFinalDiscrepancy(item).val * (item.price || 0)) }}
-                            </span>
+                        <div class="flex items-center gap-2">
+                            <button @click.stop="openNotesModal(item)"
+                                class="p-1.5 rounded-full transition-colors relative"
+                                :class="item.notes ? 'text-amber-600 hover:bg-amber-100' : 'text-gray-400 hover:bg-gray-200'"
+                                :title="item.notes ? 'View/Edit Notes' : 'Add Notes'">
+                                <MessageSquare class="w-4 h-4" />
+                                <span v-if="item.notes"
+                                    class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-500 rounded-full"></span>
+                            </button>
+                            <div class="text-right">
+                                <span class="text-sm font-bold"
+                                    :class="getGapColor(getFinalDiscrepancy(item).val * (item.price || 0))">
+                                    {{ formatCurrency(getFinalDiscrepancy(item).val * (item.price || 0)) }}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -533,11 +543,12 @@
                                     </div>
                                 </div>
                             </th>
+                            <th class="px-2 py-3 text-center bg-gray-50 border-l border-gray-200">Remarks</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         <tr v-if="loading" class="hover:bg-gray-50">
-                            <td colspan="13" class="px-4 py-8 text-center text-gray-500">
+                            <td colspan="15" class="px-4 py-8 text-center text-gray-500">
                                 <div class="flex justify-center items-center">
                                     <Loader2 class="w-5 h-5 mr-3 text-blue-500 animate-spin" />
                                     Loading data...
@@ -545,7 +556,7 @@
                             </td>
                         </tr>
                         <tr v-else-if="items.length === 0" class="hover:bg-gray-50">
-                            <td colspan="13" class="px-4 py-8 text-center text-gray-500">
+                            <td colspan="15" class="px-4 py-8 text-center text-gray-500">
                                 No items found. Make sure items have been counted first.
                             </td>
                         </tr>
@@ -652,6 +663,15 @@
                             <td class="px-4 py-4 text-xs text-right bg-white border-l border-gray-200 group-hover:bg-gray-50 font-medium whitespace-nowrap tabular-nums"
                                 :class="getGapColor(getFinalDiscrepancy(item).val * (item.price || 0))">
                                 {{ formatCurrency(getFinalDiscrepancy(item).val * (item.price || 0)) }}
+                            </td>
+                            <td class="px-2 py-2 text-center bg-white border-l border-gray-200 group-hover:bg-gray-50">
+                                <button @click="openNotesModal(item)"
+                                    class="relative p-1.5 rounded-lg transition-colors"
+                                    :class="item.notes ? 'text-amber-600 hover:bg-amber-50' : 'text-gray-400 hover:bg-gray-100'"
+                                    :title="item.notes || 'Add Remarks'">
+                                    <MessageSquare class="w-4 h-4" />
+                                    <span v-if="item.notes" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-500 rounded-full"></span>
+                                </button>
                             </td>
                         </tr>
                     </tbody>
@@ -852,6 +872,53 @@
                 </div>
             </div>
         </Modal>
+
+        <!-- Notes Modal -->
+        <Modal :show="showNotesModal" @close="closeNotesModal" max-width="md">
+            <div class="p-4 sm:p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-amber-100 rounded-lg">
+                            <MessageSquare class="w-5 h-5 text-amber-600" />
+                        </div>
+                        <h2 class="text-base sm:text-lg font-semibold text-gray-900">Notes / Remarks</h2>
+                    </div>
+                    <button @click="closeNotesModal" class="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                        <X class="w-5 h-5 text-gray-500" />
+                    </button>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-3 sm:p-4 mb-4 space-y-1">
+                    <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span class="text-xs sm:text-sm text-gray-600">Material Number:</span>
+                        <span class="text-xs sm:text-sm font-semibold text-gray-900">{{ notesItem?.material_number }}</span>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span class="text-xs sm:text-sm text-gray-600">Description:</span>
+                        <span class="text-xs sm:text-sm font-medium text-gray-900 text-right">{{ notesItem?.description }}</span>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Remarks</label>
+                    <textarea v-model="notesText" rows="4"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm resize-none"
+                        placeholder="Add notes or remarks for this item..."></textarea>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+                    <button @click="closeNotesModal"
+                        class="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition order-2 sm:order-1">
+                        Cancel
+                    </button>
+                    <button @click="saveNotes" :disabled="savingNotes"
+                        class="w-full sm:w-auto px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition order-1 sm:order-2 flex items-center justify-center gap-2">
+                        <Loader2 v-if="savingNotes" class="w-4 h-4 animate-spin" />
+                        {{ savingNotes ? 'Saving...' : 'Save Notes' }}
+                    </button>
+                </div>
+            </div>
+        </Modal>
     </MainAppLayout>
 
 
@@ -879,6 +946,7 @@ import {
     ChevronLeft,
     ChevronRight,
     IterationCcw,
+    MessageSquare,
 } from 'lucide-vue-next';
 import axios from 'axios';
 
@@ -947,6 +1015,13 @@ const editingItem = ref(null);        // selected item snapshot for modal
 const editingItemId = ref(null);      // keep id stable
 const newActualQty = ref(null);
 const savingActualQty = ref(false);
+
+// Notes modal state
+const showNotesModal = ref(false);
+const notesItem = ref(null);
+const notesItemId = ref(null);
+const notesText = ref('');
+const savingNotes = ref(false);
 const loadingActualQtyHistory = ref(false);
 // Computed
 const hasChanges = computed(() => items.value.some(item => item._dirty));
@@ -1395,6 +1470,49 @@ const saveActualQty = async () => {
     }
 };
 
+
+// --- NOTES MODAL ---
+const openNotesModal = (item) => {
+    notesItem.value = { ...item };
+    notesItemId.value = item.id;
+    notesText.value = item.notes || '';
+    showNotesModal.value = true;
+};
+
+const closeNotesModal = () => {
+    showNotesModal.value = false;
+    notesItem.value = null;
+    notesItemId.value = null;
+    notesText.value = '';
+};
+
+const saveNotes = async () => {
+    const id = notesItemId.value;
+    if (!id) return;
+
+    savingNotes.value = true;
+    error.value = null;
+
+    try {
+        const response = await axios.put(`/api/annual-inventory/items/${id}`, {
+            notes: notesText.value,
+        });
+
+        if (response.data.success) {
+            const idx = items.value.findIndex((i) => i.id === id);
+            if (idx !== -1) {
+                items.value[idx].notes = notesText.value;
+            }
+            successMessage.value = 'Notes saved successfully';
+            setTimeout(() => (successMessage.value = null), 3000);
+            closeNotesModal();
+        }
+    } catch (err) {
+        error.value = 'Failed to save notes: ' + (err.response?.data?.message || err.message);
+    } finally {
+        savingNotes.value = false;
+    }
+};
 
 // --- DRAG TO SCROLL ---
 const tableScrollRef = ref(null);

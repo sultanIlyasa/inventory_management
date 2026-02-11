@@ -33,7 +33,10 @@ The Annual Inventory feature allows warehouse staff to perform physical inventor
 | date | date | Inventory date |
 | status | string | Not Checked / In Progress / Completed |
 | pic_name | string | Person in charge name |
-| location | string | Warehouse location |
+| location | string | Warehouse location (e.g. "2000 - Warehouse Consummable, Chemical, & Raw Material") |
+| sloc | string | Storage location / plant (auto-assigned from location mapping) |
+| group_leader | string | Group leader name (auto-assigned from location mapping) |
+| pic_input | string | PIC input name (auto-assigned from location mapping) |
 | timestamps | | created_at, updated_at |
 
 ### Table: `annual_inventory_items`
@@ -55,6 +58,7 @@ The Annual Inventory feature allows warehouse staff to perform physical inventor
 | error_movement | decimal | Movement errors |
 | final_discrepancy | decimal | Calculated discrepancy |
 | final_discrepancy_amount | decimal | Discrepancy value |
+| final_counted_qty | decimal | Predicted SOH after adjustments (SOH + Final Discrepancy) |
 | status | string | PENDING / COUNTED / VERIFIED |
 | counted_by | string | Counter name |
 | counted_at | datetime | Count timestamp |
@@ -113,6 +117,13 @@ Each entry in the history array contains:
 | GET | `/api/annual-inventory/discrepancy/export` | Export discrepancy data to Excel |
 | POST | `/api/annual-inventory/discrepancy/import` | Import discrepancy data from Excel |
 | POST | `/api/annual-inventory/discrepancy/bulk-update` | Bulk update SOH/GR/GI/Error |
+| POST | `/api/annual-inventory/recalculate-discrepancy` | Recalculate all stored discrepancy values |
+
+### Data Sync
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/annual-inventory/sync-pic-gl` | Sync pic_input, group_leader, and sloc for all PIDs based on location mapping |
 
 ### Import & Export
 
@@ -155,7 +166,7 @@ Statistics respond to the same filters as the index page, so stats update in rea
 | per_page | 50 | Items per page |
 | pid_id | | Filter by PID |
 | status | | Filter by item status |
-| discrepancy_type | | Filter by type: `surplus`, `shortage`, `match` |
+| discrepancy_type | | Filter by type: `surplus`, `deficit`, `match` |
 | location | | Filter by location |
 | search | | Search material number, description, or PID |
 | counted_only | true | Show only counted items (status != PENDING) |
@@ -170,6 +181,7 @@ Statistics respond to the same filters as the index page, so stats update in rea
 - **Filters**: Location, Status
 - **Actions**:
   - Refresh - Reload data
+  - Sync PIC & GL - Sync pic_input, group_leader, and sloc for all PIDs based on location mapping
   - Download Selected - Download selected PIDs as Excel (checkbox selection)
   - Download All - Export all PIDs with current filters
   - Upload - Import new PIDs from Excel (supports bulk upload)
@@ -244,14 +256,17 @@ Statistics respond to the same filters as the index page, so stats update in rea
   - Counted and Pending counts below bar
   - Updates based on active filters (PID, location, search)
   - Progress ignores `counted_only` filter to show true completion ratio
-- **Statistics Cards**:
-  - Operational Impact: Surplus Items (+), Shortage Items (-)
-  - Financial Impact: Surplus Amount, Shortage Amount
+- **Statistics Cards** (with hover popovers explaining each calculation):
+  - Operational Impact: Surplus Items (+), Deficit Items (-)
+  - Financial Impact: Surplus Amount, Deficit Amount
+  - Nett Discrepancy (signed net across all items)
+  - System Amount (total SOH x Price)
   - Stats reflect only counted items (filtered by `counted_only`)
+  - Overall Discrepancy Impact % = Nett Discrepancy Amount / System Amount x 100
 - **Filters**:
   - Location - Filter by warehouse location
   - PID - Filter by specific PID
-  - Type - Surplus/Shortage/Match (discrepancy type)
+  - Type - Surplus/Deficit/Match (discrepancy type)
   - Search - Material number, description, or PID
 - **Table Columns**:
   - PID, Material Number, Material Name, Rack, Price
@@ -264,7 +279,10 @@ Statistics respond to the same filters as the index page, so stats update in rea
   - Final Gap (calculated)
   - Final Counted Qty (predicted SOH)
   - Final Amount (calculated)
+  - Notes (icon button, opens modal)
+- **Drag-to-Scroll**: Table supports horizontal drag-to-scroll with a 5px threshold to preserve text selection
 - **Pagination**: 50 items per page
+- **Auto-Recalculation**: On page load, all stored discrepancy values are automatically recalculated to ensure consistency between frontend and backend
 - **Edit Actual Qty Modal**:
   - Shows material info (number, description, current qty)
   - Displays quantity revision history table
@@ -346,8 +364,11 @@ Each file upload returns:
 Uses a template file at `storage/app/templates/worksheet_template.xlsx`. Template files must be committed to git (whitelisted in `storage/app/.gitignore`).
 
 Template structure:
-- D11: Plant, D12: SLOC, D13: PID, D14: Doc Date
-- Row 23 onwards: Item data (No, Material Number, Description, Batch, Rack Address, UoM, Checking)
+- E6: Group Leader, F6: PIC Name, G6: PIC Input, H6: Group Leader
+- D11: Plant (sloc), D12: SLOC (location), D13: PID, D14: Doc Date
+- Row 23 onwards: Item data (No, Material Number, Description, Batch, Rack Address, UoM, Final Counted Qty)
+
+**Note**: The "Checking" column (H) exports `final_counted_qty` (predicted SOH) instead of `actual_qty`.
 
 Supports single PID download (`.xlsx`) or multi-PID download (`.zip`).
 
@@ -398,19 +419,52 @@ The discrepancy page protects against accidental data loss.
 - After successful save
 - After successful import
 
+## Auto-Assignment (PIC, Group Leader, SLOC)
+
+The `AnnualInventory` model automatically assigns `pic_input`, `group_leader`, and `sloc` based on the `location` column when a PID is saved.
+
+### Location Mapping
+
+| Location | pic_input | group_leader | sloc |
+|----------|-----------|--------------|------|
+| 2000 - Warehouse Consummable, Chemical, & Raw Material | ADE N | DEDY S | 2000 - Sunter 2 |
+| 2300 - Warehouse Consummable & Tools | EKO P | AHMAD J | 1000 - Sunter 1 |
+| 5002 - Mach Kaizen | EKO P | AHMAD J | 1000 - Sunter 1 |
+
+### How It Works
+
+- The `AnnualInventory` model has a `saving` event hook in `booted()` that calls `assignPicAndGroupLeader()` before every save
+- The method checks `$this->location` against the `$slocMapping` and `$plantMapping` static arrays
+- If a match is found, `pic_input`, `group_leader`, and `sloc` are auto-filled
+- For existing records, use the "Sync PIC & GL" button on the index page or call `POST /api/annual-inventory/sync-pic-gl`
+
+## Notes/Remarks Feature
+
+The discrepancy page allows adding notes to individual items via a modal dialog.
+
+### How It Works
+
+1. Click the message icon (MessageSquare) next to any item in the table (desktop) or card footer (mobile)
+2. Icon is **amber** with a dot indicator when the item has existing notes, **gray** when empty
+3. Modal opens showing material info (number, description) and a textarea for notes
+4. Click "Save Notes" to persist — calls `PUT /api/annual-inventory/items/{id}` with `{ notes: notesText }`
+5. Notes are saved to the `notes` column on `annual_inventory_items`
+
 ## Discrepancy Calculation
 
 ```
 Initial Gap = Actual Qty - SOH
-Final Discrepancy = Initial Gap - Outstanding GR + Outstanding GI + Error Movement
-                  = (Actual Qty - SOH) - Outstanding GR + Outstanding GI + Error Movement
+Final Discrepancy = (Actual Qty - SOH) - (Outstanding GR + Outstanding GI + Error Movement)
 Final Discrepancy Amount = Final Discrepancy x Unit Price
+Final Counted Qty = SOH + Final Discrepancy
 ```
 
 **Note**:
 - Positive Final Discrepancy = Surplus (actual > expected)
-- Negative Final Discrepancy = Shortage (actual < expected)
+- Negative Final Discrepancy = Deficit (actual < expected)
 - Outstanding GI values are typically negative
+- `Final Counted Qty` is the frontend's `predictedSOH` — it is persisted to the database on every save, refresh, import, and auto-recalculation
+- The formula is consistent across all backend calculation points: `insertActualQty`, `bulkUpdateDiscrepancy`, `importDiscrepancyExcel`, `exportDiscrepancyToExcel`, `recalculateDiscrepancy`, and `calculateDiscrepancyStatistics`
 
 ## Status Flow
 
@@ -497,7 +551,7 @@ GET /api/annual-inventory/statistics?location=Sunter_1&status=Completed
 ### API: Get discrepancy items with filters
 
 ```bash
-GET /api/annual-inventory/discrepancy?location=Sunter_1&pid_id=1&discrepancy_type=shortage&page=1
+GET /api/annual-inventory/discrepancy?location=Sunter_1&pid_id=1&discrepancy_type=deficit&page=1
 ```
 
 ### API: Import discrepancy data
@@ -507,6 +561,33 @@ POST /api/annual-inventory/discrepancy/import
 Content-Type: multipart/form-data
 
 file: [discrepancy.xlsx]
+```
+
+### API: Sync PIC & Group Leader
+
+```bash
+POST /api/annual-inventory/sync-pic-gl
+```
+
+Response: `{ "success": true, "message": "Synced 5 PIDs with pic_input and group_leader", "updated": 5 }`
+
+### API: Recalculate Discrepancy
+
+```bash
+POST /api/annual-inventory/recalculate-discrepancy
+```
+
+Response: `{ "success": true, "message": "Recalculated 42 items", "updated": 42 }`
+
+### API: Update Item Notes
+
+```bash
+PUT /api/annual-inventory/items/123
+Content-Type: application/json
+
+{
+  "notes": "Checked with warehouse team, confirmed count is correct"
+}
 ```
 
 ### API: Export PIDs to Excel

@@ -329,28 +329,60 @@ class AnnualInventoryController extends Controller
     }
 
     /**
+     * POST /api/annual-inventory/{id}/signatures
+     * Save a single role signature for a PID
+     */
+    public function saveSignatures(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'role' => 'required|string|in:pic_name,group_leader,pic_input',
+            'signature' => 'nullable|string',
+        ]);
+
+        $inventory = \App\Models\AnnualInventory::find($id);
+        if (!$inventory) {
+            return response()->json(['success' => false, 'message' => 'PID not found'], 404);
+        }
+
+        $column = $validated['role'] . '_signature';
+        $inventory->{$column} = $validated['signature'] ?: null;
+        $inventory->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $validated['signature'] ? 'Signature saved' : 'Signature removed',
+            'data' => [
+                'has_pic_name_signature' => !empty($inventory->pic_name_signature),
+                'has_group_leader_signature' => !empty($inventory->group_leader_signature),
+                'has_pic_input_signature' => !empty($inventory->pic_input_signature),
+            ],
+        ]);
+    }
+
+    /**
      * GET /api/annual-inventory/export
      * Export PIDs with actual quantities to Excel
      */
     public function export(Request $request)
     {
+        $isPost = $request->isMethod('post');
+
         // Handle pids parameter - can be comma-separated string or array
-        $pids = $request->query('pids');
+        $pids = $isPost ? $request->input('pids') : $request->query('pids');
         if (is_string($pids) && !empty($pids)) {
             $pids = array_map('trim', explode(',', $pids));
         }
 
         $filters = [
-            'search' => $request->query('search'),
-            'location' => $request->query('location'),
-            'status' => $request->query('status'),
+            'search' => $isPost ? $request->input('search') : $request->query('search'),
+            'location' => $isPost ? $request->input('location') : $request->query('location'),
+            'status' => $isPost ? $request->input('status') : $request->query('status'),
             'pids' => $pids,
-            'mode' => $request->query('mode', 'auto'), // auto | single | zip
-            'pid' => $request->query('pid'), // specific single PID to export
+            'mode' => $isPost ? $request->input('mode', 'auto') : $request->query('mode', 'auto'),
+            'pid' => $isPost ? $request->input('pid') : $request->query('pid'),
         ];
 
         try {
-
             $result = $this->service->exportToExcel($filters);
 
             if ($result === null) {
@@ -358,8 +390,6 @@ class AnnualInventoryController extends Controller
 
             return $result;
         } catch (\Throwable $e) {
-
-
             return response()->json([
                 'success' => false,
                 'message' => 'Export failed: ' . $e->getMessage(),

@@ -44,13 +44,14 @@ Route::post('/annual-inventory/discrepancy/bulk-update', [AnnualInventoryControl
 Route::post('/annual-inventory/sync-pic-gl', [AnnualInventoryController::class, 'syncPicAndGroupLeader']);
 Route::post('/annual-inventory/recalculate-discrepancy', [AnnualInventoryController::class, 'recalculateDiscrepancy']);
 Route::get('/annual-inventory/pids-dropdown', [AnnualInventoryController::class, 'pidsDropdown']);
-Route::get('/annual-inventory/export', [AnnualInventoryController::class, 'export']);
+Route::match(['get', 'post'], '/annual-inventory/export', [AnnualInventoryController::class, 'export']);
 Route::get('/annual-inventory/pid/{pid}', [AnnualInventoryController::class, 'showByPID']);
 Route::get('/annual-inventory/by-pid/{pid}', [AnnualInventoryController::class, 'showByPIDWithPagination']);
 Route::post('/annual-inventory/importpid', [AnnualInventoryController::class, 'importPID']);
 Route::put('/annual-inventory/items/{itemId}', [AnnualInventoryController::class, 'updateItem']);
 Route::post('/annual-inventory/items/bulk-update', [AnnualInventoryController::class, 'bulkUpdateItems']);
 Route::post('/annual-inventory/items/{itemId}/upload-image', [AnnualInventoryController::class, 'uploadImage']);
+Route::post('/annual-inventory/{id}/signatures', [AnnualInventoryController::class, 'saveSignatures'])->where('id', '[0-9]+');
 Route::get('/annual-inventory/{id}', [AnnualInventoryController::class, 'show'])->where('id', '[0-9]+');
 Route::put('/annual-inventory/{id}', [AnnualInventoryController::class, 'update'])->where('id', '[0-9]+');
 Route::delete('/annual-inventory/{id}', [AnnualInventoryController::class, 'destroy'])->where('id', '[0-9]+');

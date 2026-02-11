@@ -3,7 +3,9 @@
     "allow": [
       "Bash(php artisan migrate:*)",
       "Bash(npm run build:*)",
-      "Bash(git check-ignore:*)"
+      "Bash(git check-ignore:*)",
+      "Bash(php:*)",
+      "Bash(npx vite build)"
     ]
   }
 }

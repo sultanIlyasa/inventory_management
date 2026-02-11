@@ -8,6 +8,7 @@ use App\Models\Materials;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use AnourValar\Office\SheetsService;
 use AnourValar\Office\Format;
 use ZipArchive;
@@ -115,7 +116,10 @@ class AnnualInventoryService
                     'progress' => $itemsCount > 0 ? round(($countedCount / $itemsCount) * 100, 1) : 0,
                     'group_leader' => $inventory->group_leader,
                     'pic_input' => $inventory->pic_input,
-                    'sloc' => $inventory->sloc
+                    'sloc' => $inventory->sloc,
+                    'has_pic_name_signature' => !empty($inventory->pic_name_signature),
+                    'has_group_leader_signature' => !empty($inventory->group_leader_signature),
+                    'has_pic_input_signature' => !empty($inventory->pic_input_signature)
                 ];
             })->all(),
             'pagination' => [
@@ -1394,6 +1398,108 @@ class AnnualInventoryService
         ]);
     }
 
+    /**
+     * Decode base64 signature strings to temporary PNG files
+     */
+    private function decodeSignatures(?array $signatures): ?array
+    {
+        if (!$signatures) {
+            return null;
+        }
+
+        $tmpDir = storage_path('app/tmp');
+        if (!is_dir($tmpDir)) {
+            mkdir($tmpDir, 0777, true);
+        }
+
+        $paths = [];
+        foreach (['pic_name', 'group_leader', 'pic_input'] as $key) {
+            if (!empty($signatures[$key])) {
+                $base64 = $signatures[$key];
+
+                // Strip data URI prefix if present
+                if (str_contains($base64, ',')) {
+                    $base64 = substr($base64, strpos($base64, ',') + 1);
+                }
+
+                // Handle spaces (common in base64 from URLs)
+                $base64 = str_replace(' ', '+', $base64);
+
+                $decoded = base64_decode($base64, true);
+                if ($decoded === false) continue;
+
+                $path = $tmpDir . '/sig_' . $key . '_' . uniqid() . '.png';
+                file_put_contents($path, $decoded);
+
+                if (@getimagesize($path) === false) {
+                    @unlink($path);
+                    continue;
+                }
+                $paths[$key] = $path;
+            }
+        }
+
+        return !empty($paths) ? $paths : null;
+    }
+
+    /**
+     * Delete temporary signature files
+     */
+    private function cleanupSignatureFiles(?array $paths): void
+    {
+        if (!$paths) return;
+        foreach ($paths as $path) {
+            if (file_exists($path)) {
+                @unlink($path);
+            }
+        }
+    }
+
+    /**
+     * Insert signature images into Excel sheet
+     * group_leader -> E3 and H3
+     * pic_name -> F3
+     * pic_input -> G3
+     */
+    private function insertSignatures($sheet, ?array $signaturePaths): void
+    {
+        if (!$signaturePaths) return;
+
+        $place = function (string $name, string $path, string $cell) use ($sheet) {
+            if (!$path || !file_exists($path) || filesize($path) < 100) return;
+
+            $d = new Drawing();
+            $d->setName($name);
+            $d->setPath($path);
+            $d->setCoordinates($cell);
+
+            // adjust for your box
+            $d->setHeight(45);
+            $d->setOffsetX(8);
+            $d->setOffsetY(6);
+
+            $d->setWorksheet($sheet);
+        };
+
+        // group_leader signature -> E3 and H3
+        if (!empty($signaturePaths['group_leader'])) {
+            $place('Group Leader Signature (E3)', $signaturePaths['group_leader'], 'E3');
+            $place('Group Leader Signature (H3)', $signaturePaths['group_leader'], 'H3');
+        }
+
+        // pic_name signature -> F3
+        if (!empty($signaturePaths['pic_name'])) {
+            $place('PIC Name Signature (F3)', $signaturePaths['pic_name'], 'F3');
+        }
+
+        // pic_input signature -> G3
+        if (!empty($signaturePaths['pic_input'])) {
+            $place('PIC Input Signature (G3)', $signaturePaths['pic_input'], 'G3');
+        }
+    }
+
+
+
     public function exportToExcel(array $filters = [])
     {
         // Build query WITHOUT eager loading items (load per-PID to save memory)
@@ -1444,7 +1550,6 @@ class AnnualInventoryService
             if (!$pid) {
                 return null;
             }
-            // No eager loading needed - downloadSingleWorksheet uses raw queries
             return $this->downloadSingleWorksheet($pid, $template, $format);
         }
 
@@ -1476,10 +1581,21 @@ class AnnualInventoryService
 
         DB::disableQueryLog();
 
+        // Read signatures from DB for this PID
+        $signatures = [
+            'pic_name' => $pid->pic_name_signature,
+            'group_leader' => $pid->group_leader_signature,
+            'pic_input' => $pid->pic_input_signature,
+        ];
+        $signatures = array_filter($signatures, fn($v) => is_string($v) && trim($v) !== '');
+
+        $signaturePaths = $this->decodeSignatures($signatures ?: null);
 
         try {
             // Load template with PhpSpreadsheet directly (not SheetsService)
             $spreadsheet = IOFactory::load($template);
+            // Clear unparsed data so the writer doesn't overwrite drawing relationships
+            $spreadsheet->setUnparsedLoadedData([]);
             $sheet = $spreadsheet->getActiveSheet();
 
             // Fill header data based on template structure
@@ -1492,6 +1608,9 @@ class AnnualInventoryService
             $sheet->setCellValue('D12', $pid->location ?? '');
             $sheet->setCellValue('D13', $pid->pid);
             $sheet->setCellValue('D14', optional($pid->date)->format('n/j/Y h:i:s A') ?? now()->format('n/j/Y h:i:s A'));
+
+            // Insert signature images
+            $this->insertSignatures($sheet, $signaturePaths);
 
             // Data starts at row 23
             // Columns: B [no], C [material_number], D [description], E [batch], F [rack_address], G [uom], H [checking]
@@ -1536,7 +1655,6 @@ class AnnualInventoryService
             // Restore original memory limit
             @ini_set('memory_limit', $originalMemoryLimit);
 
-
             return response()->download($tmpFile, $filename)->deleteFileAfterSend(true);
         } catch (\Throwable $e) {
             // Cleanup on error
@@ -1548,6 +1666,8 @@ class AnnualInventoryService
             @ini_set('memory_limit', $originalMemoryLimit);
 
             throw $e;
+        } finally {
+            $this->cleanupSignatureFiles($signaturePaths);
         }
     }
 
@@ -1575,8 +1695,19 @@ class AnnualInventoryService
 
         // Process each PID one at a time
         foreach ($query->cursor() as $pid) {
-            // Generate Excel from template for this PID
-            $binary = $this->generateTemplateExcelBinary($pid, $template);
+            // Read per-PID signatures from DB
+            $signatures = array_filter([
+                'pic_name' => $pid->pic_name_signature,
+                'group_leader' => $pid->group_leader_signature,
+                'pic_input' => $pid->pic_input_signature,
+            ]);
+            $signaturePaths = $this->decodeSignatures($signatures ?: null);
+
+            try {
+                $binary = $this->generateTemplateExcelBinary($pid, $template, $signaturePaths);
+            } finally {
+                $this->cleanupSignatureFiles($signaturePaths);
+            }
 
             $safePid = preg_replace('/[^A-Za-z0-9_\-]/', '_', (string) $pid->pid);
             $localName = "Worksheet_{$safePid}.xlsx";
@@ -1586,7 +1717,6 @@ class AnnualInventoryService
             unset($binary);
             $counter++;
 
-            // Garbage collect every 2 files (more aggressive for template-based)
             if ($counter % 2 === 0) {
                 gc_collect_cycles();
             }
@@ -1600,10 +1730,12 @@ class AnnualInventoryService
     /**
      * Generate Excel binary from template for a single PID (memory efficient)
      */
-    private function generateTemplateExcelBinary($pid, string $template): string
+    private function generateTemplateExcelBinary($pid, string $template, ?array $signaturePaths = null): string
     {
         // Load fresh copy of template
         $spreadsheet = IOFactory::load($template);
+        // Clear unparsed data so the writer doesn't overwrite drawing relationships
+        $spreadsheet->setUnparsedLoadedData([]);
         $sheet = $spreadsheet->getActiveSheet();
 
         // Fill header data
@@ -1615,6 +1747,9 @@ class AnnualInventoryService
         $sheet->setCellValue('D12', $pid->location ?? '');
         $sheet->setCellValue('D13', $pid->pid);
         $sheet->setCellValue('D14', optional($pid->date)->format('n/j/Y h:i:s A') ?? now()->format('n/j/Y h:i:s A'));
+
+        // Insert signature images
+        $this->insertSignatures($sheet, $signaturePaths);
 
         // Data starts at row 23
         $dataStartRow = 23;

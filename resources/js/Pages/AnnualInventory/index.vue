@@ -216,6 +216,13 @@
                                                             class="px-3 py-1 bg-white border border-blue-600 text-blue-600 rounded text-xs hover:bg-blue-50 transition">
                                                             Submit
                                                         </button>
+                                                        <button @click="openSignatureModal(item)"
+                                                            class="relative text-gray-400 hover:text-orange-600 transition"
+                                                            :title="hasAllSignaturesForPid(item) ? 'All signed' : 'Sign'">
+                                                            <PenLine class="w-4 h-4" />
+                                                            <span v-if="hasAllSignaturesForPid(item)"
+                                                                class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border border-white"></span>
+                                                        </button>
                                                         <button @click="openEditModal(item)"
                                                             class="text-gray-400 hover:text-yellow-600 transition">
                                                             <Pencil class="w-4 h-4" />
@@ -299,11 +306,17 @@
                                         </div>
 
                                         <div
-                                            class="bg-gray-50 px-3 py-2 border-t border-gray-100 grid grid-cols-5 gap-2">
+                                            class="bg-gray-50 px-3 py-2 border-t border-gray-100 grid grid-cols-6 gap-2">
                                             <button @click="navigateToDetail(item.pid)"
                                                 class="col-span-3 px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 active:bg-blue-800 transition shadow-sm flex items-center justify-center gap-1.5">
                                                 <span>Submit Data</span>
                                                 <ChevronRight class="w-3 h-3" />
+                                            </button>
+                                            <button @click="openSignatureModal(item)"
+                                                class="relative col-span-1 py-2 bg-white border border-orange-200 text-orange-600 rounded-lg text-xs hover:bg-orange-50 flex items-center justify-center shadow-sm">
+                                                <PenLine class="w-4 h-4" />
+                                                <span v-if="hasAllSignaturesForPid(item)"
+                                                    class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border border-white"></span>
                                             </button>
                                             <button @click="openEditModal(item)"
                                                 class="col-span-1 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-xs hover:bg-gray-50 flex items-center justify-center shadow-sm">
@@ -517,6 +530,73 @@
                 </div>
             </div>
         </Modal>
+
+        <Modal :show="showSignatureModal" @close="closeSignatureModal" max-width="lg">
+            <div class="p-4 sm:p-6 w-full">
+                <div class="flex items-center gap-3 mb-4">
+                    <div
+                        class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                        <PenLine class="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                    </div>
+                    <div>
+                        <h2 class="text-base sm:text-lg font-semibold text-gray-900">Signatures for PID {{ signaturePid?.pid }}</h2>
+                        <p class="text-[10px] sm:text-xs text-gray-500">Tap a role to sign. Each role can be signed independently.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3 mb-4">
+                    <div v-for="role in signatureRoles" :key="role.key"
+                        class="flex items-center justify-between p-3 rounded-lg border"
+                        :class="signaturePid?.[`has_${role.key}_signature`] ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'">
+                        <div class="flex items-center gap-2">
+                            <CheckCircle v-if="signaturePid?.[`has_${role.key}_signature`]" class="w-5 h-5 text-green-500" />
+                            <div v-else class="w-5 h-5 rounded-full border-2 border-gray-300"></div>
+                            <span class="text-sm font-medium text-gray-800">{{ role.label }}</span>
+                        </div>
+                        <button v-if="!signaturePid?.[`has_${role.key}_signature`]"
+                            @click="activeSignatureRole = role.key"
+                            class="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-medium hover:bg-orange-600 transition">
+                            Tap to Sign
+                        </button>
+                        <div v-else class="flex items-center gap-2">
+                            <span class="text-xs font-medium text-green-600">Signed</span>
+                            <button @click="deleteSignature(role.key)" :disabled="isSavingSignature"
+                                class="p-1 text-gray-400 hover:text-red-500 transition rounded" title="Remove signature">
+                                <Trash2 class="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="activeSignatureRole" class="mb-4">
+                    <SignaturePad
+                        ref="signaturePadRef"
+                        :label="`${signatureRoles.find(r => r.key === activeSignatureRole)?.label} Signature`"
+                        :height="200"
+                        @update:signature="val => currentSignatureData = val"
+                    />
+                    <div class="flex justify-end gap-2 mt-3">
+                        <button @click="activeSignatureRole = null; currentSignatureData = ''"
+                            class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs sm:text-sm hover:bg-gray-200 font-medium">
+                            Cancel
+                        </button>
+                        <button @click="saveSignature" :disabled="isSavingSignature"
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg text-xs sm:text-sm hover:bg-green-700 disabled:opacity-50 font-medium flex items-center gap-2">
+                            <Loader2 v-if="isSavingSignature" class="w-4 h-4 animate-spin" />
+                            <CheckCircle v-else class="w-4 h-4" />
+                            {{ isSavingSignature ? 'Saving...' : 'Save' }}
+                        </button>
+                    </div>
+                </div>
+
+                <div v-if="!activeSignatureRole" class="flex justify-end">
+                    <button @click="closeSignatureModal"
+                        class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs sm:text-sm hover:bg-gray-200 font-medium">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </Modal>
     </MainAppLayout>
 </template>
 
@@ -537,11 +617,13 @@ import {
     CheckCircle,
     RefreshCw,
     Pencil,
-    Trash2
+    Trash2,
+    PenLine
 } from 'lucide-vue-next';
 import axios from 'axios';
 import MainAppLayout from '@/Layouts/MainAppLayout.vue';
 import Modal from '@/Components/Modal.vue';
+import SignaturePad from '@/Components/SignaturePad.vue';
 
 // --- STATE ---
 const inventoryItems = ref([]);
@@ -590,6 +672,23 @@ const isSyncing = ref(false);
 
 // Selection state
 const selectedPids = ref([]);
+
+// Per-PID Signature modal state
+const showSignatureModal = ref(false);
+const signaturePid = ref(null);
+const activeSignatureRole = ref(null);
+const signaturePadRef = ref(null);
+const currentSignatureData = ref('');
+const isSavingSignature = ref(false);
+
+const signatureRoles = [
+    { key: 'pic_name', label: 'PIC Name' },
+    { key: 'pic_input', label: 'PIC Input' },
+    { key: 'group_leader', label: 'Group Leader' },
+];
+
+const hasAllSignaturesForPid = (item) =>
+    item.has_pic_name_signature && item.has_group_leader_signature && item.has_pic_input_signature;
 
 const isAllSelected = computed(() => {
     return inventoryItems.value.length > 0 &&
@@ -703,45 +802,127 @@ const navigateToDetail = (pid) => {
 // --- DOWNLOAD EXCEL ---
 const isDownloading = ref(false);
 
-const downloadPIDExcel = async (mode = 'all', format = 'auto') => {
-    // Validate selected mode
+const openSignatureModal = (item) => {
+    signaturePid.value = item;
+    activeSignatureRole.value = null;
+    currentSignatureData.value = '';
+    showSignatureModal.value = true;
+};
+
+const closeSignatureModal = () => {
+    showSignatureModal.value = false;
+    signaturePid.value = null;
+    activeSignatureRole.value = null;
+    currentSignatureData.value = '';
+};
+
+const saveSignature = async () => {
+    if (!signaturePid.value || !activeSignatureRole.value) return;
+
+    if (signaturePadRef.value?.isEmpty()) {
+        alert('Please draw a signature before saving.');
+        return;
+    }
+
+    isSavingSignature.value = true;
+    try {
+        const response = await axios.post(`/api/annual-inventory/${signaturePid.value.id}/signatures`, {
+            role: activeSignatureRole.value,
+            signature: currentSignatureData.value,
+        });
+
+        if (response.data.success) {
+            // Update local state for the PID
+            const idx = inventoryItems.value.findIndex(i => i.id === signaturePid.value.id);
+            if (idx !== -1) {
+                inventoryItems.value[idx].has_pic_name_signature = response.data.data.has_pic_name_signature;
+                inventoryItems.value[idx].has_group_leader_signature = response.data.data.has_group_leader_signature;
+                inventoryItems.value[idx].has_pic_input_signature = response.data.data.has_pic_input_signature;
+            }
+            // Update signaturePid ref too so modal reflects changes
+            signaturePid.value = { ...signaturePid.value, ...response.data.data };
+
+            activeSignatureRole.value = null;
+            currentSignatureData.value = '';
+        }
+    } catch (error) {
+        console.error('Failed to save signature:', error);
+        alert('Failed to save signature: ' + (error.response?.data?.message || error.message));
+    } finally {
+        isSavingSignature.value = false;
+    }
+};
+
+const deleteSignature = async (roleKey) => {
+    if (!signaturePid.value) return;
+    if (!confirm('Remove this signature?')) return;
+
+    isSavingSignature.value = true;
+    try {
+        const response = await axios.post(`/api/annual-inventory/${signaturePid.value.id}/signatures`, {
+            role: roleKey,
+            signature: null,
+        });
+
+        if (response.data.success) {
+            const idx = inventoryItems.value.findIndex(i => i.id === signaturePid.value.id);
+            if (idx !== -1) {
+                inventoryItems.value[idx].has_pic_name_signature = response.data.data.has_pic_name_signature;
+                inventoryItems.value[idx].has_group_leader_signature = response.data.data.has_group_leader_signature;
+                inventoryItems.value[idx].has_pic_input_signature = response.data.data.has_pic_input_signature;
+            }
+            signaturePid.value = { ...signaturePid.value, ...response.data.data };
+        }
+    } catch (error) {
+        console.error('Failed to delete signature:', error);
+        alert('Failed to delete signature: ' + (error.response?.data?.message || error.message));
+    } finally {
+        isSavingSignature.value = false;
+    }
+};
+
+const downloadPIDExcel = async (mode = 'all') => {
     if (mode === 'selected' && selectedPids.value.length === 0) {
         alert('Please select at least one PID to download.');
         return;
     }
 
-    const params = new URLSearchParams();
-
+    // Check signatures for selected PIDs
     if (mode === 'selected') {
-        // Download only selected PIDs
-        selectedPids.value.forEach(pid => params.append('pids[]', pid));
-    } else {
-        // Download all with current filters
-        if (searchQuery.value) params.append('search', searchQuery.value);
-        if (locationFilter.value) params.append('location', locationFilter.value);
-        if (statusFilter.value) params.append('status', statusFilter.value);
-    }
-
-    // Add format parameter (auto, csv, single, zip)
-    if (format !== 'auto') {
-        params.append('mode', format);
+        const unsigned = selectedPids.value.filter(pid => {
+            const item = inventoryItems.value.find(i => i.pid === pid);
+            return item && !hasAllSignaturesForPid(item);
+        });
+        if (unsigned.length > 0) {
+            alert(`The following PIDs are missing signatures: ${unsigned.join(', ')}. Please complete all signatures before downloading.`);
+            return;
+        }
     }
 
     isDownloading.value = true;
+
     try {
-        const response = await axios.get(`/api/annual-inventory/export?${params.toString()}`, {
+        const payload = {};
+
+        if (mode === 'selected') {
+            payload.pids = selectedPids.value;
+        } else {
+            if (searchQuery.value) payload.search = searchQuery.value;
+            if (locationFilter.value) payload.location = locationFilter.value;
+            if (statusFilter.value) payload.status = statusFilter.value;
+        }
+
+        const response = await axios.post('/api/annual-inventory/export', payload, {
             responseType: 'blob',
-            timeout: 300000, // 5 minutes timeout
+            timeout: 300000,
         });
 
-        // Check if response is JSON error (blob containing JSON)
         if (response.data.type === 'application/json') {
             const text = await response.data.text();
             const json = JSON.parse(text);
             throw new Error(json.message || 'Export failed');
         }
 
-        // Extract filename from Content-Disposition header
         const contentDisposition = response.headers['content-disposition'];
         let filename = 'annual_inventory_export.xlsx';
         if (contentDisposition) {
@@ -749,7 +930,6 @@ const downloadPIDExcel = async (mode = 'all', format = 'auto') => {
             if (match) filename = match[1].replace(/"/g, '');
         }
 
-        // Create download link
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -759,7 +939,6 @@ const downloadPIDExcel = async (mode = 'all', format = 'auto') => {
         link.remove();
         window.URL.revokeObjectURL(url);
 
-        // Clear selection after successful download
         if (mode === 'selected') {
             selectedPids.value = [];
         }
@@ -770,7 +949,6 @@ const downloadPIDExcel = async (mode = 'all', format = 'auto') => {
             alert('Export timed out. Please try again or contact support.');
         } else {
             console.error('Failed to download:', error);
-            // Try to get error message from blob
             let errorMessage = error.message;
             if (error.response?.data instanceof Blob) {
                 try {

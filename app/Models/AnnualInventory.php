@@ -24,7 +24,10 @@ class AnnualInventory extends Model
         'location',
         'sloc',
         'group_leader',
-        'pic_input'
+        'pic_input',
+        'pic_name_signature',
+        'group_leader_signature',
+        'pic_input_signature',
     ];
     protected static $slocMapping = [
         '2000 - Warehouse Consummable, Chemical, & Raw Material' => [

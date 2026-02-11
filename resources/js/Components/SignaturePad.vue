@@ -85,7 +85,7 @@ onMounted(() => {
     resizeCanvas();
 
     signaturePad = new SignaturePadLib(canvas, {
-        backgroundColor: 'rgb(255, 255, 255)',
+        backgroundColor: 'rgba(0, 0, 0, 0)',
     });
 
     signaturePad.addEventListener('endStroke', emitSignature);

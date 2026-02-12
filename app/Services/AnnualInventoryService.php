@@ -1331,6 +1331,8 @@ class AnnualInventoryService
             'Status',
             'Counted By',
             'Counted At',
+            'Notes',
+            'Final Counted Qty'
         ];
 
         $col = 'A';
@@ -1373,6 +1375,8 @@ class AnnualInventoryService
             $sheet->setCellValue('P' . $row, $item->status);
             $sheet->setCellValue('Q' . $row, $item->counted_by);
             $sheet->setCellValue('R' . $row, $item->counted_at);
+            $sheet->setCellValue('S' . $row, $item->notes);
+            $sheet->setCellValue('T' . $row, $item->final_counted_qty !== null ? (float) $item->final_counted_qty : null);
             $row++;
         }
 

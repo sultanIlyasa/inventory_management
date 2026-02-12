@@ -404,11 +404,24 @@
                             placeholder="Enter location" />
                     </div>
                     <div>
+                        <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Group Leader</label>
+                        <input v-model="editForm.group_leader" type="text"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            placeholder="Enter Group Leader name" />
+                    </div>
+                    <div>
                         <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">PIC Name</label>
                         <input v-model="editForm.pic_name" type="text"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                             placeholder="Enter PIC name" />
                     </div>
+                    <div>
+                        <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">PIC Input Name</label>
+                        <input v-model="editForm.pic_input" type="text"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            placeholder="Enter PIC Input Name" />
+                    </div>
+
                 </div>
 
                 <div class="flex justify-end gap-2 sm:gap-3">
@@ -539,8 +552,11 @@
                         <PenLine class="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                     </div>
                     <div>
-                        <h2 class="text-base sm:text-lg font-semibold text-gray-900">Signatures for PID {{ signaturePid?.pid }}</h2>
-                        <p class="text-[10px] sm:text-xs text-gray-500">Tap a role to sign. Each role can be signed independently.</p>
+                        <h2 class="text-base sm:text-lg font-semibold text-gray-900">Signatures for PID {{
+                            signaturePid?.pid }}
+                        </h2>
+                        <p class="text-[10px] sm:text-xs text-gray-500">Tap a role to sign. Each role can be signed
+                            independently.</p>
                     </div>
                 </div>
 
@@ -549,9 +565,20 @@
                         class="flex items-center justify-between p-3 rounded-lg border"
                         :class="signaturePid?.[`has_${role.key}_signature`] ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'">
                         <div class="flex items-center gap-2">
-                            <CheckCircle v-if="signaturePid?.[`has_${role.key}_signature`]" class="w-5 h-5 text-green-500" />
+                            <CheckCircle v-if="signaturePid?.[`has_${role.key}_signature`]"
+                                class="w-5 h-5 text-green-500" />
                             <div v-else class="w-5 h-5 rounded-full border-2 border-gray-300"></div>
                             <span class="text-sm font-medium text-gray-800">{{ role.label }}</span>
+                            <span class="bg-gray-200 rounded-md px-1 text-xs font-medium text-gray-800"
+                                v-if="role.key === 'pic_name'"> {{
+                                    signaturePid.pic_name }} </span>
+                            <span class="bg-gray-200 rounded-md px-1 text-xs font-medium text-gray-800"
+                                v-if="role.key === 'pic_input'"> {{
+                                    signaturePid.pic_input }} </span>
+                            <span class="bg-gray-200 rounded-md px-1 text-xs font-medium text-gray-800"
+                                v-if="role.key === 'group_leader'"> {{
+                                    signaturePid.group_leader }} </span>
+
                         </div>
                         <button v-if="!signaturePid?.[`has_${role.key}_signature`]"
                             @click="activeSignatureRole = role.key"
@@ -561,7 +588,8 @@
                         <div v-else class="flex items-center gap-2">
                             <span class="text-xs font-medium text-green-600">Signed</span>
                             <button @click="deleteSignature(role.key)" :disabled="isSavingSignature"
-                                class="p-1 text-gray-400 hover:text-red-500 transition rounded" title="Remove signature">
+                                class="p-1 text-gray-400 hover:text-red-500 transition rounded"
+                                title="Remove signature">
                                 <Trash2 class="w-3.5 h-3.5" />
                             </button>
                         </div>
@@ -569,12 +597,9 @@
                 </div>
 
                 <div v-if="activeSignatureRole" class="mb-4">
-                    <SignaturePad
-                        ref="signaturePadRef"
+                    <SignaturePad ref="signaturePadRef"
                         :label="`${signatureRoles.find(r => r.key === activeSignatureRole)?.label} Signature`"
-                        :height="200"
-                        @update:signature="val => currentSignatureData = val"
-                    />
+                        :height="200" @update:signature="val => currentSignatureData = val" />
                     <div class="flex justify-end gap-2 mt-3">
                         <button @click="activeSignatureRole = null; currentSignatureData = ''"
                             class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs sm:text-sm hover:bg-gray-200 font-medium">
@@ -659,7 +684,7 @@ const uploadSummary = ref(null);
 // Edit modal state
 const showEditModal = ref(false);
 const editItem = ref(null);
-const editForm = ref({ pid: '', location: '', pic_name: '' });
+const editForm = ref({ pid: '', location: '', pic_name: '', pic_input: '', group_leader: '', });
 const isSaving = ref(false);
 
 // Delete modal state
@@ -977,7 +1002,9 @@ const openEditModal = (item) => {
     editForm.value = {
         pid: item.pid,
         location: item.location,
-        pic_name: item.pic_name || ''
+        pic_name: item.pic_name || '',
+        pic_input: item.pic_input || '',
+        group_leader: item.group_leader || ''
     };
     showEditModal.value = true;
 };

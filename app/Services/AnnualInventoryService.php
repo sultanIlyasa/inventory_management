@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\AnnualInventory;
 use App\Models\AnnualInventoryItems;
+use App\Models\FiscalYearConfig;
 use App\Models\Materials;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -16,6 +18,93 @@ use ZipArchive;
 class AnnualInventoryService
 {
     const MAX_ITEMS_PER_PID = 400;
+
+    /**
+     * Get the start month for a given fiscal year.
+     * Falls back to the most recent configured FY, or 4 (April) as ultimate default.
+     */
+    public function getStartMonthForFY(int $fy): int
+    {
+        $config = FiscalYearConfig::where('fiscal_year', $fy)->first();
+        if ($config) return $config->start_month;
+
+        $fallback = FiscalYearConfig::where('fiscal_year', '<', $fy)
+            ->orderBy('fiscal_year', 'desc')->first();
+        return $fallback ? $fallback->start_month : 4;
+    }
+
+    /**
+     * Get the date range [start, end] for a given fiscal year.
+     */
+    private function getFiscalYearRange(int $fy): array
+    {
+        $startMonth = $this->getStartMonthForFY($fy);
+        $start = Carbon::create($fy, $startMonth, 1)->startOfDay();
+        $end = $start->copy()->addYear()->subDay()->endOfDay();
+        return [$start, $end];
+    }
+
+    /**
+     * Determine which fiscal year "now" falls in based on the latest config.
+     */
+    public function getCurrentFiscalYear(): int
+    {
+        $latestConfig = FiscalYearConfig::orderBy('fiscal_year', 'desc')->first();
+        $startMonth = $latestConfig ? $latestConfig->start_month : 4;
+        $now = now();
+        return $now->month >= $startMonth ? $now->year : $now->year - 1;
+    }
+
+    /**
+     * Get available fiscal years that contain data.
+     */
+    public function getAvailableFiscalYears(): array
+    {
+        $minDate = AnnualInventory::min('date');
+        $maxDate = AnnualInventory::max('date');
+
+        if (!$minDate || !$maxDate) {
+            $current = $this->getCurrentFiscalYear();
+            return [['value' => $current, 'label' => 'FY ' . $current, 'start_month' => $this->getStartMonthForFY($current)]];
+        }
+
+        $minDate = Carbon::parse($minDate);
+        $maxDate = Carbon::parse($maxDate);
+
+        $minYear = $minDate->year - 1;
+        $maxYear = $maxDate->year;
+
+        $years = [];
+        for ($fy = $maxYear; $fy >= $minYear; $fy--) {
+            [$fyStart, $fyEnd] = $this->getFiscalYearRange($fy);
+            $hasData = AnnualInventory::whereBetween('date', [$fyStart, $fyEnd])->exists();
+            if ($hasData) {
+                $years[] = [
+                    'value' => $fy,
+                    'label' => 'FY ' . $fy,
+                    'start_month' => $this->getStartMonthForFY($fy),
+                ];
+            }
+        }
+
+        if (empty($years)) {
+            $current = $this->getCurrentFiscalYear();
+            return [['value' => $current, 'label' => 'FY ' . $current, 'start_month' => 4]];
+        }
+
+        return $years;
+    }
+
+    /**
+     * Save or update the fiscal year config for a given FY.
+     */
+    public function saveFiscalYearConfig(int $fy, int $startMonth): FiscalYearConfig
+    {
+        return FiscalYearConfig::updateOrCreate(
+            ['fiscal_year' => $fy],
+            ['start_month' => $startMonth]
+        );
+    }
 
     /**
      * Search PID Number
@@ -40,6 +129,12 @@ class AnnualInventoryService
         // Status filter
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
+        }
+
+        // Fiscal year filter
+        if (!empty($filters['fiscal_year'])) {
+            [$fyStart, $fyEnd] = $this->getFiscalYearRange((int) $filters['fiscal_year']);
+            $query->whereBetween('date', [$fyStart, $fyEnd]);
         }
 
         $query->orderBy('created_at', 'desc');
@@ -86,6 +181,12 @@ class AnnualInventoryService
         // Status filter
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
+        }
+
+        // Fiscal year filter
+        if (!empty($filters['fiscal_year'])) {
+            [$fyStart, $fyEnd] = $this->getFiscalYearRange((int) $filters['fiscal_year']);
+            $query->whereBetween('date', [$fyStart, $fyEnd]);
         }
 
         $query->orderBy('created_at', 'desc');
@@ -557,6 +658,12 @@ class AnnualInventoryService
             $pidQuery->where('status', $filters['status']);
         }
 
+        // Fiscal year filter
+        if (!empty($filters['fiscal_year'])) {
+            [$fyStart, $fyEnd] = $this->getFiscalYearRange((int) $filters['fiscal_year']);
+            $pidQuery->whereBetween('date', [$fyStart, $fyEnd]);
+        }
+
         $filteredPidIds = $pidQuery->pluck('id');
 
         $totalPIDs = $filteredPidIds->count();
@@ -633,9 +740,16 @@ class AnnualInventoryService
     /**
      * Get unique locations
      */
-    public function getLocations(): array
+    public function getLocations(array $filters = []): array
     {
-        return AnnualInventory::distinct()
+        $query = AnnualInventory::query();
+
+        if (!empty($filters['fiscal_year'])) {
+            [$fyStart, $fyEnd] = $this->getFiscalYearRange((int) $filters['fiscal_year']);
+            $query->whereBetween('date', [$fyStart, $fyEnd]);
+        }
+
+        return $query->distinct()
             ->pluck('location')
             ->filter()
             ->sort()
@@ -816,6 +930,12 @@ class AnnualInventoryService
             $query->where('annual_inventories.location', $filters['location']);
         }
 
+        // Fiscal year filter (on parent PID date)
+        if (!empty($filters['fiscal_year'])) {
+            [$fyStart, $fyEnd] = $this->getFiscalYearRange((int) $filters['fiscal_year']);
+            $query->whereBetween('annual_inventories.date', [$fyStart, $fyEnd]);
+        }
+
         // Only show counted items
         if (!empty($filters['counted_only']) && $filters['counted_only'] !== 'false') {
             $query->where('annual_inventory_items.status', '!=', 'PENDING');
@@ -967,7 +1087,7 @@ class AnnualInventoryService
             foreach ($items as $itemData) {
                 $itemId = $itemData['id'] ?? null;
 
-                if (!$itemId) {
+                if (!$itemId) { 
                     continue;
                 }
 
@@ -1523,6 +1643,12 @@ class AnnualInventoryService
 
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
+        }
+
+        // Fiscal year filter
+        if (!empty($filters['fiscal_year'])) {
+            [$fyStart, $fyEnd] = $this->getFiscalYearRange((int) $filters['fiscal_year']);
+            $query->whereBetween('date', [$fyStart, $fyEnd]);
         }
 
         // Optional: allow selecting explicit PIDs

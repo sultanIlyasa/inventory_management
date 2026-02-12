@@ -63,7 +63,7 @@
                                             <Filter class="w-4 h-4" />
                                             <span>Filter:</span>
                                         </div>
-                                        <div class="grid grid-cols-2 w-full sm:w-auto gap-2">
+                                        <div class="grid grid-cols-2 sm:grid-cols-3 w-full sm:w-auto gap-2">
                                             <select v-model="locationFilter"
                                                 class="w-full sm:w-36 px-2 sm:px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 outline-none truncate">
                                                 <option value="">All Locations</option>
@@ -77,6 +77,17 @@
                                                 <option value="In Progress">In Progress</option>
                                                 <option value="Completed">Completed</option>
                                             </select>
+                                            <div class="flex items-center gap-1">
+                                                <select v-model="fiscalYearFilter"
+                                                    class="w-full sm:w-32 px-2 sm:px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 outline-none truncate">
+                                                    <option v-for="fy in fiscalYears" :key="fy.value" :value="fy.value">
+                                                        {{ fy.label }}</option>
+                                                </select>
+                                                <button @click="openFYSettings" title="Change FY start month"
+                                                    class="p-2 text-gray-400 hover:text-gray-600 transition flex-shrink-0">
+                                                    <Settings class="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -94,23 +105,13 @@
                                             <span>{{ selectedPids.length > 0 ? `Download (${selectedPids.length})` :
                                                 'Select PIDs' }}</span>
                                         </button>
-                                        <button @click="downloadPIDExcel('all')" :disabled="isDownloading"
-                                            class="flex-1 sm:flex-none px-2 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
-                                            <Loader2 v-if="isDownloading" class="w-4 h-4 animate-spin" />
-                                            <Download v-else class="w-4 h-4" />
-                                            <span>Download All</span>
-                                        </button>
+
                                         <button @click="openUploadModal"
                                             class="flex-1 sm:flex-none px-2 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
                                             <Upload class="w-4 h-4" />
                                             <span>Upload</span>
                                         </button>
-                                        <button @click="syncPicAndGroupLeader" :disabled="isSyncing"
-                                            class="flex-1 sm:flex-none px-2 sm:px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50 transition-colors font-medium text-xs sm:text-sm shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
-                                            <Loader2 v-if="isSyncing" class="w-4 h-4 animate-spin" />
-                                            <RefreshCw v-else class="w-4 h-4" />
-                                            <span>{{ isSyncing ? 'Syncing...' : 'Sync PIC & GL' }}</span>
-                                        </button>
+
                                     </div>
                                 </div>
 
@@ -544,6 +545,55 @@
             </div>
         </Modal>
 
+        <Modal :show="showFYSettingsModal" @close="showFYSettingsModal = false" max-width="sm">
+            <div class="p-4 sm:p-6 w-full">
+                <div class="flex items-center gap-3 mb-4">
+                    <div
+                        class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <Settings class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                    </div>
+                    <h2 class="text-base sm:text-lg font-semibold text-gray-900">Fiscal Year Settings</h2>
+                </div>
+
+                <div class="space-y-3 sm:space-y-4 mb-6">
+                    <div>
+                        <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Fiscal Year</label>
+                        <p class="text-sm font-semibold text-gray-900">FY {{ fySettingsYear }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Start Month</label>
+                        <select v-model="fySettingsMonth"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            <option :value="1">January</option>
+                            <option :value="2">February</option>
+                            <option :value="3">March</option>
+                            <option :value="4">April</option>
+                            <option :value="5">May</option>
+                            <option :value="6">June</option>
+                            <option :value="7">July</option>
+                            <option :value="8">August</option>
+                            <option :value="9">September</option>
+                            <option :value="10">October</option>
+                            <option :value="11">November</option>
+                            <option :value="12">December</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 sm:gap-3">
+                    <button @click="showFYSettingsModal = false"
+                        class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs sm:text-sm hover:bg-gray-200 font-medium">
+                        Cancel
+                    </button>
+                    <button @click="saveFYSettings" :disabled="isSavingFY"
+                        class="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs sm:text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 font-medium">
+                        <Loader2 v-if="isSavingFY" class="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                        {{ isSavingFY ? 'Saving...' : 'Save' }}
+                    </button>
+                </div>
+            </div>
+        </Modal>
+
         <Modal :show="showSignatureModal" @close="closeSignatureModal" max-width="lg">
             <div class="p-4 sm:p-6 w-full">
                 <div class="flex items-center gap-3 mb-4">
@@ -643,7 +693,8 @@ import {
     RefreshCw,
     Pencil,
     Trash2,
-    PenLine
+    PenLine,
+    Settings
 } from 'lucide-vue-next';
 import axios from 'axios';
 import MainAppLayout from '@/Layouts/MainAppLayout.vue';
@@ -669,6 +720,14 @@ const locationFilter = ref('');
 const statusFilter = ref('');
 const isLoading = ref(false);
 const isUploading = ref(false);
+
+// Fiscal year state
+const fiscalYears = ref([]);
+const fiscalYearFilter = ref(null);
+const showFYSettingsModal = ref(false);
+const fySettingsMonth = ref(4);
+const fySettingsYear = ref(null);
+const isSavingFY = ref(false);
 
 // Upload modal state
 const showUploadModal = ref(false);
@@ -744,6 +803,50 @@ const toggleSelectAll = () => {
     }
 };
 
+// --- FISCAL YEAR ---
+const fetchFiscalYears = async () => {
+    try {
+        const response = await axios.get('/api/annual-inventory/fiscal-years');
+        if (response.data.success) {
+            fiscalYears.value = response.data.data;
+            if (!fiscalYearFilter.value) {
+                fiscalYearFilter.value = response.data.current;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to fetch fiscal years:', error);
+    }
+};
+
+const openFYSettings = () => {
+    fySettingsYear.value = fiscalYearFilter.value;
+    const fy = fiscalYears.value.find(f => f.value === fiscalYearFilter.value);
+    fySettingsMonth.value = fy ? fy.start_month : 4;
+    showFYSettingsModal.value = true;
+};
+
+const saveFYSettings = async () => {
+    isSavingFY.value = true;
+    try {
+        const response = await axios.post('/api/annual-inventory/fiscal-years', {
+            fiscal_year: fySettingsYear.value,
+            start_month: fySettingsMonth.value,
+        });
+        if (response.data.success) {
+            showFYSettingsModal.value = false;
+            await fetchFiscalYears();
+            fetchPIDs(1);
+            fetchStatistics();
+            fetchLocations();
+        }
+    } catch (error) {
+        console.error('Failed to save FY settings:', error);
+        alert('Failed to save: ' + (error.response?.data?.message || error.message));
+    } finally {
+        isSavingFY.value = false;
+    }
+};
+
 // --- FETCH DATA ---
 const fetchPIDs = async (page = 1) => {
     isLoading.value = true;
@@ -755,6 +858,7 @@ const fetchPIDs = async (page = 1) => {
         if (searchQuery.value) params.append('search', searchQuery.value);
         if (locationFilter.value) params.append('location', locationFilter.value);
         if (statusFilter.value) params.append('status', statusFilter.value);
+        if (fiscalYearFilter.value) params.append('fiscal_year', fiscalYearFilter.value);
 
         const response = await axios.get(`/api/annual-inventory?${params.toString()}`);
 
@@ -776,6 +880,7 @@ const fetchStatistics = async () => {
         if (searchQuery.value) params.append('search', searchQuery.value);
         if (locationFilter.value) params.append('location', locationFilter.value);
         if (statusFilter.value) params.append('status', statusFilter.value);
+        if (fiscalYearFilter.value) params.append('fiscal_year', fiscalYearFilter.value);
 
         const response = await axios.get(`/api/annual-inventory/statistics?${params.toString()}`);
         if (response.data.success) {
@@ -788,7 +893,10 @@ const fetchStatistics = async () => {
 
 const fetchLocations = async () => {
     try {
-        const response = await axios.get('/api/annual-inventory/locations');
+        const params = new URLSearchParams();
+        if (fiscalYearFilter.value) params.append('fiscal_year', fiscalYearFilter.value);
+
+        const response = await axios.get(`/api/annual-inventory/locations?${params.toString()}`);
         if (response.data.success) {
             locations.value = response.data.data;
         }
@@ -807,9 +915,10 @@ watch(searchQuery, () => {
     }, 300);
 });
 
-watch([locationFilter, statusFilter], () => {
+watch([locationFilter, statusFilter, fiscalYearFilter], () => {
     fetchPIDs(1);
     fetchStatistics();
+    fetchLocations();
 });
 
 // --- PAGINATION ---
@@ -936,6 +1045,7 @@ const downloadPIDExcel = async (mode = 'all') => {
             if (locationFilter.value) payload.location = locationFilter.value;
             if (statusFilter.value) payload.status = statusFilter.value;
         }
+        if (fiscalYearFilter.value) payload.fiscal_year = fiscalYearFilter.value;
 
         const response = await axios.post('/api/annual-inventory/export', payload, {
             responseType: 'blob',
@@ -1197,7 +1307,8 @@ const syncPicAndGroupLeader = async () => {
 };
 
 // --- LIFECYCLE ---
-onMounted(() => {
+onMounted(async () => {
+    await fetchFiscalYears();
     fetchPIDs();
     fetchStatistics();
     fetchLocations();

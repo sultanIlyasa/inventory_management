@@ -37,6 +37,9 @@ The Annual Inventory feature allows warehouse staff to perform physical inventor
 | sloc | string | Storage location / plant (auto-assigned from location mapping) |
 | group_leader | string | Group leader name (auto-assigned from location mapping) |
 | pic_input | string | PIC input name (auto-assigned from location mapping) |
+| pic_name_signature | longText | Base64 PNG data URI for PIC Name signature (nullable) |
+| group_leader_signature | longText | Base64 PNG data URI for Group Leader signature (nullable) |
+| pic_input_signature | longText | Base64 PNG data URI for PIC Input signature (nullable) |
 | timestamps | | created_at, updated_at |
 
 ### Table: `annual_inventory_items`
@@ -99,6 +102,34 @@ Each entry in the history array contains:
 | GET | `/api/annual-inventory/by-pid/{pid}` | Get PID with paginated items, supports sorting |
 | PUT | `/api/annual-inventory/{id}` | Update PID details (pid, location, pic_name) |
 | DELETE | `/api/annual-inventory/{id}` | Delete PID and all items |
+
+### Per-PID Signatures
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/annual-inventory/{id}/signatures` | Save or delete a signature for a specific role |
+
+**Request body:**
+
+```json
+{ "role": "pic_name|group_leader|pic_input", "signature": "data:image/png;base64,..." }
+```
+
+Send `"signature": null` to delete a signature.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Signature saved",
+  "data": {
+    "has_pic_name_signature": true,
+    "has_group_leader_signature": false,
+    "has_pic_input_signature": false
+  }
+}
+```
 
 ### Item Management
 
@@ -182,7 +213,7 @@ Statistics respond to the same filters as the index page, so stats update in rea
 - **Actions**:
   - Refresh - Reload data
   - Sync PIC & GL - Sync pic_input, group_leader, and sloc for all PIDs based on location mapping
-  - Download Selected - Download selected PIDs as Excel (checkbox selection)
+  - Download Selected - Download selected PIDs as Excel (blocked if any selected PID has missing signatures)
   - Download All - Export all PIDs with current filters
   - Upload - Import new PIDs from Excel (supports bulk upload)
 - **Checkbox Selection**:
@@ -204,9 +235,22 @@ Statistics respond to the same filters as the index page, so stats update in rea
 - **Table**: PID list with progress indicators, pagination
 - **Row Actions**:
   - Submit - Navigate to counting page
+  - Signature (pen icon) - Open per-PID signature modal; green dot when all 3 roles are signed
   - Edit (pencil icon) - Edit PID details
   - Delete (trash icon) - Delete PID with confirmation
-- **Mobile**: Card view for small screens
+- **Mobile**: Card view for small screens with signature button in footer
+
+### Per-PID Signature Modal
+
+Each PID has its own set of 3 signatures (PIC Name, PIC Input, Group Leader) stored in the database. Signatures are persistent and can be completed independently across different devices/sessions.
+
+- **Modal**: Shows 3 role cards, each displaying the assigned person's name
+  - **Unsigned**: "Tap to Sign" button opens a signature pad
+  - **Signed**: Green checkmark with a trash icon to delete the signature
+- **Signature Pad**: Transparent background PNG, saved via `POST /api/annual-inventory/{id}/signatures`
+- **Delete**: Sends `signature: null` to clear a specific role's signature
+- **Download Guard**: "Download Selected" is blocked if any selected PID has incomplete signatures, with an alert listing which PIDs are missing signatures
+- **Export**: Signatures are read from the database per-PID during export and embedded into the worksheet template at cells E3 (Group Leader), F3 (PIC Name), G3 (PIC Input), H3 (Group Leader duplicate)
 
 ### Submit Page (`/annual-inventory/{pid}`)
 
@@ -370,7 +414,15 @@ Template structure:
 
 **Note**: The "Checking" column (H) exports `final_counted_qty` (predicted SOH) instead of `actual_qty`.
 
-Supports single PID download (`.xlsx`) or multi-PID download (`.zip`).
+Signature images are read from the database per-PID and embedded as transparent PNG drawings:
+- E3: Group Leader signature
+- F3: PIC Name signature
+- G3: PIC Input signature
+- H3: Group Leader signature (duplicate)
+
+**Note**: When loading templates with PhpSpreadsheet, `$spreadsheet->setUnparsedLoadedData([])` must be called after `IOFactory::load()` to prevent the writer from silently dropping newly added Drawing objects.
+
+Supports single PID download (`.xlsx`) or multi-PID download (`.zip`). In zip mode, each PID gets its own signatures embedded.
 
 ## Edit Actual Qty Feature
 
@@ -502,7 +554,8 @@ app/
 database/
 └── migrations/
     ├── 2026_01_14_105704_create_annual_inventory_table.php
-    └── 2026_01_14_105710_create_annual_inventory_items_table.php
+    ├── 2026_01_14_105710_create_annual_inventory_items_table.php
+    └── 2026_02_11_100000_add_signatures_to_annual_inventories_table.php
 
 resources/js/Pages/
 └── AnnualInventory/
@@ -587,6 +640,30 @@ Content-Type: application/json
 
 {
   "notes": "Checked with warehouse team, confirmed count is correct"
+}
+```
+
+### API: Save a signature for a PID
+
+```bash
+POST /api/annual-inventory/42/signatures
+Content-Type: application/json
+
+{
+  "role": "pic_name",
+  "signature": "data:image/png;base64,iVBORw0KGgo..."
+}
+```
+
+### API: Delete a signature for a PID
+
+```bash
+POST /api/annual-inventory/42/signatures
+Content-Type: application/json
+
+{
+  "role": "pic_name",
+  "signature": null
 }
 ```
 

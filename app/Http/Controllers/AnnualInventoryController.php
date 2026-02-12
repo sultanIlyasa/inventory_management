@@ -26,6 +26,7 @@ class AnnualInventoryController extends Controller
             'search' => $request->query('search'),
             'location' => $request->query('location'),
             'status' => $request->query('status'),
+            'fiscal_year' => $request->query('fiscal_year'),
         ];
 
         $perPage = $request->query('per_page', 20);
@@ -49,6 +50,7 @@ class AnnualInventoryController extends Controller
         $filters = [
             'location' => $request->query('location'),
             'status' => $request->query('status'),
+            'fiscal_year' => $request->query('fiscal_year'),
         ];
 
         $perPage = $request->query('per_page', 20);
@@ -253,6 +255,7 @@ class AnnualInventoryController extends Controller
             'search' => $request->query('search'),
             'location' => $request->query('location'),
             'status' => $request->query('status'),
+            'fiscal_year' => $request->query('fiscal_year'),
         ];
 
         $data = $this->service->getStatistics($filters);
@@ -267,9 +270,12 @@ class AnnualInventoryController extends Controller
      * GET /api/annual-inventory/locations
      * Get unique locations for filter dropdown
      */
-    public function locations(): JsonResponse
+    public function locations(Request $request): JsonResponse
     {
-        $locations = $this->service->getLocations();
+        $filters = [
+            'fiscal_year' => $request->query('fiscal_year'),
+        ];
+        $locations = $this->service->getLocations($filters);
 
         return response()->json([
             'success' => true,
@@ -380,6 +386,7 @@ class AnnualInventoryController extends Controller
             'pids' => $pids,
             'mode' => $isPost ? $request->input('mode', 'auto') : $request->query('mode', 'auto'),
             'pid' => $isPost ? $request->input('pid') : $request->query('pid'),
+            'fiscal_year' => $isPost ? $request->input('fiscal_year') : $request->query('fiscal_year'),
         ];
 
         try {
@@ -439,6 +446,7 @@ class AnnualInventoryController extends Controller
             'sort_by' => $request->query('sort_by'),
             'sort_order' => $request->query('sort_order', 'asc'),
             'counted_only' => $request->query('counted_only', true),
+            'fiscal_year' => $request->query('fiscal_year'),
         ];
 
         $perPage = $request->query('per_page', 50);
@@ -550,6 +558,38 @@ class AnnualInventoryController extends Controller
             'updated' => $result['updated'],
             'errors' => $result['errors'] ?? [],
         ]);
+    }
+
+    /**
+     * GET /api/annual-inventory/fiscal-years
+     * Get available fiscal years and current FY
+     */
+    public function fiscalYears(): JsonResponse
+    {
+        $years = $this->service->getAvailableFiscalYears();
+        $current = $this->service->getCurrentFiscalYear();
+
+        return response()->json([
+            'success' => true,
+            'data' => $years,
+            'current' => $current,
+        ]);
+    }
+
+    /**
+     * POST /api/annual-inventory/fiscal-years
+     * Save fiscal year config (start month)
+     */
+    public function saveFiscalYear(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'fiscal_year' => 'required|integer|min:2000|max:2100',
+            'start_month' => 'required|integer|min:1|max:12',
+        ]);
+
+        $config = $this->service->saveFiscalYearConfig($validated['fiscal_year'], $validated['start_month']);
+
+        return response()->json(['success' => true, 'data' => $config]);
     }
 
     /**

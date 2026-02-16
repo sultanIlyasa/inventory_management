@@ -606,7 +606,7 @@
                                 <div class="text-sm font-bold text-gray-800">{{ formatNumber(item.actual_qty) }}</div>
                                 <div v-if="item.counted_at"
                                     class="text-[11px] text-gray-400 font-medium mt-1 whitespace-nowrap">
-                                    {{ formatCompactTimestamp(item.counted_at) }}
+                                    {{ formatCompactTimestamp(getLastActualHistory(item)?.counted_at) }}
                                 </div>
                                 <button @click="openEditActualQtyModal(item)"
                                     class="mt-1 p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
@@ -1608,6 +1608,12 @@ const showSaveMessage = (message, type) => {
         saveMessage.value = null;
     }, 3000);
 };
+const getLastActualHistory = (item) => {
+    const history = item.actual_qty_history;
+    if (!Array.isArray(history) || history.length === 0) return null;
+    return history[history.length - 1];
+};
+
 
 </script>
 

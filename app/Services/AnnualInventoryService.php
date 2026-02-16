@@ -393,6 +393,7 @@ class AnnualInventoryService
                     'counted_at' => now()->format('Y-m-d H:i:s'),
                 ];
                 $data['actual_qty_history'] = $history;
+                $data['counted_at'] = $history[count($history) - 1]['counted_at'];
             }
 
             $item->update($data);
@@ -1087,7 +1088,7 @@ class AnnualInventoryService
             foreach ($items as $itemData) {
                 $itemId = $itemData['id'] ?? null;
 
-                if (!$itemId) { 
+                if (!$itemId) {
                     continue;
                 }
 
@@ -1276,7 +1277,7 @@ class AnnualInventoryService
         $sheet = $spreadsheet->getActiveSheet();
 
         // Headers
-        $headers = ['pid', 'Material Number', 'SOH', 'Outstanding GR', 'Outstanding GI', 'Error Movement', 'Price'];
+        $headers = ['pid', 'Material Number', 'SOH', 'Outstanding GR', 'Outstanding GI', 'Error Movement', 'Price', 'Notes'];
 
         $col = 'A';
         foreach ($headers as $header) {
@@ -1348,6 +1349,7 @@ class AnnualInventoryService
                 $outstandingGI = is_numeric($row[4]) ? (float) $row[4] : 0;
                 $errorMovement = is_numeric($row[5]) ? (float) $row[5] : 0;
                 $price = is_numeric($row[6]) ? (float) $row[6] : 0;
+                $notes = trim($row[7] ?? null);
 
                 if (empty($materialNumber)) {
                     continue;
@@ -1371,6 +1373,7 @@ class AnnualInventoryService
                     'outstanding_gi' => $outstandingGI,
                     'error_movement' => $errorMovement,
                     'price' => $price,
+                    'notes' => $notes,
                 ];
 
                 if ($soh !== null) {

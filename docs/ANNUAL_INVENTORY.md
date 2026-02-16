@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Annual Inventory feature allows warehouse staff to perform physical inventory counts by distributing materials into Physical Inventory Documents (PIDs). Each PID can contain up to 200 materials and is assigned to a specific location and person in charge (PIC).
+The Annual Inventory feature allows warehouse staff to perform physical inventory counts by distributing materials into Physical Inventory Documents (PIDs). Each PID can contain up to 300 materials and is assigned to a specific location and person in charge (PIC).
 
 ## Flow
 

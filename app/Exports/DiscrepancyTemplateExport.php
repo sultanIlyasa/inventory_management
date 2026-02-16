@@ -30,7 +30,8 @@ class DiscrepancyTemplateExport implements FromCollection, WithHeadings, ShouldA
             'Outstanding GI',
             'Error Moving',
             'Price',
-            'Location'
+            'Location',
+            'Notes',
         ];
     }
 

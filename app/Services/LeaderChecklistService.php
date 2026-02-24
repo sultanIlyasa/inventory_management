@@ -5,13 +5,13 @@ namespace App\Services;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Check Compliance Service
+ * Leader Checklist Service
  * Shows materials that need to be checked today based on their usage frequency:
  * - DAILY: Should be checked every day
  * - WEEKLY: Should be checked at least once per week
  * - MONTHLY: Should be checked at least once per month
  */
-class CheckComplianceService
+class LeaderChecklistService
 {
     /**
      * Get materials that need checking today

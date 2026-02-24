@@ -2,7 +2,7 @@
     <div class="bg-white rounded-lg shadow-lg p-4">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold text-gray-800">📋 Today's Checklist</h2>
-            <a :href="route('warehouse-monitoring.check-compliance')"
+            <a :href="route('warehouse-monitoring.leader-checklist')"
                 class="text-sm text-blue-600 hover:text-blue-800 font-medium">
                 View All →
             </a>
@@ -73,7 +73,7 @@
 
         <!-- Show More Link -->
         <div v-if="topItems && topItems.length > 0" class="mt-3 text-center">
-            <a :href="route('warehouse-monitoring.check-compliance')"
+            <a :href="route('warehouse-monitoring.leader-checklist')"
                 class="text-xs text-blue-600 hover:text-blue-800 font-medium">
                 View all {{ statistics.TOTAL || 0 }} items →
             </a>

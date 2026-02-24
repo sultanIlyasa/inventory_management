@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'consumption_api' => [
+        'url' => env('CONSUMPTION_API_URL', 'http://103.93.52.79:2000/api/transaction/analytics/consumption-average'),
+        'key' => env('CONSUMPTION_API_KEY', 'WAREHOUSE_DASHBOARD_KEY_2026'),
+    ],
+
 ];

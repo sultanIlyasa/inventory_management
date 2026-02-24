@@ -2,29 +2,44 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class ProblematicMaterials extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'material_id',
-        'estimated_gr',
+        'material_number',
+        'description',
+        'pic_name',
+        'status',
+        'status_priority',
         'severity',
-        'durability',
+        'coverage_shifts',
+        'daily_avg',
+        'shift_avg',
+        'instock',
+        'streak_days',
+        'location',
+        'usage',
+        'gentani',
+        'last_updated',
+        'estimated_gr',
+        'total_consumed',
+        'calculation_info',
     ];
 
     protected $casts = [
-        'estimated_gr' => 'date'
+        'coverage_shifts' => 'float',
+        'daily_avg'       => 'float',
+        'shift_avg'       => 'float',
+        'instock'         => 'integer',
+        'streak_days'     => 'integer',
+        'status_priority' => 'integer',
+        'last_updated'    => 'date',
+        'estimated_gr'    => 'date',
+        'total_consumed'  => 'integer',
+        'calculation_info' => 'array',
     ];
-
-    public function material()
-    {
-        return $this->belongsTo(Materials::class, 'material_id');
-    }
 
     public function scopeFilterByUsage(Builder $query, $usage): Builder
     {
@@ -78,10 +93,6 @@ class ProblematicMaterials extends Model
         return $query->whereIn('pic_name', $values);
     }
 
-    /**
-     * Apply all supported filters.
-     * This is still "language", not business meaning.
-     */
     public function scopeApplyFilters(Builder $query, array $filters): Builder
     {
         return $query

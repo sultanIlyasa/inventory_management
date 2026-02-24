@@ -1,5 +1,5 @@
 <template>
-    <MainAppLayout title="Check Compliance" subtitle="Materials that need checking today">
+    <MainAppLayout title="Leader Checklist" subtitle="Materials that need checking today">
         <div class="max-w-7xl mx-auto p-4">
             <!-- Header Info -->
             <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
@@ -276,7 +276,7 @@ const applyFilters = () => {
     if (isLoading.value) return
 
     router.get(
-        route('warehouse-monitoring.check-compliance'),
+        route('warehouse-monitoring.leader-checklist'),
         {
             ...localFilters.value,
             page: 1
@@ -306,7 +306,7 @@ const changePage = (page) => {
     if (isLoading.value) return
 
     router.get(
-        route('warehouse-monitoring.check-compliance'),
+        route('warehouse-monitoring.leader-checklist'),
         {
             ...localFilters.value,
             page: page

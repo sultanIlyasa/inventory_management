@@ -2,39 +2,39 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\CheckComplianceRequest;
-use App\Services\CheckComplianceService;
+use App\Http\Requests\LeaderChecklistRequest;
+use App\Services\LeaderChecklistService;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
-class CheckComplianceController extends Controller
+class LeaderChecklistController extends Controller
 {
     public function __construct(
-        protected CheckComplianceService $checkComplianceService
+        protected LeaderChecklistService $leaderChecklistService
     ) {
     }
 
-    public function index(CheckComplianceRequest $request)
+    public function index(LeaderChecklistRequest $request)
     {
         $filters = $request->getFilters();
         $pagination = $request->getPaginationParams();
 
         $cacheKey = sprintf(
-            'check_compliance_%s_page_%d_per_%d',
+            'leader_checklist_%s_page_%d_per_%d',
             md5(json_encode($filters)),
             $pagination['page'],
             $pagination['per_page']
         );
 
         $result = Cache::remember($cacheKey, 300, function () use ($filters, $pagination) {
-            return $this->checkComplianceService->getComplianceReport(
+            return $this->leaderChecklistService->getComplianceReport(
                 $filters,
                 $pagination['per_page'],
                 $pagination['page']
             );
         });
 
-        return Inertia::render('WarehouseMonitoring/CheckCompliance', [
+        return Inertia::render('WarehouseMonitoring/LeaderChecklist', [
             'complianceReports' => [
                 'data' => $result['data'],
                 'pagination' => $result['pagination'],

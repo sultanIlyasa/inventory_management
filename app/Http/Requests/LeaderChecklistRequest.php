@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CheckComplianceRequest extends FormRequest
+class LeaderChecklistRequest extends FormRequest
 {
     public function authorize(): bool
     {

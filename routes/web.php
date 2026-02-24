@@ -1,7 +1,8 @@
 <?php
 
 use App\Http\Controllers\AdminDashboardController;
-use App\Http\Controllers\CheckComplianceController;
+use App\Http\Controllers\LeaderChecklistController;
+use App\Http\Controllers\ProblematicMaterialsController;
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PushNotificationController;
@@ -103,8 +104,8 @@ Route::prefix('/warehouse-monitoring')->group(function () {
     Route::get('/overdue-days', [OverdueDaysController::class, 'index'])
         ->name('warehouse-monitoring.overdue-days');
 
-    Route::get('/check-compliance', [CheckComplianceController::class, 'index'])
-        ->name('warehouse-monitoring.check-compliance');
+    Route::get('/leader-checklist', [LeaderChecklistController::class, 'index'])
+        ->name('warehouse-monitoring.leader-checklist');
 
     Route::get('/leaderboard', [LeaderboardController::class, 'index'])
         ->name('warehouse-monitoring.leaderboard');
@@ -120,6 +121,12 @@ Route::prefix('/warehouse-monitoring')->group(function () {
             ->name('status-change-api');
         Route::get('/dashboard', [WarehouseMonitoringController::class, 'dashboardApi'])
             ->name('dashboard');
+        Route::get('/problematic', [ProblematicMaterialsController::class, 'index'])
+            ->name('problematic');
+        Route::patch('/problematic/{id}', [ProblematicMaterialsController::class, 'update'])
+            ->name('problematic.update');
+        Route::get('/consumption-averages', [ProblematicMaterialsController::class, 'getConsumptionAverages'])
+            ->name('consumption-averages');
     });
 });
 

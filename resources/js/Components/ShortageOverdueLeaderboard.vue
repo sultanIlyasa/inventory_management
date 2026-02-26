@@ -123,7 +123,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { buildFilterParams } from '@/utils/filterParams'
 
 const props = defineProps({
     initialLeaderboard: {
@@ -148,7 +149,10 @@ const props = defineProps({
             to: 10
         })
     },
-
+    filters: {
+        type: Object,
+        default: null
+    },
     size: {
         type: String,
         default: 'full'
@@ -173,6 +177,34 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh', 'page-change'])
 
+// Self-fetch mode when filters prop is provided
+const isSelfFetch = computed(() => props.filters !== null)
+
+const localLeaderboard = ref([])
+const localStatistics = ref({ total: 0, average_days: 0 })
+const localPagination = ref({ current_page: 1, last_page: 1, per_page: 5, total: 0 })
+
+async function fetchData(page = 1) {
+    if (!isSelfFetch.value) return
+    try {
+        const params = buildFilterParams({ ...props.filters, page, per_page: 5 })
+        const res = await fetch(`/warehouse-monitoring/api/shortage?${params}`)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const json = await res.json()
+        // API wraps in { success, data: { data, statistics, pagination } }
+        const payload = json.data ?? json
+        localLeaderboard.value = payload.data ?? payload.leaderboard ?? []
+        localStatistics.value = payload.statistics ?? { total: 0, average_days: 0 }
+        localPagination.value = payload.pagination ?? { current_page: 1, last_page: 1, per_page: 5, total: 0 }
+    } catch {
+        // silent fail — keep existing local data
+    }
+}
+
+watch(() => props.filters, (f) => {
+    if (f !== null) fetchData(1)
+}, { deep: true, immediate: true })
+
 const isCompact = computed(() => props.size === 'compact' || props.size === 'mini')
 
 const containerClass = computed(() => {
@@ -187,15 +219,17 @@ const titleClass = computed(() => {
     return 'text-xl font-bold'
 })
 
-const currentLeaderboard = computed(() => props.initialLeaderboard ?? [])
-const currentStatistics = computed(() => ({
-    total: props.initialStatistics?.total ?? 0,
-    average_days: props.initialStatistics?.average_days ?? 0
-}))
+const currentLeaderboard = computed(() =>
+    isSelfFetch.value ? localLeaderboard.value : (props.initialLeaderboard ?? [])
+)
+const currentStatistics = computed(() => {
+    const s = isSelfFetch.value ? localStatistics.value : props.initialStatistics
+    return { total: s?.total ?? 0, average_days: s?.average_days ?? 0 }
+})
 
-const currentPagination = computed(() => ({
-    ...(props.initialPagination || {})
-}))
+const currentPagination = computed(() =>
+    isSelfFetch.value ? localPagination.value : { ...(props.initialPagination || {}) }
+)
 
 const defaultLimit = computed(() => props.size === 'mini' ? 3 : props.size === 'compact' ? 5 : 10)
 const limitValue = computed(() => props.limit || defaultLimit.value)
@@ -238,9 +272,13 @@ const getRankLabel = (index) => {
     return `#${index + 1}`
 }
 
-const emitRefresh = () => emit('refresh')
+const emitRefresh = () => {
+    if (isSelfFetch.value) fetchData(1)
+    else emit('refresh')
+}
 const emitPage = (page) => {
     if (page < 1 || page > currentPagination.value.last_page) return
-    emit('page-change', page)
+    if (isSelfFetch.value) fetchData(page)
+    else emit('page-change', page)
 }
 </script>

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Warehouse Monitoring feature provides a performance dashboard for tracking warehouse inventory health. The main dashboard (`index.vue`) is a redesigned multi-section overview that fetches each section independently via parallel client-side API calls. Each section links to its own dedicated full-page view.
+The Warehouse Monitoring feature is a real-time inventory health dashboard. The main page (`index.vue`) is a component-based multi-section dashboard where every section is wired to a live API. Filters are global — changing any filter instantly refetches every visible section.
 
 ## Page Entry Point
 
@@ -11,11 +11,13 @@ The Warehouse Monitoring feature provides a performance dashboard for tracking w
 - **Layout**: `MainAppLayout` with title "Warehouse Monitoring"
 - **Controller**: `WarehouseMonitoringController`
 
+---
+
 ## Architecture
 
 ```
 Pages/WarehouseMonitoring/
-  ├── index.vue                  (Dashboard - parallel fetch, multi-section)
+  ├── index.vue                  (Dashboard — global filter, component-based)
   ├── Leaderboard.vue            (Full Caution/Shortage leaderboard with tabs)
   ├── OverdueDays.vue            (Full overdue days report)
   ├── LeaderChecklist.vue        (Full check compliance report)
@@ -23,15 +25,19 @@ Pages/WarehouseMonitoring/
   └── RecoveryDays.vue           (Full recovery days report)
 
 Components/
-  ├── CautionOverdueLeaderboard.vue   (Reusable: compact + full)
-  ├── ShortageOverdueLeaderboard.vue  (Reusable: compact + full)
-  ├── StatusChangeContent.vue         (Reusable: compact + full)
-  ├── StatusBarChart.vue              (Chart.js bar chart)
-  ├── RecoveryDaysReportContent.vue   (Reusable: compact + full, with trend chart)
-  └── LeaderChecklistCompact.vue      (Compact view for dashboard)
+  ├── CautionOverdueLeaderboard.vue     (Reusable: compact/full; self-fetch when filters prop given)
+  ├── ShortageOverdueLeaderboard.vue    (Reusable: compact/full; self-fetch when filters prop given)
+  ├── StatusChangeContent.vue           (Reusable: compact/full; self-fetch when filters prop given)
+  ├── RecoveryDaysReportContent.vue     (Reusable: compact/full; self-fetch when filters prop given)
+  ├── OverdueTrendChart.vue             (Chart.js bar chart — status count overview)
+  ├── RecoveryTrendChart.vue            (Chart.js line chart — avg recovery days by month)
+  ├── DistributionDonutChart.vue        (Chart.js doughnut — OK/Caution/Shortage distribution)
+  ├── FastestToCriticalChart.vue        (Chart.js horizontal bar — top 5 materials by days)
+  ├── SystemRecommendationPanel.vue     (Derived recommendations from shortage/caution data)
+  └── MaterialInventoryOverview.vue     (Full-width inventory table; dummy data, filters prop ready)
 
 Controllers/
-  ├── WarehouseMonitoringController.php    (Dashboard index + legacy dashboard API)
+  ├── WarehouseMonitoringController.php    (Dashboard index + /api/dashboard endpoint)
   ├── ProblematicMaterialsController.php   (Problematic materials + consumption averages)
   ├── LeaderboardController.php            (Caution/Shortage leaderboards)
   ├── OverdueDaysController.php            (Overdue days report)
@@ -47,7 +53,12 @@ Services/
   ├── StatusChangeService
   ├── RecoveryDaysService
   └── MaterialReportService
+
+Utilities/
+  └── resources/js/utils/filterParams.ts   (buildFilterParams — shared by all self-fetching components)
 ```
+
+---
 
 ## Routes
 
@@ -66,26 +77,27 @@ Services/
 
 | Method | Path | Controller | Description |
 |--------|------|------------|-------------|
-| `GET` | `/warehouse-monitoring/api/dashboard` | `WarehouseMonitoringController@dashboardApi` | Legacy: all data at once |
+| `GET` | `/warehouse-monitoring/api/dashboard` | `WarehouseMonitoringController@dashboardApi` | All charts/stats data at once |
 | `GET` | `/warehouse-monitoring/api/problematic` | `ProblematicMaterialsController@index` | Problematic materials with severity |
+| `PATCH` | `/warehouse-monitoring/api/problematic/{id}` | `ProblematicMaterialsController@update` | Update `estimated_gr` |
 | `GET` | `/warehouse-monitoring/api/consumption-averages` | `ProblematicMaterialsController@getConsumptionAverages` | Raw consumption data from external API |
-| `GET` | `/warehouse-monitoring/api/caution` | `LeaderboardController@cautionApi` | Caution leaderboard data |
-| `GET` | `/warehouse-monitoring/api/shortage` | `LeaderboardController@shortageApi` | Shortage leaderboard data |
+| `GET` | `/warehouse-monitoring/api/caution` | `LeaderboardController@cautionApi` | Caution leaderboard |
+| `GET` | `/warehouse-monitoring/api/shortage` | `LeaderboardController@shortageApi` | Shortage leaderboard |
 | `GET` | `/warehouse-monitoring/api/recovery-days` | `RecoveryDaysController@recoveryApi` | Recovery days data |
 | `GET` | `/warehouse-monitoring/api/status-change-api` | `StatusChangeController@statusChangeApi` | Status change data |
 
-### Query Parameters
+### Query Parameters (Dashboard API)
 
-| Parameter | Values | Applies To |
-|-----------|--------|------------|
-| `limit` | integer (max 50) | `/api/problematic` |
-| `date` | `YYYY-MM-DD` | Full pages |
-| `month` | `YYYY-MM` | Full pages |
-| `usage` | `DAILY`, `WEEKLY`, `MONTHLY` | Full pages |
-| `location` | `SUNTER_1`, `SUNTER_2` | Full pages |
-| `gentani` | `GENTAN-I`, `NON_GENTAN-I` | Full pages |
-| `page` | integer | Full pages |
-| `per_page` | integer | Full pages (default: 10) |
+| Parameter | Values | Description |
+|-----------|--------|-------------|
+| `usage` | `DAILY`, `WEEKLY`, `MONTHLY` | Filter by material usage frequency |
+| `location` | `SUNTER_1`, `SUNTER_2` | Filter by warehouse location |
+| `month` | `YYYY-MM` | Filter by specific month |
+| `gentani` | `GENTAN-I`, `NON_GENTAN-I` | Filter by gentani classification |
+| `page` | integer | For paginated endpoints |
+| `per_page` | integer | Items per page (default: 10) |
+
+Omitting a parameter (or passing `all`) returns data for all values of that dimension.
 
 ---
 
@@ -95,105 +107,311 @@ Services/
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│  Header + Filter toggle                                               │
-│  [Show Filters] → Warehouse / Shift / Search (currently UI-only)     │
+│  Header: "Warehouse Monitoring"                                       │
+│  Usage filter pills: All | Daily | Weekly | Monthly                  │
+│  [Show Filters] → Location pills | Month input | Gentani pills | Reset│
 ├──────────────────────────────────────────────────┬───────────────────┤
 │  LEFT (lg:col-span-8)                            │ RIGHT (col-span-4)│
 │                                                  │                   │
-│  ┌────────────────────────────────────────────┐  │ Distribution donut│
-│  │ Problematic Materials Table ← REAL DATA    │  │ (dummy)           │
-│  │ Skeleton loading state                     │  │                   │
-│  │ Empty state                                │  ├───────────────────┤
-│  │ Row click → Detail Modal                   │  │ Shortage LB       │
-│  └────────────────────────────────────────────┘  │ (dummy)           │
-│                                                  ├───────────────────┤
-│  ┌──────────────────────┐ ┌─────────────────┐   │ Caution LB        │
-│  │ Overdue Trend (dummy)│ │ Recommendation  │   │ (dummy)           │
-│  │ Recovery Trend(dummy)│ │ Panel (dummy)   │   ├───────────────────┤
-│  └──────────────────────┘ └─────────────────┘   │ Status Changes bar│
-│                                                  │ (dummy)           │
-│                                                  ├───────────────────┤
-│                                                  │ Fastest to Crit.  │
-│                                                  │ (dummy)           │
+│  ┌────────────────────────────────────────────┐  │ DistributionDonut │
+│  │ Problematic Materials Table (REAL DATA)    │  │ (live)            │
+│  │  • Skeleton loading state                 │  ├───────────────────┤
+│  │  • Status/severity pills                  │  │ ShortageLeaderboard│
+│  │  • estimated_gr inline editing            │  │ (live, self-fetch) │
+│  │  • Row click → Detail Modal               │  ├───────────────────┤
+│  └────────────────────────────────────────────┘  │ CautionLeaderboard│
+│                                                  │ (live, self-fetch) │
+│  ┌──────────────────────┐ ┌─────────────────┐   ├───────────────────┤
+│  │ RecoveryTrendChart   │ │ SystemRecommend.│   │ StatusChange bar  │
+│  │ (live)               │ │ Panel (live)    │   │ (live, self-fetch) │
+│  └──────────────────────┘ └─────────────────┘   ├───────────────────┤
+│                                                  │ FastestToCritical │
+│                                                  │ (live)            │
 ├──────────────────────────────────────────────────┴───────────────────┤
-│  Material Inventory Overview Table (dummy)                            │
+│  MaterialInventoryOverview Table (dummy data; filters prop wired)     │
 └──────────────────────────────────────────────────────────────────────┘
+```
+
+### Global Filter State
+
+All filter state lives in a single `reactive` object in `index.vue`:
+
+```ts
+const globalFilter = reactive({
+    usage:   'all' as 'all' | 'DAILY' | 'WEEKLY' | 'MONTHLY',
+    location: 'all' as 'all' | 'SUNTER_1' | 'SUNTER_2',
+    month:   null  as string | null,   // 'YYYY-MM' or null
+    gentani: 'all' as 'all' | 'GENTAN-I' | 'NON_GENTAN-I',
+})
+```
+
+A single deep watcher triggers a full refresh whenever any dimension changes:
+
+```ts
+watch(globalFilter, () => {
+    fetchDashboardData()
+    fetchProblematicMaterials(1)
+}, { deep: true })
 ```
 
 ### Data Fetching Strategy
 
-The dashboard uses **parallel client-side fetch calls** — each section fetches its own data independently on `onMounted`. Only the Problematic Materials section is currently wired to a real API endpoint. All other sections still use dummy data pending future integration.
-
 ```
 onMounted()
-  ├── fetchProblematicMaterials()  → GET /warehouse-monitoring/api/problematic
-  └── initCharts()                 → Chart.js initialisation
+  ├── fetchDashboardData()        → GET /api/dashboard?{globalFilter}
+  └── fetchProblematicMaterials() → GET /api/problematic?{globalFilter}
+
+Self-fetching components watch their own `filters` prop:
+  ├── CautionOverdueLeaderboard   → GET /api/caution?{filters}
+  ├── ShortageOverdueLeaderboard  → GET /api/shortage?{filters}
+  ├── StatusChangeContent         → GET /api/status-change-api?{filters}
+  └── RecoveryDaysReportContent   → GET /api/recovery-days?{filters}
 ```
 
-### Sections: Real Data vs Dummy
+### Dashboard Data Map
 
-| Section | Status | API Endpoint |
-|---------|--------|-------------|
-| Problematic Materials | **Real data** | `/api/problematic` |
-| Distribution donut | Dummy | — |
-| Shortage Leaderboard | Dummy | `/api/shortage` (not yet wired) |
-| Caution Leaderboard | Dummy | `/api/caution` (not yet wired) |
-| Overdue Trend chart | Dummy | — |
-| Recovery Trend chart | Dummy | — |
-| Status Changes bar | Dummy | `/api/status-change-api` (not yet wired) |
-| Fastest to Critical | Dummy | — |
-| Material Inventory Overview | Dummy | — |
+`dashboardData` ref is populated from `/api/dashboard`. Its fields feed the following components:
 
-### Caching
+| `dashboardData` field | Component | Notes |
+|-----------------------|-----------|-------|
+| `dashboardData.barChart` | `DistributionDonutChart` | `summary.OK/CAUTION/SHORTAGE` for donut counts |
+| `dashboardData.barChart` | `OverdueTrendChart` | `statusBarChart[]` for bar chart |
+| `dashboardData.recovery.trendData` | `RecoveryTrendChart` | `[{month, average_recovery_days}]` |
+| `dashboardData.shortage.leaderboard` | `FastestToCriticalChart` | Top 5 by `days` |
+| `dashboardData.shortage` | `SystemRecommendationPanel` | Full stats + leaderboard array |
+| `dashboardData.caution` | `SystemRecommendationPanel` | Full stats + leaderboard array |
 
-| Cache key | TTL | What |
-|-----------|-----|------|
-| `problematic_materials_{limit}` | 5 min | Final joined result |
-| `consumption_averages_all` | 1 hour | External consumption API response |
+### Dashboard API Response Shape
+
+```json
+{
+  "success": true,
+  "data": {
+    "caution": {
+      "statistics": { "type": "CAUTION", "total": 32, "average_days": 8.5, "max_days": 22, "min_days": 1 },
+      "leaderboard": [{ "material_number": "...", "description": "...", "pic_name": "...", "days": 22, "current_stock": 5, "usage": "DAILY" }],
+      "pagination": { "current_page": 1, "last_page": 4, "per_page": 10, "total": 32 }
+    },
+    "shortage": { "...same shape..." },
+    "recovery": {
+      "statistics": { "total_recovered": 15, "average_recovery_days": 4.2 },
+      "data": [...],
+      "pagination": {...},
+      "trendData": [{ "month": 1, "average_recovery_days": 3.8, "total_recovered": 5 }]
+    },
+    "statusChange": { "statistics": {...}, "data": [...], "pagination": {...} },
+    "barChart": {
+      "statusBarChart": [
+        { "status": "SHORTAGE", "count": 15 },
+        { "status": "CAUTION",  "count": 32 },
+        { "status": "OK",       "count": 248 }
+      ],
+      "summary": { "OK": 248, "CAUTION": 32, "SHORTAGE": 15, "OVERFLOW": 3, "UNCHECKED": 12 }
+    }
+  },
+  "filters": { "usage": "DAILY" },
+  "timestamp": "2026-02-25T10:30:00"
+}
+```
+
+### Section Status
+
+| Section | Data Source | Live? |
+|---------|-------------|-------|
+| Problematic Materials table | `/api/problematic` | Yes |
+| DistributionDonutChart | `dashboardData.barChart.summary` | Yes |
+| RecoveryTrendChart | `dashboardData.recovery.trendData` | Yes |
+| FastestToCriticalChart | `dashboardData.shortage.leaderboard` | Yes |
+| SystemRecommendationPanel | `dashboardData.shortage` + `dashboardData.caution` | Yes |
+| ShortageOverdueLeaderboard | `/api/shortage` (self-fetch) | Yes |
+| CautionOverdueLeaderboard | `/api/caution` (self-fetch) | Yes |
+| StatusChangeContent | `/api/status-change-api` (self-fetch) | Yes |
+| RecoveryDaysReportContent | `/api/recovery-days` (self-fetch) | Yes |
+| MaterialInventoryOverview | Dummy data | No (filters prop ready) |
+| OverdueTrendChart | `dashboardData.barChart.statusBarChart` | Yes (currently hidden in layout) |
+
+---
+
+## Self-Fetching Component Pattern
+
+Components that manage their own data use a `filters` prop sentinel:
+
+```js
+const props = defineProps({
+    filters: { type: Object, default: null },  // null = prop-driven (legacy), object = self-fetch
+    // ...other initial* props for legacy prop-driven mode
+})
+
+const isSelfFetch = computed(() => props.filters !== null)
+
+// Switch between local (self-fetch) and initial (prop-driven) data
+const currentLeaderboard = computed(() =>
+    isSelfFetch.value ? localLeaderboard.value : (props.initialLeaderboard ?? [])
+)
+
+async function fetchData(page = 1) {
+    if (!isSelfFetch.value) return
+    const params = buildFilterParams({ ...props.filters, page, per_page: 5 })
+    const res = await fetch(`/warehouse-monitoring/api/caution?${params}`)
+    const json = await res.json()
+    // All endpoints wrap payload: { success, data: { data, statistics, pagination } }
+    const payload = json.data ?? json
+    localLeaderboard.value = payload.data ?? payload.leaderboard ?? []
+    localStatistics.value  = payload.statistics ?? { total: 0, average_days: 0 }
+    localPagination.value  = payload.pagination  ?? { current_page: 1, last_page: 1, ... }
+}
+
+watch(() => props.filters, (f) => { if (f !== null) fetchData(1) }, { deep: true, immediate: true })
+```
+
+**API envelope**: every endpoint responds with `{ success, data: {...} }`. Always unwrap with `json.data ?? json` before reading fields.
+
+**Legacy mode**: pass `initialLeaderboard`, `initialStatistics`, `initialPagination` props and omit `filters`. Used by standalone full-page views (`Leaderboard.vue`, etc.) that drive pagination via Inertia router.
+
+---
+
+## Filter Utility
+
+**File**: `resources/js/utils/filterParams.ts`
+
+```ts
+export function buildFilterParams(filters: Record<string, unknown>): URLSearchParams {
+    const p = new URLSearchParams()
+    for (const [k, v] of Object.entries(filters)) {
+        if (v !== null && v !== undefined && v !== '' && v !== 'all') p.set(k, String(v))
+    }
+    return p
+}
+```
+
+Skips null, empty string, and `'all'` values so the API receives only active filters.
+
+---
+
+## Chart Components
+
+All chart components are **presentational** — they receive processed data as props and own their Chart.js lifecycle (`onMounted`, `onBeforeUnmount`, `watch`).
+
+### OverdueTrendChart
+
+**File**: `resources/js/Components/OverdueTrendChart.vue`
+**Title**: "Status Count Overview"
+**Chart type**: Vertical bar
+**Data**: `data.statusBarChart` — one bar per status with status-specific colors
+**Props**: `data?: { statusBarChart?: {status, count}[]; summary?: Record<string,number> } | null`, `filters?`
+
+Status colors: `SHORTAGE=#ef4444`, `CAUTION=#f59e0b`, `OK=#10b981`, `OVERFLOW=#3b82f6`, `UNCHECKED=#9ca3af`
+
+### RecoveryTrendChart
+
+**File**: `resources/js/Components/RecoveryTrendChart.vue`
+**Title**: "Avg Recovery Days"
+**Chart type**: Line (smooth)
+**Data**: `data` — array of `{ month: 1-12, average_recovery_days: number, total_recovered: number }`
+**Props**: `data?: TrendItem[] | null`, `filters?`
+
+Converts numeric `month` (1-12) to abbreviated month names (Jan, Feb, ...).
+
+### DistributionDonutChart
+
+**File**: `resources/js/Components/DistributionDonutChart.vue`
+**Title**: "Material Status Distribution"
+**Chart type**: Doughnut
+**Data**: `data.summary.OK/CAUTION/SHORTAGE`
+**Props**: `data?: { summary?: Record<string,number>; statusBarChart?: {status,count}[] } | null`, `filters?`
+
+Shows numeric counters (OK / Caution / Shortage) alongside the donut.
+
+### FastestToCriticalChart
+
+**File**: `resources/js/Components/FastestToCriticalChart.vue`
+**Title**: "Top 5 Fastest to Critical"
+**Chart type**: Horizontal bar
+**Data**: `data` — top 5 leaderboard items; reads `description` (truncated to 20 chars) and `days`
+**Props**: `data?: LeaderboardItem[] | null`, `filters?`
+
+### Modal Chart
+
+The detail modal in `index.vue` renders a per-material line chart (dummy trend data) using Chart.js directly on `modalChartRef`.
+
+---
+
+## SystemRecommendationPanel
+
+**File**: `resources/js/Components/SystemRecommendationPanel.vue`
+
+Derives two action blocks from live shortage and caution data:
+
+| Block | Color | Content |
+|-------|-------|---------|
+| Immediate Action | Red | Top shortage material + PIC + days + stock + total count |
+| Urgent (Next 2 shifts) | Amber | Caution count + average days + worst-case days |
+
+**Props**:
+- `shortage?: { leaderboard?: LeaderboardItem[]; statistics?: LBStats }`
+- `caution?: { leaderboard?: LeaderboardItem[]; statistics?: LBStats }`
+- `updatedAt?: string`
+
+**Emits**: `view-material` with the top shortage `LeaderboardItem`
+
+**"View Material Analysis" button**: disabled when no shortage materials; clicking emits `view-material` and opens the detail modal.
 
 ---
 
 ## Modules
 
-### 1. Problematic Materials (Dashboard section)
+### 1. Problematic Materials
 
-The top table on the dashboard. Shows SHORTAGE and CAUTION materials sorted by urgency, enriched with coverage/durability data from the external consumption API.
+The top table on the dashboard. SHORTAGE/CAUTION materials sorted by severity, enriched with consumption data from the external API.
 
 **File**: `app/Http/Controllers/ProblematicMaterialsController.php`
 **Service**: `app/Services/ProblematicMaterialsService.php`
-**Route**: `GET /warehouse-monitoring/api/problematic?limit=10`
+
+#### API Endpoints
+
+- `GET /warehouse-monitoring/api/problematic` — paginated list with severity
+- `PATCH /warehouse-monitoring/api/problematic/{id}` — update `estimated_gr` field only
+
+#### Query Parameters
+
+| Parameter | Values | Default |
+|-----------|--------|---------|
+| `page` | integer | 1 |
+| `per_page` | integer | 10 |
+| `status` | `SHORTAGE`, `CAUTION` | all |
+| `usage` | `DAILY`, `WEEKLY`, `MONTHLY` | all |
+| `location` | `SUNTER_1`, `SUNTER_2` | all |
+| `gentani` | `GENTAN-I`, `NON_GENTAN-I` | all |
 
 #### Response Shape
 
 ```json
 {
   "success": true,
-  "total": 8,
-  "data": [
-    {
-      "id": 42,
-      "material_number": "B021-100000",
-      "description": "PLASTIC WRAP 50 CM X 17 MIC",
-      "pic_name": "Budi",
-      "status": "SHORTAGE",
-      "severity": "Line-Stop Risk",
-      "coverage_shifts": 0.5,
-      "daily_avg": 2.5,
-      "shift_avg": 0.83,
-      "instock": 10,
-      "streak_days": 4,
-      "location": "SUNTER_1",
-      "usage": "DAILY",
-      "last_updated": "2026-02-20"
-    }
-  ]
+  "data": {
+    "data": [
+      {
+        "id": 42,
+        "material_number": "B021-100000",
+        "description": "PLASTIC WRAP 50 CM X 17 MIC",
+        "pic_name": "Budi",
+        "status": "SHORTAGE",
+        "severity": "Line-Stop Risk",
+        "coverage_shifts": 0.5,
+        "daily_avg": 2.5,
+        "shift_avg": 0.83,
+        "current_stock": 10,
+        "streak_days": 4,
+        "location": "SUNTER_1",
+        "usage": "DAILY",
+        "estimated_gr": "2026-03-01",
+        "last_updated": "2026-02-20"
+      }
+    ],
+    "pagination": { "current_page": 1, "last_page": 3, "per_page": 10, "total": 28 }
+  }
 }
 ```
-
-#### Sort Order
-
-Backend sorts: `status_priority ASC` (SHORTAGE=1, CAUTION=2), then `streak_days DESC`.
-Frontend re-sorts by severity rank so `Line-Stop Risk` always floats above `High`.
 
 #### Severity Logic (`resolveSeverity()`)
 
@@ -206,44 +424,23 @@ Frontend re-sorts by severity rank so `Line-Stop Risk` always floats above `High
 | CAUTION | `streak_days > 3` | Medium |
 | CAUTION | `streak_days ≤ 3` | Low |
 
-#### TypeScript Types (index.vue)
+#### `estimated_gr` Editing
 
-```typescript
-type Status   = 'CAUTION' | 'SHORTAGE'
-type Severity = 'Low' | 'Medium' | 'High' | 'Line-Stop Risk'
-
-type MaterialRow = {
-    id: number
-    material_number: string
-    description: string
-    pic_name: string
-    status: Status
-    severity: Severity
-    coverage_shifts: number | null   // null when no consumption data from external API
-    daily_avg: number | null
-    shift_avg: number | null
-    instock: number
-    streak_days: number
-    location: string
-    usage: string
-    last_updated: string | null
-}
-```
+Inline date input per row. On blur/change emits a `PATCH /api/problematic/{id}` with `{ estimated_gr: 'YYYY-MM-DD' }`. The column is excluded from upsert to preserve user-entered values.
 
 #### Detail Modal
 
-Clicking a row opens a slide-up modal (`showDetailModal`) showing:
-- Coverage shifts (or "No data" if null)
-- Streak days
-- Current stock + usage unit
+Clicking a row opens a modal showing:
+- Coverage shifts (or "No data" if null), streak days, current stock
 - Action recommendation (Escalate / Monitor)
-- Material info grid: PIC, Location, Usage, Shift avg
+- Material info: PIC, Location, Usage, Shift avg
+- Per-material consumption chart (dummy trend)
 
 #### Loading States
 
 - **Skeleton**: 5 animated placeholder rows while fetching
-- **Empty state**: "No problematic materials found." if API returns empty array
-- **Error**: Banner at top of page if fetch fails
+- **Empty state**: message if API returns empty
+- **Error**: banner at top of page if fetch fails
 
 ---
 
@@ -253,135 +450,53 @@ Clicking a row opens a slide-up modal (`showDetailModal`) showing:
 **Auth**: `X-API-Key: WAREHOUSE_DASHBOARD_KEY_2026`
 **Config**: `config('services.consumption_api.url')` / `config('services.consumption_api.key')`
 
-The service fetches **all materials** (`limit=500`) and keys the result by `material_id` for O(1) lookup. This is then joined with the DB query result in PHP.
+Only consumable materials are tracked by this API (~1233 items). Industrial tools and spare parts in SHORTAGE/CAUTION have no consumption data — they are filtered out of the Problematic Materials results.
 
-```
-material_id (external API) ↔ material_number (materials table)
-```
+Join key: `material_id (external API) ↔ material_number (materials table)`
 
-**External API response fields used**:
-
-| Field | Used For |
-|-------|----------|
-| `material_id` | Join key |
-| `shift_avg` | `coverage_shifts = instock / shift_avg` |
-| `daily_avg` | Shown in modal |
-
-**Exposed as its own endpoint** (`/api/consumption-averages`) for frontend debugging/inspection.
+**Caching**:
+- `consumption_averages_all` — 1 hour, only populated when the response is non-empty
+- `problematic_materials_sync` — 5 min, prevents redundant syncs
 
 ---
 
 ### 3. Caution/Shortage Leaderboard
 
-**Full Page**: `Leaderboard.vue` with tabbed interface (CAUTION / SHORTAGE tabs).
+See [`leaderboard.md`](./leaderboard.md) for full documentation.
 
-**What it shows**: Materials ranked by consecutive days in CAUTION or SHORTAGE status. Top 3 entries get medal icons.
-
-**Controller**: `LeaderboardController` using `LeaderboardService`.
-
-**Dashboard "View All"**: `/warehouse-monitoring/leaderboard?tab=CAUTION` / `?tab=SHORTAGE`
+**Summary**: Materials ranked by consecutive distinct days in CAUTION or SHORTAGE. Components support both prop-driven mode (full-page `Leaderboard.vue`) and self-fetch mode (dashboard, pass `filters` prop).
 
 ---
 
-### 4. Overdue Days
+### 4. Recovery Days
 
-**Full Page**: `OverdueDays.vue`
+See [`recovery_days.md`](./recovery_days.md).
 
-**What it shows**: Materials in SHORTAGE, CAUTION, OVERFLOW, or UNCHECKED status with consecutive weekday count. Weekday formula excludes Saturday/Sunday.
-
-**Filters**: Search, PIC, Location, Usage, Gentani, Status, Sort By, Sort Direction.
-
-**Statistics**: Counts for SHORTAGE, CAUTION, OVERFLOW, UNCHECKED.
-
-**Table columns**: Material Number, Description, PIC, Stock, Status, Overdue Days, Last Updated.
-
-**Controller**: `OverdueDaysController` using `OverdueDaysService`.
-
-**Dashboard "View All"**: `/warehouse-monitoring/overdue-days`
+**Dashboard widget**: `RecoveryDaysReportContent` with `size="compact"` and `:filters="globalFilter"` — self-fetches from `/api/recovery-days`. The `trendData` from the dashboard API feeds `RecoveryTrendChart`.
 
 ---
 
-### 5. Leader Checklist
+### 5. Status Change Tracker
 
-**Full Page**: `LeaderChecklist.vue`
+See [`status_change.md`](./status_change.md).
 
-**What it shows**: Materials due for checking today based on usage schedule (DAILY/WEEKLY/MONTHLY) that haven't been checked yet.
-
-**Statistics**: DAILY Need Check, WEEKLY Need Check, MONTHLY Need Check, TOTAL.
-
-**Features**: Jump-to-page input for large result sets.
-
-**Controller**: `LeaderChecklistController` using `LeaderChecklistService`.
-
-**Dashboard "View All"**: `/warehouse-monitoring/leader-checklist`
+**Dashboard widget**: `StatusChangeContent` with `size="compact"` and `:filters="globalFilter"` — self-fetches from `/api/status-change-api`.
 
 ---
 
-### 6. Status Change Tracker
+### 6. Overdue Days
 
-**Full Page**: `StatusChange.vue`
-**Component**: `StatusChangeContent.vue`
+See [`overdue_days.md`](./overdue_days.md).
 
-**What it shows**: Materials with frequent status transitions (OK→Caution, OK→Shortage, OK→Overflow) indicating instability.
-
-**Controller**: `StatusChangeController` using `StatusChangeService`.
-
-**Dashboard "View All"**: `/warehouse-monitoring/status-change`
+**Dashboard**: No compact widget. "View All" link from the Problematic Materials section goes to `/warehouse-monitoring/overdue-days`.
 
 ---
 
-### 7. Recovery Days
+### 7. Leader Checklist
 
-**Full Page**: `RecoveryDays.vue`
-**Component**: `RecoveryDaysReportContent.vue`
+See [`leader_checklist.md`](./leader_checklist.md).
 
-**What it shows**: Materials that recovered from a problem status back to OK, with recovery duration and a monthly trend chart.
-
-**Controller**: `RecoveryDaysController` using `RecoveryDaysService`.
-
-**Dashboard "View All"**: `/warehouse-monitoring/recovery-days`
-
----
-
-## Data Flow
-
-### Dashboard: Problematic Materials
-
-```
-onMounted
-  └── fetchProblematicMaterials()
-        └── GET /warehouse-monitoring/api/problematic?limit=10
-              └── ProblematicMaterialsController@index
-                    └── Cache::remember('problematic_materials_10', 300)
-                          └── ProblematicMaterialsService@getProblematicMaterials()
-                                ├── queryProblematicMaterials()  ← DB: SHORTAGE/CAUTION, sorted
-                                └── fetchConsumptionAverages()   ← External API (cached 1h)
-                                      └── join by material_number = material_id
-                                      └── compute coverage_shifts, severity
-```
-
-### Dashboard → Full Page Navigation
-
-| Dashboard Section | View All Target |
-|---|---|
-| Shortage Leaderboard | `/warehouse-monitoring/leaderboard?tab=SHORTAGE` |
-| Caution Leaderboard | `/warehouse-monitoring/leaderboard?tab=CAUTION` |
-| Problematic Materials | `/warehouse-monitoring/overdue-days` |
-| Recovery Trend | `/warehouse-monitoring/recovery-days` |
-| Status Changes | `/warehouse-monitoring/status-change` |
-
-### Full Page Data Flow (Inertia)
-
-```
-User changes filter or page
-  └── router.get(route('warehouse-monitoring.xxx'), params, {
-        preserveState: true,
-        preserveScroll: true,
-        only: ['relevantProps']
-      })
-        └── Controller@index → Service → Cache::remember() → DB
-              └── Inertia::render() → partial prop update → Vue reactivity
-```
+**Dashboard**: No compact widget. Accessible from the top navigation.
 
 ---
 
@@ -389,8 +504,8 @@ User changes filter or page
 
 | Service | Key Methods |
 |---------|-------------|
-| `ProblematicMaterialsService` | `getProblematicMaterials($limit)`, `fetchConsumptionAverages()` |
-| `LeaderboardService` | `getCautionLeaderboard($filters, $perPage, $page)`, `getShortageLeaderboard(...)` |
+| `ProblematicMaterialsService` | `sync()`, `getProblematicMaterials($page, $perPage, $status)`, `fetchConsumptionAveragesAll()` |
+| `LeaderboardService` | `getCautionLeaderboard($filters, $perPage, $page)`, `getShortageLeaderboard(...)`, `getAllLeaderboards($filters, $perPage)` |
 | `OverdueDaysService` | `getOverdueReports($filters, $perPage, $page)` |
 | `LeaderChecklistService` | `getComplianceReport($filters, $perPage, $page)` |
 | `StatusChangeService` | `getStatusChangeReport($filters, $perPage, $page)` |
@@ -399,8 +514,8 @@ User changes filter or page
 
 ### Form Requests (Full Pages)
 
-Each full-page controller uses a dedicated Form Request providing `getFilters()` and `getPaginationParams()`:
-- `LeaderboardRequest`
+Each full-page controller uses a dedicated Form Request:
+- `LeaderboardRequest` — provides `getFilters()`, `getPaginationParams()`
 - `OverdueDaysRequest`
 - `LeaderChecklistRequest`
 - `StatusChangeRequest`
@@ -408,18 +523,60 @@ Each full-page controller uses a dedicated Form Request providing `getFilters()`
 
 ---
 
-## Charts (index.vue)
+## Data Flow
 
-All charts use Chart.js with manual controller registration. Chart instances are stored as refs and destroyed in `onBeforeUnmount`.
+### Dashboard: On Mount
 
-| Canvas ref | Type | Data | Status |
-|---|---|---|---|
-| `overdueCanvas` | Line | Overdue days trend by month | Dummy |
-| `recoveryCanvas` | Line | Recovery days trend by month | Dummy |
-| `distributionCanvas` | Doughnut | OK / Caution / Shortage counts | Dummy |
-| `statusChangeCanvas` | Bar | Status changes by month | Dummy |
-| `fastestCanvas` | Bar (horizontal) | Top 5 fastest to critical | Dummy |
-| `modalCanvas` | Line | Per-material history (in detail modal) | Dummy |
+```
+onMounted()
+  ├── fetchDashboardData()
+  │     └── GET /api/dashboard?{globalFilter}
+  │           └── WarehouseMonitoringController@dashboardApi
+  │                 ├── LeaderboardService::getAllLeaderboards  → shortage, caution
+  │                 ├── RecoveryDaysService::getRecoveryReport  → recovery.data + pagination
+  │                 ├── RecoveryDaysService::getRecoveryTrend   → recovery.trendData
+  │                 ├── StatusChangeService::getStatusChangeReport → statusChange
+  │                 └── MaterialReportService::getStatusBarChart   → barChart
+  │
+  └── fetchProblematicMaterials(1)
+        └── GET /api/problematic?{globalFilter}&page=1
+              └── ProblematicMaterialsController@index
+                    └── ProblematicMaterialsService@sync() → upsert → paginate
+```
+
+### Dashboard: On Filter Change
+
+```
+globalFilter changes (any field)
+  └── watch(globalFilter, ..., { deep: true })
+        ├── fetchDashboardData()       — refreshes all charts & panel
+        └── fetchProblematicMaterials(1)  — resets PM table to page 1
+
+Self-fetching components (CautionLeaderboard, ShortageLeaderboard, StatusChange, RecoveryDays):
+  └── watch(() => props.filters, ...)  — each component re-fetches its own endpoint
+```
+
+### Full Page Navigation
+
+```
+User changes filter or page
+  └── router.get(route('warehouse-monitoring.xxx'), params, {
+        preserveState: true, preserveScroll: true, only: ['relevantProps']
+      })
+        └── Controller@index → Service → Cache::remember() → DB
+              └── Inertia::render() → partial prop update → Vue reactivity
+```
+
+---
+
+## Known Limitations
+
+| Limitation | Detail |
+|------------|--------|
+| No overdue trend history | `OverdueDaysService` tracks current status only; no historical series. `OverdueTrendChart` was repurposed as a "Status Count Overview" bar chart. |
+| MaterialInventoryOverview dummy | The bottom inventory table uses static placeholder data. The `filters` prop is wired but the fetch is not yet implemented. |
+| Consumption API coverage | Only consumable materials are tracked. Industrial tools/spare parts have `null` consumption data and are excluded from the PM table. |
+| External API dependency | `ProblematicMaterialsService` depends on `http://103.93.52.79:2000`. If unreachable, cached results are returned; if cache is cold, the table is empty. |
 
 ---
 

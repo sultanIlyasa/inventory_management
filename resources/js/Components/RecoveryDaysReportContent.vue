@@ -164,8 +164,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Chart from 'chart.js/auto'
-
-
+import { buildFilterParams } from '@/utils/filterParams'
 
 const props = defineProps({
     recoveryData: {
@@ -193,6 +192,10 @@ const props = defineProps({
             per_page: 10,
             total: 0
         })
+    },
+    filters: {
+        type: Object,
+        default: null
     },
     size: {
         type: String,
@@ -222,6 +225,39 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh', 'page-change'])
 
+// Self-fetch mode when filters prop is provided
+const isSelfFetch = computed(() => props.filters !== null)
+
+const localRecoveryData = ref([])
+const localStatistics = ref({
+    total_recovered: 0,
+    average_recovery_days: 0,
+    fastest_recovery: 0,
+    slowest_recovery: 0
+})
+const localTrendData = ref([])
+const localPagination = ref({ current_page: 1, last_page: 1, per_page: 10, total: 0 })
+
+async function fetchData(page = 1) {
+    if (!isSelfFetch.value) return
+    try {
+        const params = buildFilterParams({ ...props.filters, page })
+        const res = await fetch(`/warehouse-monitoring/api/recovery-days?${params}`)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const json = await res.json()
+        localRecoveryData.value = json.recoveryData ?? json.data ?? []
+        localStatistics.value = json.statistics ?? localStatistics.value
+        localTrendData.value = json.trendData ?? json.trend_data ?? []
+        localPagination.value = json.pagination ?? localPagination.value
+    } catch {
+        // silent fail
+    }
+}
+
+watch(() => props.filters, (f) => {
+    if (f !== null) fetchData(1)
+}, { deep: true, immediate: true })
+
 const sortOrder = ref('desc')
 const chartCanvas = ref(null)
 const compactChartCanvas = ref(null)
@@ -230,7 +266,9 @@ let chartInstance = null
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 const isCompact = computed(() => props.size === 'compact' || props.size === 'mini')
-const currentRecoveryData = computed(() => props.recoveryData || [])
+const currentRecoveryData = computed(() =>
+    isSelfFetch.value ? localRecoveryData.value : (props.recoveryData || [])
+)
 const sortedRecoveryData = computed(() => {
     const items = [...currentRecoveryData.value]
     return items.sort((a, b) => sortOrder.value === 'desc'
@@ -239,17 +277,22 @@ const sortedRecoveryData = computed(() => {
     )
 })
 
-const currentStatistics = computed(() => ({
-    total_recovered: props.statistics?.total_recovered ?? 0,
-    average_recovery_days: props.statistics?.average_recovery_days ?? 0,
-    fastest_recovery: props.statistics?.fastest_recovery ?? 0,
-    slowest_recovery: props.statistics?.slowest_recovery ?? 0
-}))
+const currentStatistics = computed(() => {
+    const s = isSelfFetch.value ? localStatistics.value : props.statistics
+    return {
+        total_recovered: s?.total_recovered ?? 0,
+        average_recovery_days: s?.average_recovery_days ?? 0,
+        fastest_recovery: s?.fastest_recovery ?? 0,
+        slowest_recovery: s?.slowest_recovery ?? 0
+    }
+})
 
-const currentTrendData = computed(() => props.trendData || [])
-const currentPagination = computed(() => ({
-    ...(props.pagination || {})
-}))
+const currentTrendData = computed(() =>
+    isSelfFetch.value ? localTrendData.value : (props.trendData || [])
+)
+const currentPagination = computed(() =>
+    isSelfFetch.value ? localPagination.value : { ...(props.pagination || {}) }
+)
 
 const defaultLimit = computed(() => (props.size === 'mini' ? 3 : props.size === 'compact' ? 5 : 10))
 const limitValue = computed(() => props.limit || defaultLimit.value)
@@ -283,11 +326,15 @@ const toggleSort = () => {
     sortOrder.value = sortOrder.value === 'desc' ? 'asc' : 'desc'
 }
 
-const emitRefresh = () => emit('refresh')
+const emitRefresh = () => {
+    if (isSelfFetch.value) fetchData(1)
+    else emit('refresh')
+}
 
 const emitPage = (page) => {
     if (page < 1 || page > currentPagination.value.last_page) return
-    emit('page-change', page)
+    if (isSelfFetch.value) fetchData(page)
+    else emit('page-change', page)
 }
 
 const formatDate = (dateStr) => {

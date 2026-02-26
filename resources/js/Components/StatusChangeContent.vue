@@ -197,7 +197,8 @@
 
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { buildFilterParams } from '@/utils/filterParams'
 
 const props = defineProps({
     size: { type: String, default: 'full' },
@@ -215,10 +216,37 @@ const props = defineProps({
             per_page: 10,
             total: 0
         })
-    }
+    },
+    filters: { type: Object, default: null }
 })
 
 const emit = defineEmits(['refresh', 'page-change'])
+
+// Self-fetch mode when filters prop is provided
+const isSelfFetch = computed(() => props.filters !== null)
+
+const localStatusChangeData = ref([])
+const localStatistics = ref({})
+const localPagination = ref({ current_page: 1, last_page: 1, per_page: 10, total: 0 })
+
+async function fetchData(page = 1) {
+    if (!isSelfFetch.value) return
+    try {
+        const params = buildFilterParams({ ...props.filters, page })
+        const res = await fetch(`/warehouse-monitoring/api/status-change-api?${params}`)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const json = await res.json()
+        localStatusChangeData.value = json.statusChangeData ?? json.data ?? []
+        localStatistics.value = json.statistics ?? {}
+        localPagination.value = json.pagination ?? localPagination.value
+    } catch {
+        // silent fail
+    }
+}
+
+watch(() => props.filters, (f) => {
+    if (f !== null) fetchData(1)
+}, { deep: true, immediate: true })
 
 /* Computed display helpers */
 const isCompact = computed(() => props.size === 'compact' || props.size === 'mini')
@@ -235,9 +263,15 @@ const titleClass = computed(() => {
     return 'text-xl font-bold'
 })
 
-const currentStatusChangeData = computed(() => props.initialStatusChangeData)
-const currentStatistics = computed(() => props.initialStatistics)
-const currentPagination = computed(() => props.initialPagination)
+const currentStatusChangeData = computed(() =>
+    isSelfFetch.value ? localStatusChangeData.value : props.initialStatusChangeData
+)
+const currentStatistics = computed(() =>
+    isSelfFetch.value ? localStatistics.value : props.initialStatistics
+)
+const currentPagination = computed(() =>
+    isSelfFetch.value ? localPagination.value : props.initialPagination
+)
 
 const defaultLimit = computed(() =>
     props.size === 'mini' ? 3 :
@@ -277,6 +311,12 @@ const endEntry = computed(() =>
 )
 
 /* Emitters */
-const emitPage = (p) => emit('page-change', p)
-const emitRefresh = () => emit('refresh')
+const emitPage = (p) => {
+    if (isSelfFetch.value) fetchData(p)
+    else emit('page-change', p)
+}
+const emitRefresh = () => {
+    if (isSelfFetch.value) fetchData(1)
+    else emit('refresh')
+}
 </script>

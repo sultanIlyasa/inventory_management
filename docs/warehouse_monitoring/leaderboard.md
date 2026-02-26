@@ -71,21 +71,33 @@ const uniquePICs = ["ADE N", "AKBAR", "ANWAR", "BAHTIYAR", "DEDHI", ...]
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `initialLeaderboard` | Array | `[]` | Material entries ranked by days |
-| `initialStatistics` | Object | `{ total: 0, average_days: 0 }` | Aggregate stats |
-| `initialPagination` | Object | `{ current_page, last_page, per_page, total }` | Pagination metadata |
+| `filters` | Object | `null` | When non-null, component self-fetches from `/api/caution` |
+| `initialLeaderboard` | Array | `[]` | Material entries ranked by days (prop-driven mode only) |
+| `initialStatistics` | Object | `{ total: 0, average_days: 0 }` | Aggregate stats (prop-driven mode only) |
+| `initialPagination` | Object | `{ current_page, last_page, per_page, total }` | Pagination metadata (prop-driven mode only) |
 | `size` | String | `"full"` | `"mini"`, `"compact"`, or `"full"` |
 | `limit` | Number | null | Override default item limit |
 | `showViewAll` | Boolean | `true` | Show "View All" link |
 | `viewAllUrl` | String | `/warehouse-monitoring/leaderboard?tab=CAUTION` | Link target |
 | `hideRefresh` | Boolean | `false` | Hide refresh button |
 
+### Modes
+
+| Mode | How to activate | Data source |
+|------|-----------------|-------------|
+| Self-fetch | Pass `:filters="globalFilter"` | Fetches `/api/caution?{filters}` independently |
+| Prop-driven | Omit `filters` (defaults to `null`) | Reads `initialLeaderboard/Statistics/Pagination` |
+
+Self-fetch mode is used on the dashboard. Prop-driven mode is used by `Leaderboard.vue` (full page, Inertia-driven).
+
+Pagination in self-fetch mode is handled internally (calls `fetchData(page)`). In prop-driven mode, pagination emits `page-change` upward.
+
 ### Events
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `refresh` | none | Request parent to re-fetch |
-| `page-change` | page number | Request specific page |
+| `refresh` | none | Request parent to re-fetch (prop-driven mode only) |
+| `page-change` | page number | Request specific page (prop-driven mode only) |
 
 ### Display Modes
 
@@ -119,7 +131,7 @@ const uniquePICs = ["ADE N", "AKBAR", "ANWAR", "BAHTIYAR", "DEDHI", ...]
 
 **File**: `resources/js/Components/ShortageOverdueLeaderboard.vue`
 
-Structurally identical to `CautionOverdueLeaderboard` with these differences:
+Structurally identical to `CautionOverdueLeaderboard` (including self-fetch mode via `filters` prop, endpoint: `/api/shortage`) with these differences:
 
 | Aspect | Caution | Shortage |
 |--------|---------|----------|

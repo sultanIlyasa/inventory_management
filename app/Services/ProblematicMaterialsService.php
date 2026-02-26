@@ -21,11 +21,13 @@ class ProblematicMaterialsService
     /**
      * Sync the table (if stale) then return a paginated result from the model.
      */
-    public function getProblematicMaterials(int $page = 1, int $perPage = 10, ?string $status = null): LengthAwarePaginator
+    public function getProblematicMaterials(int $page = 1, int $perPage = 5, ?string $status = null, ?string $usage = null, ?string $location = null): LengthAwarePaginator
     {
         $this->sync();
 
         return ProblematicMaterials::when($status, fn($q) => $q->where('status', $status))
+            ->when($usage, fn($q) => $q->where('usage', $usage))
+            ->when($location, fn($q) => $q->where('location', $location))
             ->orderBy('status_priority')
             ->orderByDesc('streak_days')
             ->paginate($perPage, ['*'], 'page', $page);
@@ -101,10 +103,23 @@ class ProblematicMaterialsService
         // estimated_gr is intentionally excluded from $updateColumns so
         // user-entered dates are never overwritten by the sync.
         $updateColumns = [
-            'description', 'pic_name', 'status', 'status_priority', 'severity',
-            'coverage_shifts', 'daily_avg', 'shift_avg', 'instock', 'streak_days',
-            'location', 'usage', 'gentani', 'last_updated',
-            'total_consumed', 'calculation_info', 'updated_at',
+            'description',
+            'pic_name',
+            'status',
+            'status_priority',
+            'severity',
+            'coverage_shifts',
+            'daily_avg',
+            'shift_avg',
+            'instock',
+            'streak_days',
+            'location',
+            'usage',
+            'gentani',
+            'last_updated',
+            'total_consumed',
+            'calculation_info',
+            'updated_at',
         ];
 
         DB::transaction(function () use ($rows, $updateColumns) {
@@ -262,7 +277,7 @@ class ProblematicMaterialsService
     {
         if ($status === 'SHORTAGE') {
             if ($coverageShifts === null) return 'High';
-            if ($coverageShifts < 1)      return 'Line-Stop Risk';
+            if ($coverageShifts < 1)      return 'Line-Stop';
             if ($coverageShifts < 3)      return 'High';
             return 'Medium';
         }

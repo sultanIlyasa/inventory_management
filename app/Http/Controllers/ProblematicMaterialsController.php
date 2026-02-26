@@ -18,8 +18,11 @@ class ProblematicMaterialsController extends Controller
         $page    = (int) $request->query('page', 1);
         $perPage = (int) $request->query('per_page', 10);
         $status  = $request->query('status') ?: null; // SHORTAGE | CAUTION | null
+        $usage = $request->query('usage') ?: null;
+        $location = $request->query('location') ?: null;
 
-        $paginator = $this->service->getProblematicMaterials($page, $perPage, $status);
+
+        $paginator = $this->service->getProblematicMaterials($page, $perPage, $status, $usage,$location);
 
         return response()->json([
             'success' => true,

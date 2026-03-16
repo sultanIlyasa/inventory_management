@@ -139,7 +139,8 @@ import {
     ChevronRight,
     ChevronLeft,
     ShieldX,
-    ClipboardList
+    ClipboardList,
+    Truck
 } from "lucide-vue-next";
 
 
@@ -198,6 +199,11 @@ const menuItems = [
         name: "Discrepancy",
         route: "discrepancy.index",
         icon: ShieldX
+    },
+    {
+        name: "Request Material",
+        route: "request.material.tracker.index",
+        icon: Truck
     },
     {
         name: "Login",

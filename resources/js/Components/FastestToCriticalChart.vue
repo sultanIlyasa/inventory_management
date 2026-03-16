@@ -10,7 +10,7 @@
             </div>
             <div>
                 <p class="text-sm font-semibold text-gray-900">Top 5 Fastest to Critical</p>
-                <p class="text-xs text-gray-500">Mean time to critical materials (days)</p>
+                <p class="text-xs text-gray-500">Materials that entered shortage the fastest (fewest days)</p>
             </div>
         </div>
 

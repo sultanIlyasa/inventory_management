@@ -264,6 +264,52 @@ class LeaderboardService
     }
 
     /**
+     * Get top N SHORTAGE materials sorted ASC by days (fewest days = fastest to critical)
+     */
+    public function getFastestToCritical(array $filters = [], int $limit = 5): array
+    {
+        $whereConditions = ["daily_inputs.status = :status"];
+        $bindings = ['status' => 'SHORTAGE'];
+
+        if (!empty($filters['usage']))    { $whereConditions[] = "materials.usage = :usage";       $bindings['usage']    = $filters['usage']; }
+        if (!empty($filters['location'])) { $whereConditions[] = "materials.location = :location"; $bindings['location'] = $filters['location']; }
+        if (!empty($filters['gentani']))  { $whereConditions[] = "materials.gentani = :gentani";   $bindings['gentani']  = $filters['gentani']; }
+        if (!empty($filters['pic_name'])) { $whereConditions[] = "materials.pic_name = :pic_name"; $bindings['pic_name'] = $filters['pic_name']; }
+
+        $whereClause = implode(' AND ', $whereConditions);
+
+        // Fetch enough candidates to find $limit distinct days values
+        $fetchLimit = $limit * 20;
+        $sql = "
+            SELECT materials.id, materials.material_number, materials.description,
+                   materials.pic_name, materials.usage, materials.location, materials.gentani,
+                   COUNT(DISTINCT daily_inputs.date) as days,
+                   MAX(daily_inputs.daily_stock) as current_stock
+            FROM materials
+            INNER JOIN daily_inputs ON materials.id = daily_inputs.material_id
+            WHERE {$whereClause}
+            GROUP BY materials.id, materials.material_number, materials.description,
+                     materials.pic_name, materials.usage, materials.location, materials.gentani
+            ORDER BY days ASC
+            LIMIT :limit
+        ";
+        $bindings['limit'] = $fetchLimit;
+        $rows = DB::select($sql, $bindings);
+
+        // Keep only the first material per unique days value to show runway variety
+        $seen = [];
+        $result = [];
+        foreach ($rows as $row) {
+            if (!isset($seen[$row->days])) {
+                $seen[$row->days] = true;
+                $result[] = $row;
+                if (count($result) >= $limit) break;
+            }
+        }
+        return $result;
+    }
+
+    /**
      * Get summary counts
      */
     public function getLeaderboardSummary(array $filters = []): array

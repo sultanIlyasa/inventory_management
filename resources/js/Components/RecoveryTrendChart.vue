@@ -20,7 +20,7 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import Chart from 'chart.js/auto'
 
-type TrendItem = { month: number; average_recovery_days: number; total_recovered: number }
+type TrendItem = { year: number; month: number; average_recovery_days: number; total_recovered: number }
 
 const props = defineProps<{
     data?: TrendItem[] | null
@@ -45,7 +45,7 @@ function getChartData() {
     const trend = props.data
     if (trend?.length) {
         return {
-            labels: trend.map(d => MONTH_NAMES[d.month - 1] ?? String(d.month)),
+            labels: trend.map(d => `${MONTH_NAMES[d.month - 1] ?? d.month} ${d.year}`),
             values: trend.map(d => d.average_recovery_days),
         }
     }

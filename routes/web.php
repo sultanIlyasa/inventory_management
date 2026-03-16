@@ -13,6 +13,7 @@ use App\Http\Controllers\WarehouseMonitoringController;
 use App\Http\Controllers\MaterialBulkController;
 use App\Http\Controllers\DiscrepancyController;
 use App\Http\Controllers\AnnualInventoryController;
+use App\Http\Controllers\RequestMaterialTrackingController;
 
 
 
@@ -97,6 +98,10 @@ Route::prefix('api/discrepancy')->name('api.discrepancy.')->group(function () {
     Route::patch('/{materialId}', [DiscrepancyController::class, 'update'])->name('update');
 });
 
+// Request Material
+Route::prefix('request-material-tracker')->name('request.material.tracker.')->group(function () {
+    Route::get('/', [RequestMaterialTrackingController::class, 'index'])->name('index');
+});
 
 Route::prefix('/warehouse-monitoring')->group(function () {
     Route::get('/', [WarehouseMonitoringController::class, 'index'])->name('warehouse-monitoring.index');
@@ -127,6 +132,8 @@ Route::prefix('/warehouse-monitoring')->group(function () {
             ->name('problematic.update');
         Route::get('/consumption-averages', [ProblematicMaterialsController::class, 'getConsumptionAverages'])
             ->name('consumption-averages');
+        Route::get('/inventory-overview', [WarehouseMonitoringController::class, 'inventoryOverviewApi'])
+            ->name('inventory-overview');
     });
 });
 

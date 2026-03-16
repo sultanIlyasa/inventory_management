@@ -9,6 +9,7 @@ use App\Services\MaterialReportService;
 use App\Services\RecoveryDaysService;
 use App\Services\StatusChangeService;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class WarehouseMonitoringController extends Controller
 {
@@ -90,7 +91,8 @@ class WarehouseMonitoringController extends Controller
             'shortage' => $this->getShortageData($filters, $perPage),
             'recovery' => $this->getRecoveryData($filters, $perPage),
             'statusChange' => $this->getStatusChangeData($filters, $perPage),
-            'barChart' => $this->reportService->getStatusBarChart($filters)
+            'barChart' => $this->reportService->getStatusBarChart($filters),
+            'fastestToCritical' => $this->getFastestToCriticalData($filters),
         ];
     }
 
@@ -144,6 +146,107 @@ class WarehouseMonitoringController extends Controller
             'pagination' => $recoveryResult['pagination'],
             'trendData' => $trendData,
         ];
+    }
+
+    private function getFastestToCriticalData(array $filters): array
+    {
+        return $this->leaderboardService->getFastestToCritical($filters, 5);
+    }
+
+    /**
+     * API endpoint - inventory overview with real data
+     */
+    public function inventoryOverviewApi(Request $request)
+    {
+        $request->validate([
+            'location' => 'nullable|in:SUNTER_1,SUNTER_2',
+            'usage'    => 'nullable|in:DAILY,WEEKLY,MONTHLY',
+            'month'    => 'nullable|date_format:Y-m',
+            'gentani'  => 'nullable|in:GENTAN-I,NON_GENTAN-I',
+            'page'     => 'nullable|integer|min:1',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        $filters = $this->getFilters($request);
+        $page    = (int) $request->get('page', 1);
+        $perPage = (int) $request->get('per_page', 10);
+        $offset  = ($page - 1) * $perPage;
+
+        $whereConditions = [];
+        $bindings        = [];
+
+        if (!empty($filters['usage']))    { $whereConditions[] = "materials.usage = :usage";       $bindings['usage']    = $filters['usage']; }
+        if (!empty($filters['location'])) { $whereConditions[] = "materials.location = :location"; $bindings['location'] = $filters['location']; }
+        if (!empty($filters['gentani']))  { $whereConditions[] = "materials.gentani = :gentani";   $bindings['gentani']  = $filters['gentani']; }
+
+        $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+
+        $countSql = "SELECT COUNT(DISTINCT materials.id) as total FROM materials {$whereClause}";
+        $total    = DB::selectOne($countSql, $bindings)->total ?? 0;
+
+        $dataSql = "
+            SELECT materials.id, materials.material_number, materials.description, materials.usage,
+                   latest_di.status AS raw_status, latest_di.daily_stock AS soh,
+                   pm.streak_days, pm.coverage_shifts
+            FROM materials
+            INNER JOIN (
+                SELECT di.material_id, di.status, di.daily_stock
+                FROM daily_inputs di
+                INNER JOIN (
+                    SELECT material_id, MAX(date) AS max_date FROM daily_inputs GROUP BY material_id
+                ) latest ON di.material_id = latest.material_id AND di.date = latest.max_date
+            ) AS latest_di ON materials.id = latest_di.material_id
+            LEFT JOIN problematic_materials pm ON pm.material_number = materials.material_number
+            {$whereClause}
+            ORDER BY materials.material_number ASC
+            LIMIT :limit OFFSET :offset
+        ";
+
+        $dataBindings = array_merge($bindings, ['limit' => $perPage, 'offset' => $offset]);
+        $rows = DB::select($dataSql, $dataBindings);
+
+        $data = array_map(function ($row) {
+            $rawStatus = $row->raw_status ?? 'OK';
+            if ($rawStatus === 'SHORTAGE') {
+                $status = 'Shortage';
+                $overdueDays  = $row->streak_days ?? null;
+                $recoveryDays = $row->coverage_shifts !== null ? (int) ceil($row->coverage_shifts / 3) : null;
+            } elseif ($rawStatus === 'CAUTION') {
+                $status = 'Caution';
+                $overdueDays  = $row->streak_days ?? null;
+                $recoveryDays = $row->coverage_shifts !== null ? (int) ceil($row->coverage_shifts / 3) : null;
+            } else {
+                $status = 'OK';
+                $overdueDays  = null;
+                $recoveryDays = null;
+            }
+
+            return [
+                'id'           => $row->id,
+                'material'     => $row->description,
+                'sku'          => $row->material_number,
+                'category'     => $row->usage,
+                'status'       => $status,
+                'overdueDays'  => $overdueDays,
+                'recoveryDays' => $recoveryDays,
+                'soh'          => (int) $row->soh,
+            ];
+        }, $rows);
+
+        $lastPage = $total > 0 ? (int) ceil($total / $perPage) : 1;
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+            'pagination' => [
+                'current_page' => $page,
+                'last_page'    => $lastPage,
+                'per_page'     => $perPage,
+                'total'        => $total,
+                'from'         => $total > 0 ? $offset + 1 : null,
+                'to'           => $total > 0 ? min($offset + $perPage, $total) : null,
+            ],
+        ]);
     }
 
     /**

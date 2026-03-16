@@ -67,16 +67,21 @@ class RecoveryDaysService
 
     public function getRecoveryTrend(int $year): Collection
     {
-        $subquery = $this->buildBaseQuery(['year' => $year]);
+        $subquery = $this->buildBaseQuery([]);
 
         return DB::query()
             ->fromSub($subquery, 'recovery')
             ->select([
+                DB::raw('YEAR(recovery.recovery_date) as year'),
                 DB::raw('MONTH(recovery.recovery_date) as month'),
                 DB::raw('AVG(recovery.recovery_days) as average_recovery_days'),
                 DB::raw('COUNT(*) as total_recovered')
             ])
-            ->groupBy(DB::raw('MONTH(recovery.recovery_date)'))
+            ->groupBy(
+                DB::raw('YEAR(recovery.recovery_date)'),
+                DB::raw('MONTH(recovery.recovery_date)')
+            )
+            ->orderBy('year')
             ->orderBy('month')
             ->get();
     }

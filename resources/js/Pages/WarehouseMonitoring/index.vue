@@ -2,6 +2,7 @@
     <MainAppLayout title="Warehouse Monitoring" subtitle="Warehouse GR Monitoring">
         <div class="min-h-screen bg-gray-50">
             <div class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+
                 <!-- Header -->
                 <header class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -10,7 +11,6 @@
                         </p>
                         <h1 class="text-2xl font-semibold text-gray-900">Warehouse Performance Monitoring</h1>
                     </div>
-
                     <button
                         class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:bg-gray-100"
                         @click="showMobileFilters = !showMobileFilters">
@@ -71,297 +71,397 @@
                     </div>
                 </div>
 
-                <!-- Main grid -->
-                <div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
-                    <!-- LEFT -->
-                    <section class="lg:col-span-8 space-y-4 lg:space-y-6">
-                        <!-- Problematic Materials -->
-                        <div class="rounded-xl border border-gray-200 bg-white shadow-sm">
-                            <div
-                                class="flex flex-col gap-3 border-b border-gray-100 p-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div class="flex items-center gap-2">
-                                    <div
-                                        class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600">
-                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                                            <path d="M12 2l8 4.5v11L12 22l-8-4.5v-11L12 2z" stroke="currentColor"
-                                                stroke-width="2" />
-                                            <path d="M12 2v20" stroke="currentColor" stroke-width="2" opacity=".3" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-semibold text-gray-900">Problematic Materials</p>
-                                        <p class="text-xs text-gray-500">
-                                            {{ pagination.total }} items · Click a row to view details
-                                        </p>
-                                    </div>
-                                </div>
+                <!-- ── Carousel Navigation Bar ───────────────────────────────────── -->
+                <div class="mt-6 flex items-center justify-between gap-4">
+                    <!-- Slide tab pills -->
+                    <nav class="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-sm overflow-x-auto">
+                        <button v-for="(slide, i) in carouselSlides" :key="i"
+                            @click="goToSlide(i)"
+                            :class="currentSlide === i
+                                ? 'bg-blue-600 text-white shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'"
+                            class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 whitespace-nowrap">
+                            {{ slide.label }}
+                        </button>
+                    </nav>
 
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <div
-                                        class="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
-                                        <button v-for="f in (['all', 'DAILY', 'WEEKLY', 'MONTHLY'] as const)" :key="f"
-                                            @click="setUsageFilter(f)" :class="globalFilter.usage === f ? f === 'DAILY' ? 'bg-red-500 text-white' : f === 'WEEKLY' ? 'bg-amber-500 text-white' : f === 'MONTHLY' ? 'bg-emerald-500 text-white' : 'bg-white text-gray-800 shadow-sm'
-                                                : 'text-gray-500 hover:text-gray-700'"
-                                            class="rounded-md px-2.5 py-1 text-xs font-semibold transition-colors">
-                                            {{ f === 'all' ? 'All' : f }}
-                                        </button>
-                                    </div>
-                                    <!-- Status filter pills -->
-                                    <div
-                                        class="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
-                                        <button v-for="f in (['all', 'SHORTAGE', 'CAUTION'] as const)" :key="f"
-                                            @click="setStatusFilter(f)" :class="statusFilter === f
-                                                ? f === 'SHORTAGE' ? 'bg-red-500 text-white' : f === 'CAUTION' ? 'bg-amber-500 text-white' : 'bg-white text-gray-800 shadow-sm'
-                                                : 'text-gray-500 hover:text-gray-700'"
-                                            class="rounded-md px-2.5 py-1 text-xs font-semibold transition-colors">
-                                            {{ f === 'all' ? 'All' : f }}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Unified responsive table (drag to pan) -->
-                            <div ref="tableScrollRef" class="overflow-x-auto cursor-grab active:cursor-grabbing"
-                                @mousedown="onPanStart" @mousemove="onPanMove" @mouseup="onPanEnd"
-                                @mouseleave="onPanEnd">
-                                <table class="min-w-full">
-                                    <thead class="bg-gray-50">
-                                        <tr
-                                            class="text-left text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                                            <th class="px-3 py-2 w-8">#</th>
-                                            <th class="px-3 py-2">Material</th>
-                                            <th class="px-3 py-2 hidden sm:table-cell">Status</th>
-                                            <th class="px-3 py-2 hidden sm:table-cell">Severity</th>
-                                            <th class="px-3 py-2 hidden md:table-cell whitespace-nowrap">Durability</th>
-                                            <th class="px-3 py-2 whitespace-nowrap">Streak</th>
-                                            <th class="px-3 py-2 hidden md:table-cell whitespace-nowrap">Last Updated
-                                            </th>
-                                            <th class="px-3 py-2 whitespace-nowrap">Est. GR</th>
-                                            <th class="px-3 py-2 w-6"></th>
-                                        </tr>
-                                    </thead>
-
-                                    <tbody class="divide-y divide-gray-100">
-                                        <!-- Skeleton -->
-                                        <template v-if="isLoadingMaterials">
-                                            <tr v-for="n in 5" :key="'skel-' + n" class="animate-pulse">
-                                                <td class="px-3 py-2.5">
-                                                    <div class="h-3 w-5 rounded bg-gray-200"></div>
-                                                </td>
-                                                <td class="px-3 py-2.5">
-                                                    <div class="h-3 w-36 rounded bg-gray-200"></div>
-                                                    <div class="mt-1 h-2.5 w-20 rounded bg-gray-100"></div>
-                                                </td>
-                                                <td class="px-3 py-2.5 hidden sm:table-cell">
-                                                    <div class="h-4 w-16 rounded-full bg-gray-200"></div>
-                                                </td>
-                                                <td class="px-3 py-2.5 hidden sm:table-cell">
-                                                    <div class="h-4 w-20 rounded bg-gray-200"></div>
-                                                </td>
-                                                <td class="px-3 py-2.5 hidden md:table-cell">
-                                                    <div class="h-3 w-14 rounded bg-gray-200"></div>
-                                                </td>
-                                                <td class="px-3 py-2.5">
-                                                    <div class="h-3 w-10 rounded bg-gray-200"></div>
-                                                </td>
-                                                <td class="px-3 py-2.5 hidden md:table-cell">
-                                                    <div class="h-3 w-18 rounded bg-gray-200"></div>
-                                                </td>
-                                                <td class="px-3 py-2.5">
-                                                    <div class="h-6 w-28 rounded bg-gray-200"></div>
-                                                </td>
-                                                <td class="px-3 py-2.5"></td>
-                                            </tr>
-                                        </template>
-
-                                        <!-- Empty -->
-                                        <tr v-else-if="sortedMaterials.length === 0">
-                                            <td colspan="9" class="px-4 py-10 text-center text-xs text-gray-400">
-                                                No problematic materials found.
-                                            </td>
-                                        </tr>
-
-                                        <!-- Data rows -->
-                                        <tr v-else v-for="(m, idx) in sortedMaterials" :key="m.id"
-                                            class="cursor-pointer hover:bg-gray-50 active:bg-gray-100"
-                                            @click="() => { if (!didPan) openDetail(m) }">
-
-                                            <!-- # -->
-                                            <td class="px-3 py-2.5 text-[10px] font-medium text-gray-400 tabular-nums">
-                                                {{ (pagination.current_page - 1) * pagination.per_page + idx + 1 }}
-                                            </td>
-
-                                            <!-- Material — shows status+severity badges on xs when columns are hidden -->
-                                            <td class="px-3  max-w-[160px] sm:max-w-none">
-                                                <div class="truncate text-xs font-semibold text-gray-900">{{
-                                                    m.description }}</div>
-                                                <div class="text-[10px] font-mono text-gray-400">{{ m.material_number }}
-                                                </div>
-                                                <div class="mt-1 flex flex-wrap gap-1 sm:hidden">
-                                                    <span :class="statusPill(m.status)"
-                                                        class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
-                                                        {{ m.status }}
-                                                    </span>
-                                                    <span :class="severityPill(m.severity)"
-                                                        class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold">
-                                                        {{ m.severity }}
-                                                    </span>
-                                                </div>
-                                            </td>
-
-                                            <!-- Status (sm+) -->
-                                            <td class="px-3 py-2.5 hidden sm:table-cell">
-                                                <span :class="statusPill(m.status)"
-                                                    class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold">
-                                                    {{ m.status }}
-                                                </span>
-                                            </td>
-
-                                            <!-- Severity (sm+) -->
-                                            <td class="px-3 py-2.5 hidden sm:table-cell">
-                                                <span :class="severityPill(m.severity)"
-                                                    class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold">
-                                                    {{ m.severity }}
-                                                </span>
-                                            </td>
-
-                                            <!-- Durability (md+) -->
-                                            <td class="px-3 py-2.5 hidden md:table-cell">
-                                                <span v-if="m.coverage_shifts !== null"
-                                                    class="text-xs font-semibold text-gray-800">
-                                                    {{ m.coverage_shifts.toFixed(1) }}<span
-                                                        class="text-[10px] font-normal text-gray-400"> sh</span>
-                                                </span>
-                                                <span v-else class="text-xs text-gray-300">—</span>
-                                            </td>
-
-                                            <!-- Streak -->
-                                            <td class="px-3 py-2.5">
-                                                <span class="text-xs font-semibold text-red-600">{{ m.streak_days
-                                                }}d</span>
-                                            </td>
-
-                                            <!-- Last Updated (md+) -->
-                                            <td class="px-3 py-2.5 hidden md:table-cell">
-                                                <span class="text-xs text-gray-600">{{ formatDate(m.last_updated)
-                                                }}</span>
-                                            </td>
-
-                                            <!-- Est. GR -->
-                                            <td class="px-3 py-2.5" @click.stop>
-                                                <div class="flex items-center gap-1">
-                                                    <input type="text"
-                                                        :ref="el => mountDatePicker(el as HTMLInputElement, m.id)"
-                                                        :value="m.estimated_gr ?? ''" placeholder="dd/mm/yyyy"
-                                                        class="w-28 rounded border border-gray-200 px-1.5 py-1 text-xs text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300" />
-                                                    <button v-if="m.estimated_gr" @click="clearTableDate(m)"
-                                                        class="text-gray-300 hover:text-red-400 transition-colors"
-                                                        title="Clear date">
-                                                        <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none">
-                                                            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor"
-                                                                stroke-width="2.5" stroke-linecap="round" />
-                                                        </svg>
-                                                    </button>
-                                                    <span v-if="grSaveState[m.id] === 'saving'"
-                                                        class="text-[10px] text-gray-400">…</span>
-                                                    <span v-else-if="grSaveState[m.id] === 'saved'"
-                                                        class="text-[10px] text-emerald-600">✓</span>
-                                                    <span v-else-if="grSaveState[m.id] === 'error'"
-                                                        class="text-[10px] text-red-500">!</span>
-                                                </div>
-                                            </td>
-
-                                            <!-- Chevron -->
-                                            <td class="px-3 py-2.5 text-right">
-                                                <svg class="h-3.5 w-3.5 text-gray-400" viewBox="0 0 24 24" fill="none">
-                                                    <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2"
-                                                        stroke-linecap="round" stroke-linejoin="round" />
-                                                </svg>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <!-- Pagination bar -->
-                            <div v-if="pagination.last_page > 1"
-                                class="flex items-center justify-between border-t border-gray-100 px-4 py-3">
-                                <p class="text-xs text-gray-500">
-                                    <span class="font-medium text-gray-700">
-                                        {{ (pagination.current_page - 1) * pagination.per_page + 1 }}–{{
-                                            Math.min(pagination.current_page *
-                                                pagination.per_page, pagination.total) }}
-                                    </span>
-                                    <span class="hidden sm:inline"> of {{ pagination.total }}</span>
-                                </p>
-                                <div class="flex items-center gap-1">
-                                    <button @click="goToPage(pagination.current_page - 1)"
-                                        :disabled="pagination.current_page === 1"
-                                        class="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
-                                        ‹
-                                    </button>
-                                    <template v-for="p in pageWindow" :key="String(p)">
-                                        <span v-if="p === '…'" class="px-1 text-xs text-gray-400">…</span>
-                                        <button v-else @click="goToPage(p as number)"
-                                            :class="p === pagination.current_page ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'"
-                                            class="rounded-lg border px-2.5 py-1.5 text-xs font-semibold">
-                                            {{ p }}
-                                        </button>
-                                    </template>
-                                    <button @click="goToPage(pagination.current_page + 1)"
-                                        :disabled="pagination.current_page === pagination.last_page"
-                                        class="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
-                                        ›
-                                    </button>
-                                </div>
-                            </div>
+                    <!-- Arrows + dot indicators -->
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button @click="prevSlide()"
+                            class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                                <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </button>
+                        <div class="flex items-center gap-1.5">
+                            <button v-for="(_, i) in carouselSlides" :key="i"
+                                @click="goToSlide(i)"
+                                :class="currentSlide === i ? 'w-5 bg-blue-600' : 'w-2 bg-gray-300 hover:bg-gray-400'"
+                                class="h-2 rounded-full transition-all duration-300">
+                            </button>
                         </div>
-
-                        <!-- Lower left: Trends + Recommendation -->
-                        <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
-                            <!-- Trends -->
-                            <div class="lg:col-span-7 space-y-4">
-                                <!-- <OverdueTrendChart :data="dashboardData.barChart" :filters="globalFilter" /> -->
-                                <RecoveryTrendChart :data="(dashboardData.recovery as any)?.trendData"
-                                    :filters="globalFilter" />
-                            </div>
-
-                            <!-- Recommendation -->
-                            <div class="lg:col-span-5">
-                                <SystemRecommendationPanel :shortage="(dashboardData as any).shortage"
-                                    :caution="(dashboardData as any).caution" :updated-at="updatedAt"
-                                    @view-material="onViewMaterialFromPanel" />
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- RIGHT -->
-                    <aside class="lg:col-span-4 space-y-4 lg:space-y-6">
-                        <DistributionDonutChart :data="(dashboardData as any).barChart" :filters="globalFilter" />
-                        <StatusChangeContent :filters="globalFilter" size="compact" :hide-refresh="true" />
-                        <FastestToCriticalChart :data="(dashboardData as any).shortage?.leaderboard"
-                            :filters="globalFilter" />
-                    </aside>
+                        <button @click="nextSlide()"
+                            class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                                <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Leaderboards (Below main view) -->
-                <section class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
-                    <div class="lg:col-span-6 rounded-xl border border-gray-200 overflow-hidden">
-                        <ShortageOverdueLeaderboard :filters="globalFilter" :hide-refresh="true" />
-                    </div>
-                    <div class="lg:col-span-6 rounded-xl border border-gray-200 overflow-hidden">
-                        <CautionOverdueLeaderboard :filters="globalFilter" :hide-refresh="true" />
-                    </div>
-                </section>
+                <!-- ── Carousel Viewport ──────────────────────────────────────────── -->
+                <div class="mt-3 relative overflow-hidden"
+                    @mouseenter="pauseCarousel"
+                    @mouseleave="resumeCarousel">
 
-                <!-- Material Inventory Overview -->
-                <MaterialInventoryOverview :filters="globalFilter" />
+                    <!-- Slides Track -->
+                    <div class="flex transition-transform duration-500 ease-in-out"
+                        :style="{ transform: `translateX(-${currentSlide * 100}%)` }">
+
+                        <!-- ── Slide 1 · Materials Overview ──────────────────────── -->
+                        <div class="min-w-full">
+                            <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
+
+                                <!-- Problematic Materials table (8 cols) -->
+                                <section class="lg:col-span-8">
+                                    <div class="rounded-xl border border-gray-200 bg-white shadow-sm">
+                                        <div
+                                            class="flex flex-col gap-3 border-b border-gray-100 p-4 sm:flex-row sm:items-center sm:justify-between">
+                                            <div class="flex items-center gap-2">
+                                                <div
+                                                    class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600">
+                                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M12 2l8 4.5v11L12 22l-8-4.5v-11L12 2z"
+                                                            stroke="currentColor" stroke-width="2" />
+                                                        <path d="M12 2v20" stroke="currentColor" stroke-width="2"
+                                                            opacity=".3" />
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-semibold text-gray-900">Problematic Materials
+                                                    </p>
+                                                    <p class="text-xs text-gray-500">
+                                                        {{ pagination.total }} items · Click a row to view details
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <div
+                                                    class="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
+                                                    <button
+                                                        v-for="f in (['all', 'DAILY', 'WEEKLY', 'MONTHLY'] as const)"
+                                                        :key="f" @click="setUsageFilter(f)"
+                                                        :class="globalFilter.usage === f
+                                                            ? f === 'DAILY' ? 'bg-red-500 text-white'
+                                                            : f === 'WEEKLY' ? 'bg-amber-500 text-white'
+                                                            : f === 'MONTHLY' ? 'bg-emerald-500 text-white'
+                                                            : 'bg-white text-gray-800 shadow-sm'
+                                                            : 'text-gray-500 hover:text-gray-700'"
+                                                        class="rounded-md px-2.5 py-1 text-xs font-semibold transition-colors">
+                                                        {{ f === 'all' ? 'All' : f }}
+                                                    </button>
+                                                </div>
+                                                <div
+                                                    class="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
+                                                    <button v-for="f in (['all', 'SHORTAGE', 'CAUTION'] as const)"
+                                                        :key="f" @click="setStatusFilter(f)"
+                                                        :class="statusFilter === f
+                                                            ? f === 'SHORTAGE' ? 'bg-red-500 text-white'
+                                                            : f === 'CAUTION' ? 'bg-amber-500 text-white'
+                                                            : 'bg-white text-gray-800 shadow-sm'
+                                                            : 'text-gray-500 hover:text-gray-700'"
+                                                        class="rounded-md px-2.5 py-1 text-xs font-semibold transition-colors">
+                                                        {{ f === 'all' ? 'All' : f }}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Table (drag-to-pan) -->
+                                        <div ref="tableScrollRef"
+                                            class="overflow-x-auto cursor-grab active:cursor-grabbing"
+                                            @mousedown="onPanStart" @mousemove="onPanMove" @mouseup="onPanEnd"
+                                            @mouseleave="onPanEnd">
+                                            <table class="min-w-full">
+                                                <thead class="bg-gray-50">
+                                                    <tr
+                                                        class="text-left text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                                                        <th class="px-3 py-2 w-8">#</th>
+                                                        <th class="px-3 py-2">Material</th>
+                                                        <th class="px-3 py-2 hidden sm:table-cell">Status</th>
+                                                        <th class="px-3 py-2 hidden sm:table-cell">Severity</th>
+                                                        <th class="px-3 py-2 hidden md:table-cell whitespace-nowrap">
+                                                            Durability</th>
+                                                        <th class="px-3 py-2 whitespace-nowrap">Streak</th>
+                                                        <th class="px-3 py-2 hidden md:table-cell whitespace-nowrap">
+                                                            Last Updated</th>
+                                                        <th class="px-3 py-2 whitespace-nowrap">Est. GR</th>
+                                                        <th class="px-3 py-2 w-6"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-gray-100">
+                                                    <!-- Skeleton -->
+                                                    <template v-if="isLoadingMaterials">
+                                                        <tr v-for="n in 5" :key="'skel-' + n" class="animate-pulse">
+                                                            <td class="px-3 py-2.5">
+                                                                <div class="h-3 w-5 rounded bg-gray-200"></div>
+                                                            </td>
+                                                            <td class="px-3 py-2.5">
+                                                                <div class="h-3 w-36 rounded bg-gray-200"></div>
+                                                                <div class="mt-1 h-2.5 w-20 rounded bg-gray-100">
+                                                                </div>
+                                                            </td>
+                                                            <td class="px-3 py-2.5 hidden sm:table-cell">
+                                                                <div class="h-4 w-16 rounded-full bg-gray-200"></div>
+                                                            </td>
+                                                            <td class="px-3 py-2.5 hidden sm:table-cell">
+                                                                <div class="h-4 w-20 rounded bg-gray-200"></div>
+                                                            </td>
+                                                            <td class="px-3 py-2.5 hidden md:table-cell">
+                                                                <div class="h-3 w-14 rounded bg-gray-200"></div>
+                                                            </td>
+                                                            <td class="px-3 py-2.5">
+                                                                <div class="h-3 w-10 rounded bg-gray-200"></div>
+                                                            </td>
+                                                            <td class="px-3 py-2.5 hidden md:table-cell">
+                                                                <div class="h-3 w-18 rounded bg-gray-200"></div>
+                                                            </td>
+                                                            <td class="px-3 py-2.5">
+                                                                <div class="h-6 w-28 rounded bg-gray-200"></div>
+                                                            </td>
+                                                            <td class="px-3 py-2.5"></td>
+                                                        </tr>
+                                                    </template>
+
+                                                    <!-- Empty -->
+                                                    <tr v-else-if="sortedMaterials.length === 0">
+                                                        <td colspan="9"
+                                                            class="px-4 py-10 text-center text-xs text-gray-400">
+                                                            No problematic materials found.
+                                                        </td>
+                                                    </tr>
+
+                                                    <!-- Data rows -->
+                                                    <tr v-else v-for="(m, idx) in sortedMaterials" :key="m.id"
+                                                        class="cursor-pointer hover:bg-gray-50 active:bg-gray-100"
+                                                        @click="() => { if (!didPan) openDetail(m) }">
+
+                                                        <td
+                                                            class="px-3 py-2.5 text-[10px] font-medium text-gray-400 tabular-nums">
+                                                            {{ (pagination.current_page - 1) * pagination.per_page +
+                                                                idx + 1 }}
+                                                        </td>
+
+                                                        <td class="px-3 max-w-[160px] sm:max-w-none">
+                                                            <div class="truncate text-xs font-semibold text-gray-900">
+                                                                {{ m.description }}</div>
+                                                            <div class="text-[10px] font-mono text-gray-400">
+                                                                {{ m.material_number }}</div>
+                                                            <div class="mt-1 flex flex-wrap gap-1 sm:hidden">
+                                                                <span :class="statusPill(m.status)"
+                                                                    class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
+                                                                    {{ m.status }}
+                                                                </span>
+                                                                <span :class="severityPill(m.severity)"
+                                                                    class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold">
+                                                                    {{ m.severity }}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+
+                                                        <td class="px-3 py-2.5 hidden sm:table-cell">
+                                                            <span :class="statusPill(m.status)"
+                                                                class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                                                                {{ m.status }}
+                                                            </span>
+                                                        </td>
+
+                                                        <td class="px-3 py-2.5 hidden sm:table-cell">
+                                                            <span :class="severityPill(m.severity)"
+                                                                class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold">
+                                                                {{ m.severity }}
+                                                            </span>
+                                                        </td>
+
+                                                        <td class="px-3 py-2.5 hidden md:table-cell">
+                                                            <span v-if="m.coverage_shifts !== null"
+                                                                class="text-xs font-semibold text-gray-800">
+                                                                {{ m.coverage_shifts.toFixed(1) }}<span
+                                                                    class="text-[10px] font-normal text-gray-400">
+                                                                    sh</span>
+                                                            </span>
+                                                            <span v-else class="text-xs text-gray-300">—</span>
+                                                        </td>
+
+                                                        <td class="px-3 py-2.5">
+                                                            <span class="text-xs font-semibold text-red-600">
+                                                                {{ m.streak_days }}d</span>
+                                                        </td>
+
+                                                        <td class="px-3 py-2.5 hidden md:table-cell">
+                                                            <span class="text-xs text-gray-600">{{
+                                                                formatDate(m.last_updated) }}</span>
+                                                        </td>
+
+                                                        <td class="px-3 py-2.5" @click.stop>
+                                                            <div class="flex items-center gap-1">
+                                                                <input type="text"
+                                                                    :ref="el => mountDatePicker(el as HTMLInputElement, m.id)"
+                                                                    :value="m.estimated_gr ?? ''"
+                                                                    placeholder="dd/mm/yyyy"
+                                                                    class="w-28 rounded border border-gray-200 px-1.5 py-1 text-xs text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300" />
+                                                                <button v-if="m.estimated_gr"
+                                                                    @click="clearTableDate(m)"
+                                                                    class="text-gray-300 hover:text-red-400 transition-colors"
+                                                                    title="Clear date">
+                                                                    <svg class="h-3 w-3" viewBox="0 0 24 24"
+                                                                        fill="none">
+                                                                        <path d="M6 6l12 12M18 6L6 18"
+                                                                            stroke="currentColor" stroke-width="2.5"
+                                                                            stroke-linecap="round" />
+                                                                    </svg>
+                                                                </button>
+                                                                <span v-if="grSaveState[m.id] === 'saving'"
+                                                                    class="text-[10px] text-gray-400">…</span>
+                                                                <span v-else-if="grSaveState[m.id] === 'saved'"
+                                                                    class="text-[10px] text-emerald-600">✓</span>
+                                                                <span v-else-if="grSaveState[m.id] === 'error'"
+                                                                    class="text-[10px] text-red-500">!</span>
+                                                            </div>
+                                                        </td>
+
+                                                        <td class="px-3 py-2.5 text-right">
+                                                            <svg class="h-3.5 w-3.5 text-gray-400" viewBox="0 0 24 24"
+                                                                fill="none">
+                                                                <path d="M9 6l6 6-6 6" stroke="currentColor"
+                                                                    stroke-width="2" stroke-linecap="round"
+                                                                    stroke-linejoin="round" />
+                                                            </svg>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <!-- Pagination bar -->
+                                        <div v-if="pagination.last_page > 1"
+                                            class="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+                                            <p class="text-xs text-gray-500">
+                                                <span class="font-medium text-gray-700">
+                                                    {{ (pagination.current_page - 1) * pagination.per_page + 1 }}–{{
+                                                        Math.min(pagination.current_page * pagination.per_page,
+                                                            pagination.total) }}
+                                                </span>
+                                                <span class="hidden sm:inline"> of {{ pagination.total }}</span>
+                                            </p>
+                                            <div class="flex items-center gap-1">
+                                                <button @click="goToPage(pagination.current_page - 1)"
+                                                    :disabled="pagination.current_page === 1"
+                                                    class="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                                                    ‹
+                                                </button>
+                                                <template v-for="p in pageWindow" :key="String(p)">
+                                                    <span v-if="p === '…'"
+                                                        class="px-1 text-xs text-gray-400">…</span>
+                                                    <button v-else @click="goToPage(p as number)"
+                                                        :class="p === pagination.current_page ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'"
+                                                        class="rounded-lg border px-2.5 py-1.5 text-xs font-semibold">
+                                                        {{ p }}
+                                                    </button>
+                                                </template>
+                                                <button @click="goToPage(pagination.current_page + 1)"
+                                                    :disabled="pagination.current_page === pagination.last_page"
+                                                    class="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                                                    ›
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <!-- Right: Recommendation + Status Change (4 cols) -->
+                                <aside class="lg:col-span-4 space-y-4 lg:space-y-6">
+                                    <SystemRecommendationPanel :shortage="(dashboardData as any).shortage"
+                                        :caution="(dashboardData as any).caution" :updated-at="updatedAt"
+                                        @view-material="onViewMaterialFromPanel" />
+                                    <StatusChangeContent :filters="globalFilter" size="compact"
+                                        :hide-refresh="true" />
+                                </aside>
+                            </div>
+                        </div>
+
+                        <!-- ── Slide 2 · Analytics & Trends ──────────────────────── -->
+                        <div class="min-w-full">
+                            <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
+                                <!-- Recovery Trend (7 cols) -->
+                                <div class="lg:col-span-7 space-y-4">
+                                    <div v-if="isDashboardLoading"
+                                        class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm animate-pulse">
+                                        <div class="flex items-center gap-2 mb-3">
+                                            <div class="h-7 w-7 rounded-lg bg-gray-200"></div>
+                                            <div class="h-4 w-40 rounded bg-gray-200"></div>
+                                        </div>
+                                        <div class="h-40 rounded-lg bg-gray-200"></div>
+                                    </div>
+                                    <RecoveryTrendChart v-else
+                                        :data="(dashboardData.recovery as any)?.trendData"
+                                        :filters="globalFilter" />
+                                </div>
+                                <!-- Distribution + Fastest to Critical (5 cols) -->
+                                <div class="lg:col-span-5 space-y-4">
+                                    <template v-if="isDashboardLoading">
+                                        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm animate-pulse">
+                                            <div class="flex items-center gap-2 mb-3">
+                                                <div class="h-7 w-7 rounded-lg bg-gray-200"></div>
+                                                <div class="h-4 w-32 rounded bg-gray-200"></div>
+                                            </div>
+                                            <div class="h-40 rounded-lg bg-gray-200"></div>
+                                        </div>
+                                        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm animate-pulse">
+                                            <div class="flex items-center gap-2 mb-3">
+                                                <div class="h-7 w-7 rounded-lg bg-gray-200"></div>
+                                                <div class="h-4 w-36 rounded bg-gray-200"></div>
+                                            </div>
+                                            <div class="h-56 rounded-lg bg-gray-200"></div>
+                                        </div>
+                                    </template>
+                                    <template v-else>
+                                        <DistributionDonutChart :data="(dashboardData as any).barChart"
+                                            :filters="globalFilter" />
+                                        <FastestToCriticalChart :data="(dashboardData as any).fastestToCritical"
+                                            :filters="globalFilter" />
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── Slide 3 · Leaderboards & Inventory ────────────────── -->
+                        <div class="min-w-full">
+                            <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
+                                <div class="lg:col-span-6 rounded-xl border border-gray-200 overflow-hidden">
+                                    <ShortageOverdueLeaderboard :filters="globalFilter" :hide-refresh="true" />
+                                </div>
+                                <div class="lg:col-span-6 rounded-xl border border-gray-200 overflow-hidden">
+                                    <CautionOverdueLeaderboard :filters="globalFilter" :hide-refresh="true" />
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <MaterialInventoryOverview :filters="globalFilter" />
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
 
             </div>
 
             <!-- Detail Modal -->
             <teleport to="body">
-                <div v-if="showDetailModal" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
+                <div v-if="showDetailModal"
+                    class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
                     @keydown.esc="closeDetail" tabindex="-1">
                     <!-- Backdrop -->
                     <div class="absolute inset-0 bg-black/40" @click="closeDetail"></div>
@@ -373,8 +473,9 @@
                             <div>
                                 <div class="flex items-center gap-2">
                                     <p class="text-base font-semibold text-gray-900">
-                                        {{ selectedMaterial?.description }} <span class="text-gray-500 font-medium">({{
-                                            selectedMaterial?.material_number }})</span>
+                                        {{ selectedMaterial?.description }} <span
+                                            class="text-gray-500 font-medium">({{
+                                                selectedMaterial?.material_number }})</span>
                                     </p>
                                     <span v-if="selectedMaterial" :class="statusPill(selectedMaterial.status)"
                                         class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold">
@@ -387,7 +488,7 @@
                                 </div>
                                 <p class="mt-1 text-xs text-gray-500">Updated: {{
                                     formatDate(selectedMaterial?.last_updated ?? null)
-                                }}</p>
+                                    }}</p>
                             </div>
 
                             <button class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
@@ -470,7 +571,6 @@
                                             v-else-if="selectedMaterial && grSaveState[selectedMaterial.id] === 'error'"
                                             class="text-xs text-red-500">Error !</span>
                                     </div>
-
                                 </div>
                             </div>
                         </div>
@@ -529,6 +629,61 @@ const error = ref<string | null>(null)
 const showMobileFilters = ref(false)
 const updatedAt = ref('-')
 const isLoadingMaterials = ref(false)
+
+// ── Carousel ──────────────────────────────────────────────────────────────────
+
+const carouselSlides = [
+    { label: 'Materials Overview' },
+    { label: 'Analytics & Trends' },
+    { label: 'Leaderboards' },
+] as const
+
+const currentSlide = ref(0)
+let autoplayTimer: ReturnType<typeof setInterval> | null = null
+let carouselHovered = false
+
+function nextSlide() {
+    currentSlide.value = (currentSlide.value + 1) % carouselSlides.length
+}
+
+function prevSlide() {
+    currentSlide.value = (currentSlide.value - 1 + carouselSlides.length) % carouselSlides.length
+    resetAutoplay()
+}
+
+function goToSlide(index: number) {
+    currentSlide.value = index
+    resetAutoplay()
+}
+
+function startAutoplay() {
+    if (autoplayTimer || carouselHovered) return
+    autoplayTimer = setInterval(nextSlide, 4000)
+}
+
+function stopAutoplay() {
+    if (autoplayTimer) {
+        clearInterval(autoplayTimer)
+        autoplayTimer = null
+    }
+}
+
+function resetAutoplay() {
+    stopAutoplay()
+    startAutoplay()
+}
+
+function pauseCarousel() {
+    carouselHovered = true
+    stopAutoplay()
+}
+
+function resumeCarousel() {
+    carouselHovered = false
+    startAutoplay()
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type Status = 'CAUTION' | 'SHORTAGE'
 type Severity = 'Low' | 'Medium' | 'High' | 'Line-Stop' | 'Critical'
@@ -619,7 +774,8 @@ function clearTableDate(m: MaterialRow) {
     fpInstances[m.id]?.clear()
 }
 
-// --- Global filter ---
+// ── Global filter ─────────────────────────────────────────────────────────────
+
 type UsageFilter = 'all' | 'DAILY' | 'WEEKLY' | 'MONTHLY'
 type StatusFilter = 'all' | 'SHORTAGE' | 'CAUTION'
 
@@ -633,19 +789,23 @@ const globalFilter = reactive({
 const statusFilter = ref<StatusFilter>('all')
 const pagination = ref({ current_page: 1, per_page: 10, total: 0, last_page: 1 })
 
-// --- Dashboard data (fetched on filter change) ---
+// ── Dashboard data ────────────────────────────────────────────────────────────
+
 const dashboardData = ref<Record<string, unknown>>({})
+const isDashboardLoading = ref(false)
 
 async function fetchDashboardData() {
+    isDashboardLoading.value = true
     try {
         const params = buildFilterParams(globalFilter as unknown as Record<string, unknown>)
         const res = await fetch(`/warehouse-monitoring/api/dashboard?${params}`)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const json = await res.json()
-        // API wraps payload in { success, data: {...}, filters, timestamp }
         Object.assign(dashboardData.value, json.data ?? json)
     } catch {
         // dashboard is non-critical
+    } finally {
+        isDashboardLoading.value = false
     }
 }
 
@@ -700,13 +860,13 @@ const pageWindow = computed(() => {
     return pages
 })
 
-// Deep watch: any globalFilter change triggers re-fetch of everything
+// Deep watch: any globalFilter change re-fetches everything
 watch(globalFilter, () => {
     fetchDashboardData()
     fetchProblematicMaterials(1)
 }, { deep: true })
 
-// Sort materials: Line-Stop Risk first, then by coverage_shifts asc, then streak_days desc
+// Sort: Line-Stop first → coverage_shifts asc → streak_days desc
 const severityRank = (s: Severity) => (s === 'Line-Stop' ? 3 : s === 'High' ? 2 : s === 'Medium' ? 1 : 0)
 
 const sortedMaterials = computed(() => {
@@ -720,7 +880,8 @@ const sortedMaterials = computed(() => {
     })
 })
 
-// --- Drag-to-pan ---
+// ── Drag-to-pan ───────────────────────────────────────────────────────────────
+
 const tableScrollRef = ref<HTMLDivElement | null>(null)
 let isPanning = false
 let didPan = false
@@ -759,7 +920,8 @@ function onPanEnd() {
     setTimeout(() => { didPan = false }, 0)
 }
 
-// --- pills ---
+// ── Pills ─────────────────────────────────────────────────────────────────────
+
 const statusPill = (status: string) => {
     switch (status) {
         case 'CAUTION': return 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
@@ -778,7 +940,8 @@ const severityPill = (severity: Severity) => {
     }
 }
 
-// --- Modal ---
+// ── Detail Modal ──────────────────────────────────────────────────────────────
+
 const showDetailModal = ref(false)
 const selectedMaterial = ref<MaterialRow | null>(null)
 let modalChart: Chart | null = null
@@ -848,9 +1011,11 @@ const formatDate = (dateString: string | null | undefined): string => {
 onMounted(() => {
     fetchProblematicMaterials(1)
     fetchDashboardData()
+    startAutoplay()
 })
 
 onBeforeUnmount(() => {
+    stopAutoplay()
     if (modalChart) { modalChart.destroy(); modalChart = null }
     Object.keys(fpInstances).forEach(id => { fpInstances[Number(id)]?.destroy() })
     modalFpInstance?.destroy()

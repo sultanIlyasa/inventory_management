@@ -10,11 +10,13 @@
         <div v-if="!isCompact" class="grid grid-cols-2 gap-3 p-3 bg-gray-50">
             <div class="rounded-lg border-l-4 border-red-500 bg-red-50 p-3">
                 <div class="text-xs text-red-700 font-semibold">Total Shortage</div>
-                <div class="text-2xl font-bold text-red-900">{{ currentStatistics.total }}</div>
+                <div v-if="isLoading" class="mt-1 h-8 w-16 animate-pulse rounded bg-red-200"></div>
+                <div v-else class="text-2xl font-bold text-red-900">{{ currentStatistics.total }}</div>
             </div>
             <div class="rounded-lg border-l-4 border-orange-500 bg-orange-50 p-3">
                 <div class="text-xs text-orange-700 font-semibold">Average Streak</div>
-                <div class="text-2xl font-bold text-orange-900">{{ currentStatistics.average_days }} days</div>
+                <div v-if="isLoading" class="mt-1 h-8 w-24 animate-pulse rounded bg-orange-200"></div>
+                <div v-else class="text-2xl font-bold text-orange-900">{{ currentStatistics.average_days }} days</div>
             </div>
         </div>
 
@@ -48,34 +50,49 @@
 
                         <th class="border p-2 text-left">PIC</th>
                         <th class="border p-2 text-left">Material</th>
-                        <th class="border p-2 text-left hidden md:table-cell">Description</th>
                         <th class="border p-2 text-left hidden lg:table-cell">Usage</th>
                         <th class="border p-2 text-center">SOH</th>
                         <th class="border p-2 text-center">Days</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="item in currentLeaderboard" :key="item.material_number"
-                        class="border-b hover:bg-gray-50">
-                        <td class="border p-2 hidden md:table-cell truncate">{{ item.pic_name }}</td>
-                        <td class="border p-2">
-                            <div class="font-semibold text-xs">{{ item.material_number }}</div>
-                            <div class="text-[11px] text-gray-500 md:hidden truncate">{{ item.description }}</div>
-                        </td>
-                        <td class="border p-2 hidden md:table-cell truncate">{{ item.description }}</td>
-                        <td class="border p-2 hidden lg:table-cell">{{ item.usage }}</td>
-                        <td class="border p-2 text-center font-semibold">{{ item.current_stock }}</td>
-                        <td class="border p-2 text-center">
-                            <div class="text-lg font-bold" :class="getDaysColor(item.days)">{{ item.days }}</div>
-                            <div class="text-[11px] text-gray-500">days</div>
-                        </td>
-                    </tr>
-                    <tr v-if="!currentLeaderboard.length">
-                        <td colspan="6" class="p-6 text-center text-gray-500">
-                            <div class="text-2xl mb-1">No Data</div>
-                            <p class="text-sm font-semibold">No materials in SHORTAGE status</p>
-                        </td>
-                    </tr>
+                    <template v-if="isLoading">
+                        <tr v-for="n in 5" :key="'sk-' + n" class="border-b animate-pulse">
+                            <td class="border p-2 hidden md:table-cell"><div class="h-3 w-16 rounded bg-gray-200"></div></td>
+                            <td class="border p-2">
+                                <div class="h-3 w-24 rounded bg-gray-200 mb-1"></div>
+                                <div class="h-2.5 w-32 rounded bg-gray-100"></div>
+                            </td>
+                            <td class="border p-2 hidden lg:table-cell"><div class="h-3 w-12 rounded bg-gray-200"></div></td>
+                            <td class="border p-2 text-center"><div class="h-3 w-8 rounded bg-gray-200 mx-auto"></div></td>
+                            <td class="border p-2 text-center">
+                                <div class="h-6 w-8 rounded bg-gray-200 mx-auto mb-1"></div>
+                                <div class="h-2.5 w-6 rounded bg-gray-100 mx-auto"></div>
+                            </td>
+                        </tr>
+                    </template>
+                    <template v-else>
+                        <tr v-for="item in currentLeaderboard" :key="item.material_number"
+                            class="border-b hover:bg-gray-50">
+                            <td class="border p-2 hidden md:table-cell truncate">{{ item.pic_name }}</td>
+                            <td class="border p-2">
+                                <div class="font-semibold text-xs">{{ item.material_number }}</div>
+                                <div class="text-[11px] text-gray-500 ">{{ item.description }}</div>
+                            </td>
+                            <td class="border p-2 hidden lg:table-cell">{{ item.usage }}</td>
+                            <td class="border p-2 text-center font-semibold">{{ item.current_stock }}</td>
+                            <td class="border p-2 text-center">
+                                <div class="text-lg font-bold" :class="getDaysColor(item.days)">{{ item.days }}</div>
+                                <div class="text-[11px] text-gray-500">days</div>
+                            </td>
+                        </tr>
+                        <tr v-if="!currentLeaderboard.length">
+                            <td colspan="6" class="p-6 text-center text-gray-500">
+                                <div class="text-2xl mb-1">No Data</div>
+                                <p class="text-sm font-semibold">No materials in SHORTAGE status</p>
+                            </td>
+                        </tr>
+                    </template>
                 </tbody>
             </table>
 
@@ -183,9 +200,11 @@ const isSelfFetch = computed(() => props.filters !== null)
 const localLeaderboard = ref([])
 const localStatistics = ref({ total: 0, average_days: 0 })
 const localPagination = ref({ current_page: 1, last_page: 1, per_page: 5, total: 0 })
+const isLoading = ref(false)
 
 async function fetchData(page = 1) {
     if (!isSelfFetch.value) return
+    isLoading.value = true
     try {
         const params = buildFilterParams({ ...props.filters, page, per_page: 5 })
         const res = await fetch(`/warehouse-monitoring/api/shortage?${params}`)
@@ -198,6 +217,8 @@ async function fetchData(page = 1) {
         localPagination.value = payload.pagination ?? { current_page: 1, last_page: 1, per_page: 5, total: 0 }
     } catch {
         // silent fail — keep existing local data
+    } finally {
+        isLoading.value = false
     }
 }
 

@@ -16,11 +16,24 @@
                         <th class="px-4 py-3">Status</th>
                         <th class="px-4 py-3">Overdue Days</th>
                         <th class="px-4 py-3">Recovery Days</th>
-                        <th class="px-4 py-3 text-right">SoH</th>
+                        <th class="px-4 py-3 text-right">Current Stock</th>
                         <th class="px-4 py-3 w-10"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
+                    <template v-if="isLoading">
+                        <tr v-for="n in 5" :key="'sk-' + n" class="animate-pulse">
+                            <td class="px-4 py-3"><div class="h-4 bg-gray-200 rounded w-40"></div></td>
+                            <td class="px-4 py-3"><div class="h-4 bg-gray-200 rounded w-28"></div></td>
+                            <td class="px-4 py-3"><div class="h-4 bg-gray-200 rounded w-20"></div></td>
+                            <td class="px-4 py-3"><div class="h-5 bg-gray-200 rounded-full w-16"></div></td>
+                            <td class="px-4 py-3"><div class="h-4 bg-gray-200 rounded w-12"></div></td>
+                            <td class="px-4 py-3"><div class="h-4 bg-gray-200 rounded w-12"></div></td>
+                            <td class="px-4 py-3"><div class="h-4 bg-gray-200 rounded w-16 ml-auto"></div></td>
+                            <td class="px-4 py-3"></td>
+                        </tr>
+                    </template>
+                    <template v-else>
                     <tr v-for="row in inventoryRows" :key="row.id" class="hover:bg-gray-50">
                         <td class="px-4 py-3"><div class="text-sm font-medium text-gray-900">{{ row.material }}</div></td>
                         <td class="px-4 py-3"><div class="text-sm text-gray-700">{{ row.sku }}</div></td>
@@ -50,6 +63,7 @@
                             </button>
                         </td>
                     </tr>
+                    </template>
                 </tbody>
             </table>
         </div>
@@ -95,29 +109,47 @@
         <!-- Footer -->
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-gray-100 p-4">
             <p class="text-sm text-gray-500">
-                Showing <span class="font-medium text-gray-700">{{ inventoryRows.length }}</span> of
-                <span class="font-medium text-gray-700">{{ inventoryRows.length }}</span> materials
+                Showing
+                <span class="font-medium text-gray-700">{{ pagination.from ?? 0 }}</span>–<span class="font-medium text-gray-700">{{ pagination.to ?? 0 }}</span>
+                of <span class="font-medium text-gray-700">{{ pagination.total }}</span> materials
             </p>
             <div class="flex items-center gap-2">
-                <button class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Previous</button>
-                <button class="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white">1</button>
-                <button class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Next</button>
+                <button
+                    class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    :disabled="pagination.current_page <= 1"
+                    @click="fetchData(pagination.current_page - 1)">
+                    Previous
+                </button>
+                <button
+                    v-for="p in visiblePages" :key="p"
+                    class="rounded-lg px-3 py-1.5 text-sm font-semibold"
+                    :class="p === pagination.current_page ? 'bg-blue-600 text-white' : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'"
+                    @click="fetchData(p)">
+                    {{ p }}
+                </button>
+                <button
+                    class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    :disabled="pagination.current_page >= pagination.last_page"
+                    @click="fetchData(pagination.current_page + 1)">
+                    Next
+                </button>
             </div>
         </div>
     </section>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
+import { buildFilterParams } from '@/utils/filterParams'
 
-defineProps<{
+const props = defineProps<{
     filters?: Record<string, unknown>
 }>()
 
 type InventoryStatus = 'OK' | 'Caution' | 'Shortage'
 
 type InventoryRow = {
-    id: string
+    id: number
     material: string
     sku: string
     category: string
@@ -127,17 +159,46 @@ type InventoryRow = {
     soh: number
 }
 
-// Dummy data retained; future: fetch from API using filters prop
-const inventoryRows = ref<InventoryRow[]>([
-    { id: 'i1', material: 'Steel Beam I-Type', sku: 'STL-BM-I01', category: 'Structural', status: 'OK', overdueDays: null, recoveryDays: null, soh: 450 },
-    { id: 'i2', material: 'Hydraulic Cement', sku: 'HYD-CMT-001', category: 'Concrete', status: 'Shortage', overdueDays: 23, recoveryDays: 15, soh: 120 },
-    { id: 'i3', material: 'Ceramic Tiles 60x60', sku: 'CER-TL-6060', category: 'Finishing', status: 'Caution', overdueDays: 8, recoveryDays: 10, soh: 680 },
-    { id: 'i4', material: 'Copper Wire 10mm', sku: 'CPR-WR-010', category: 'Electrical', status: 'OK', overdueDays: null, recoveryDays: null, soh: 2400 },
-    { id: 'i5', material: 'Glass Panel Tempered', sku: 'GLS-PNL-TMP', category: 'Glazing', status: 'Shortage', overdueDays: 45, recoveryDays: 30, soh: 85 },
-    { id: 'i6', material: 'Aluminum Profile', sku: 'ALM-PRF-001', category: 'Framework', status: 'Caution', overdueDays: 12, recoveryDays: 8, soh: 320 },
-    { id: 'i7', material: 'Waterproofing Membrane', sku: 'WTR-PRF-MBR', category: 'Protection', status: 'OK', overdueDays: null, recoveryDays: null, soh: 1500 },
-    { id: 'i8', material: 'Granite Slab Premium', sku: 'GRN-SLB-PRM', category: 'Stone', status: 'Caution', overdueDays: 5, recoveryDays: 12, soh: 240 },
-])
+type Pagination = {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+    from: number | null
+    to: number | null
+}
+
+const inventoryRows = ref<InventoryRow[]>([])
+const pagination = ref<Pagination>({ current_page: 1, last_page: 1, per_page: 10, total: 0, from: null, to: null })
+const isLoading = ref(false)
+
+async function fetchData(page = 1) {
+    isLoading.value = true
+    try {
+        const params = buildFilterParams(props.filters ?? {})
+        params.set('page', String(page))
+        params.set('per_page', '10')
+        const res = await fetch(`/warehouse-monitoring/api/inventory-overview?${params.toString()}`)
+        const json = await res.json()
+        inventoryRows.value = json.data ?? []
+        pagination.value = json.pagination ?? pagination.value
+    } finally {
+        isLoading.value = false
+    }
+}
+
+onMounted(() => fetchData(1))
+watch(() => props.filters, () => fetchData(1), { deep: true })
+
+const visiblePages = computed(() => {
+    const total = pagination.value.last_page
+    const cur = pagination.value.current_page
+    const start = Math.max(1, cur - 2)
+    const end = Math.min(total, start + 4)
+    const pages: number[] = []
+    for (let i = start; i <= end; i++) pages.push(i)
+    return pages
+})
 
 const statusPill = (status: InventoryStatus) => {
     switch (status) {

@@ -19,6 +19,8 @@ class StatusChangeRequest extends FormRequest
             'month' => 'nullable|date_format:Y-m',
             'date' => 'nullable|date_format:Y-m-d',
             'gentani' => 'nullable|string|in:GENTAN-I,NON_GENTAN-I',
+            'from_status' => 'nullable|string|in:OK,CAUTION,SHORTAGE,OVERFLOW,UNCHECKED',
+            'to_status' => 'nullable|string|in:OK,CAUTION,SHORTAGE,OVERFLOW,UNCHECKED',
             'per_page' => 'nullable|integer|min:5|max:50',
             'page' => 'nullable|integer|min:1',
         ];

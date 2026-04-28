@@ -70,6 +70,10 @@
                                     class="flex-1 rounded-lg border border-gray-200 bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60">
                                     Clear
                                 </button>
+                                <button @click="downloadStatusChangeLog" :disabled="isLoading"
+                                    class="flex-1 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 shadow-sm transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60">
+                                    Download Excel
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -129,11 +133,32 @@ const pagination = ref(props.statusChangeData.pagination ?? {
 
 /* Local Filters */
 const localFilters = ref({
+    date: props.filters.date ?? '',
     month: props.filters.month ?? '',
     usage: props.filters.usage ?? '',
     location: props.filters.location ?? '',
     gentani: props.filters.gentani ?? ''
 })
+
+const minDate = '2000-01-01'
+const maxDate = new Date().toISOString().slice(0, 10)
+const isWeekendSelected = ref(false)
+
+const onDateChange = () => {
+    isWeekendSelected.value = false
+
+    if (localFilters.value.date) {
+        const selectedDate = new Date(`${localFilters.value.date}T00:00:00`)
+        const day = selectedDate.getDay()
+
+        if (day === 0 || day === 6) {
+            isWeekendSelected.value = true
+            return
+        }
+    }
+
+    debouncedApplyFilters()
+}
 
 /* Debounce helper */
 let debounceTimer = null
@@ -166,11 +191,22 @@ const applyFilters = () => {
 
 /* Clear filters */
 const clearFilters = () => {
-    localFilters.value = { month: '', usage: '', location: '', gentani: '' }
+    localFilters.value = { date: '', month: '', usage: '', location: '', gentani: '' }
+    isWeekendSelected.value = false
     applyFilters()
 }
 
 const showMobileFilters = ref(false)
+
+const downloadStatusChangeLog = () => {
+    const params = new URLSearchParams()
+
+    Object.entries(localFilters.value).forEach(([key, value]) => {
+        if (value) params.set(key, value)
+    })
+
+    window.location.href = `${route('warehouse-monitoring.status-change.export-log')}?${params.toString()}`
+}
 
 
 /* Pagination Handler */

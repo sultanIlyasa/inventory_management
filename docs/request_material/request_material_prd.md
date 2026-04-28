@@ -15,10 +15,12 @@ Field workers (MPs) currently lack a structured, trackable way to request materi
 
 ### Proposed Solution
 
-A cross-platform material delivery request system spanning two surfaces:
+A cross-platform material delivery request system spanning three surfaces:
 
-- **Website** — where MPs (Material Planners / requesters) submit requests and view a recap of all requests
+- **Website** — where MPs (Material Planners / requesters) view a recap of all delivery requests
 - **WhatsApp Bot (via Openclaw)** — where approvals, vendor coordination, and delivery confirmations are handled through an automated bot
+- **1-SAP** — where MPs (Material Planners / requesters) submit delivery requests 
+
 
 ### Goals
 
@@ -42,20 +44,21 @@ A cross-platform material delivery request system spanning two surfaces:
 
 | Platform | Role |
 |----------|------|
-| **Website** | Request submission (MP), document system check, recap dashboard |
+| **Website** | document system check, recap dashboard |
 | **WhatsApp Bot (Openclaw)** | Approval routing, vendor contact, vendor confirmation, advance delivery follow-up |
+ | **1-SAP** | Request submission (MP), 
 
 ---
 
 ## 3. User Personas
 
 ### MP (Material Planner / Requester)
-- Submits material delivery requests via the website
+- Submits material delivery requests via the 1-SAP
 - Maintains the vendor contact list in the system
 - Monitors all request statuses via the website recap dashboard
 
 ### Group Leader (GL)
-- First-level approver for **all** requests (both standard and advance delivery)
+- First-level approver for **all** delivery requests (both standard and advance delivery)
 - Approves via WhatsApp bot
 
 ### Section Head
@@ -73,7 +76,7 @@ A cross-platform material delivery request system spanning two surfaces:
 
 ### Stage 1 — Website: Request Submission & DN System Check
 
-1. **MP submits a Material Delivery Request** via the website form, specifying one or more materials and their requested quantities
+1. **MP submits a Material Delivery Request** via 1-SAP form, specifying one or more materials and their requested quantities
 2. The system performs an automated **Delivery Note (DN) Check** per material line:
    - Every morning, an RPA system uploads Delivery Notes from an external source into the system
    - Each DN contains: DN Number, material info (one DN can cover multiple materials), and remaining deliverable quantity per material

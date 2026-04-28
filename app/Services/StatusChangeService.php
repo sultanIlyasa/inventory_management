@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Materials;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +12,39 @@ use Illuminate\Support\Facades\DB;
 
 class StatusChangeService
 {
+    public function getStatusChangeLogs(
+        array $filters,
+        ?string $fromStatus = null,
+        ?string $toStatus = null
+    ): Collection {
+        $historySub = $this->statusHistorySubquery($filters);
+
+        return DB::query()
+            ->fromSub($historySub, 'history')
+            ->join('materials', 'materials.id', '=', 'history.material_id')
+            ->select([
+                'history.date',
+                'history.prev_date',
+                'materials.material_number',
+                'materials.description',
+                'materials.pic_name',
+                'materials.usage',
+                'materials.location',
+                'materials.gentani',
+                'history.prev_status',
+                'history.status',
+                'history.prev_daily_stock',
+                'history.daily_stock',
+            ])
+            ->whereNotNull('history.prev_status')
+            ->whereColumn('history.prev_status', '!=', 'history.status')
+            ->when($fromStatus, fn($query) => $query->where('history.prev_status', $fromStatus))
+            ->when($toStatus, fn($query) => $query->where('history.status', $toStatus))
+            ->orderBy('history.date')
+            ->orderBy('materials.material_number')
+            ->get();
+    }
+
     public function getStatusChangeReport(array $filters, int $perPage, int $page): array
     {
         $baseQuery = $this->buildBaseQuery($filters);
@@ -140,8 +174,12 @@ class StatusChangeService
         $query = DB::table('daily_inputs')
             ->select([
                 'daily_inputs.material_id',
+                'daily_inputs.date',
+                'daily_inputs.daily_stock',
                 'daily_inputs.status',
+                DB::raw("LAG(daily_inputs.date) OVER (PARTITION BY daily_inputs.material_id ORDER BY daily_inputs.date, daily_inputs.id) as prev_date"),
                 DB::raw("LAG(daily_inputs.status) OVER (PARTITION BY daily_inputs.material_id ORDER BY daily_inputs.date, daily_inputs.id) as prev_status"),
+                DB::raw("LAG(daily_inputs.daily_stock) OVER (PARTITION BY daily_inputs.material_id ORDER BY daily_inputs.date, daily_inputs.id) as prev_daily_stock"),
             ])
             ->join('materials', 'materials.id', '=', 'daily_inputs.material_id')
             ->when(!empty($filters['month']), function ($query) use ($filters) {

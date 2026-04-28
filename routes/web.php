@@ -118,6 +118,8 @@ Route::prefix('/warehouse-monitoring')->group(function () {
         ->name('warehouse-monitoring.recovery-days');
     Route::get('/status-change', [StatusChangeController::class, 'index'])
         ->name('warehouse-monitoring.status-change');
+    Route::get('/status-change/export-log', [StatusChangeController::class, 'exportLog'])
+        ->name('warehouse-monitoring.status-change.export-log');
     Route::prefix('api')->name('warehouse-monitoring.api.')->group(function () {
         Route::get('/caution', [LeaderboardController::class, 'cautionApi'])->name('caution');
         Route::get('/shortage', [LeaderboardController::class, 'shortageApi'])->name('shortage');

@@ -103,34 +103,50 @@ Omitting a parameter (or passing `all`) returns data for all values of that dime
 
 ## Dashboard (index.vue)
 
-### Layout
+### Layout (3-slide carousel)
+
+The dashboard is a horizontal carousel with three slides. Tab pills + arrow buttons + dot indicators (mobile only) control navigation. Autoplay advances every 15s; pauses on hover. Mobile users can also swipe (50px threshold).
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│  Header: "Warehouse Monitoring"                                       │
-│  Usage filter pills: All | Daily | Weekly | Monthly                  │
-│  [Show Filters] → Location pills | Month input | Gentani pills | Reset│
-├──────────────────────────────────────────────────┬───────────────────┤
-│  LEFT (lg:col-span-8)                            │ RIGHT (col-span-4)│
-│                                                  │                   │
-│  ┌────────────────────────────────────────────┐  │ DistributionDonut │
-│  │ Problematic Materials Table (REAL DATA)    │  │ (live)            │
-│  │  • Skeleton loading state                 │  ├───────────────────┤
-│  │  • Status/severity pills                  │  │ ShortageLeaderboard│
-│  │  • estimated_gr inline editing            │  │ (live, self-fetch) │
-│  │  • Row click → Detail Modal               │  ├───────────────────┤
-│  └────────────────────────────────────────────┘  │ CautionLeaderboard│
-│                                                  │ (live, self-fetch) │
-│  ┌──────────────────────┐ ┌─────────────────┐   ├───────────────────┤
-│  │ RecoveryTrendChart   │ │ SystemRecommend.│   │ StatusChange bar  │
-│  │ (live)               │ │ Panel (live)    │   │ (live, self-fetch) │
-│  └──────────────────────┘ └─────────────────┘   ├───────────────────┤
-│                                                  │ FastestToCritical │
-│                                                  │ (live)            │
-├──────────────────────────────────────────────────┴───────────────────┤
-│  MaterialInventoryOverview Table (dummy data; filters prop wired)     │
+│  Header: "Warehouse Performance Monitoring"                           │
+│  [Filters] (mobile only) → Location pills | Month input | Gentani | Reset │
+│  Filter bar is always visible on lg+; toggle-only on mobile.          │
+├──────────────────────────────────────────────────────────────────────┤
+│  Carousel Nav: [Materials Overview] [Analytics] [Leaderboards]        │
+│                                                ◀ ●●● ▶                │
+├──────────────────────────────────────────────────────────────────────┤
+│  Slide 1 — Materials Overview                                         │
+│  ┌──────────────────────────────────────┬─────────────────────────┐   │
+│  │ Problematic Materials table (live)   │ SystemRecommendation    │   │
+│  │  • Drag-to-pan horizontal scroll     │ StatusChange (compact)  │   │
+│  │  • Inline estimated_gr (flatpickr)   │                         │   │
+│  │  • Row click → Detail Modal          │                         │   │
+│  │  • Est. GR column hidden < sm        │                         │   │
+│  └──────────────────────────────────────┴─────────────────────────┘   │
+├──────────────────────────────────────────────────────────────────────┤
+│  Slide 2 — Analytics & Trends                                         │
+│  ┌──────────────────────┬───────────────────────────────────────────┐ │
+│  │ RecoveryTrendChart   │ DistributionDonutChart                    │ │
+│  │ (lg:col-span-7)      │ FastestToCriticalChart                    │ │
+│  │                      │ (lg:col-span-5)                           │ │
+│  └──────────────────────┴───────────────────────────────────────────┘ │
+├──────────────────────────────────────────────────────────────────────┤
+│  Slide 3 — Leaderboards                                               │
+│  ┌──────────────────────────┬──────────────────────────────────────┐  │
+│  │ ShortageOverdueLeaderboard│ CautionOverdueLeaderboard           │  │
+│  └──────────────────────────┴──────────────────────────────────────┘  │
+│  MaterialInventoryOverview (dummy; filters prop wired)                │
 └──────────────────────────────────────────────────────────────────────┘
 ```
+
+### Carousel behavior
+
+- **Tab pills** always visible (top-left of nav row); always show all 3 slide labels.
+- **Arrows** (◀ / ▶) always visible (top-right of nav row); use Lucide `ChevronLeft` / `ChevronRight`. `aria-label` on each.
+- **Dot indicators** are `lg:hidden` — they're redundant when tab pills are visible on desktop.
+- **Autoplay** runs `setInterval(nextSlide, 15000)`. Pauses on `mouseenter`, resumes on `mouseleave`. Resets on manual navigation.
+- **Touch swipe**: `@touchstart.passive` records `clientX`; `@touchend.passive` checks delta. >50px → next/prev + reset autoplay.
 
 ### Global Filter State
 
@@ -216,19 +232,19 @@ Self-fetching components watch their own `filters` prop:
 
 ### Section Status
 
-| Section | Data Source | Live? |
-|---------|-------------|-------|
-| Problematic Materials table | `/api/problematic` | Yes |
-| DistributionDonutChart | `dashboardData.barChart.summary` | Yes |
-| RecoveryTrendChart | `dashboardData.recovery.trendData` | Yes |
-| FastestToCriticalChart | `dashboardData.shortage.leaderboard` | Yes |
-| SystemRecommendationPanel | `dashboardData.shortage` + `dashboardData.caution` | Yes |
-| ShortageOverdueLeaderboard | `/api/shortage` (self-fetch) | Yes |
-| CautionOverdueLeaderboard | `/api/caution` (self-fetch) | Yes |
-| StatusChangeContent | `/api/status-change-api` (self-fetch) | Yes |
-| RecoveryDaysReportContent | `/api/recovery-days` (self-fetch) | Yes |
-| MaterialInventoryOverview | Dummy data | No (filters prop ready) |
-| OverdueTrendChart | `dashboardData.barChart.statusBarChart` | Yes (currently hidden in layout) |
+| Section | Slide | Data Source | Live? |
+|---------|-------|-------------|-------|
+| Problematic Materials table | 1 | `/api/problematic` | Yes |
+| SystemRecommendationPanel | 1 | `dashboardData.shortage` + `dashboardData.caution` | Yes |
+| StatusChangeContent (compact) | 1 | `/api/status-change-api` (self-fetch) | Yes |
+| RecoveryTrendChart | 2 | `dashboardData.recovery.trendData` | Yes |
+| DistributionDonutChart | 2 | `dashboardData.barChart.summary` | Yes |
+| FastestToCriticalChart | 2 | `dashboardData.shortage.leaderboard` | Yes |
+| ShortageOverdueLeaderboard | 3 | `/api/shortage` (self-fetch) | Yes |
+| CautionOverdueLeaderboard | 3 | `/api/caution` (self-fetch) | Yes |
+| MaterialInventoryOverview | 3 | Dummy data | No (filters prop ready) |
+| OverdueTrendChart | — | — | Component exists but is not rendered on the dashboard |
+| RecoveryDaysReportContent | — | — | Component exists but is not rendered on the dashboard |
 
 ---
 
@@ -362,10 +378,33 @@ Derives two action blocks from live shortage and caution data:
 
 ### 1. Problematic Materials
 
-The top table on the dashboard. SHORTAGE/CAUTION materials sorted by severity, enriched with consumption data from the external API.
+The top table on Slide 1 of the dashboard. SHORTAGE/CAUTION materials sorted by severity, enriched (best-effort) with consumption data from the external API.
 
 **File**: `app/Http/Controllers/ProblematicMaterialsController.php`
 **Service**: `app/Services/ProblematicMaterialsService.php`
+
+#### Sync Semantics (important)
+
+The `sync()` method on every page load (cached 5 min) rebuilds the `problematic_materials` table by joining `materials` with the latest `daily_inputs` row per material:
+
+```sql
+LEFT JOIN (
+    SELECT di1.material_id, di1.status, di1.daily_stock, di1.date
+    FROM daily_inputs di1
+    INNER JOIN (
+        SELECT material_id, MAX(date) AS max_date
+        FROM daily_inputs
+        GROUP BY material_id
+    ) di2 ON di2.material_id = di1.material_id AND di2.max_date = di1.date
+) as latest ON materials.id = latest.material_id
+WHERE latest.status IN ('SHORTAGE', 'CAUTION')
+```
+
+**"Latest" is determined by `MAX(date)`, NOT `MAX(id)`.** This matters because users occasionally **backfill** past dates (e.g., enter a daily_input today for `date = 2026-01-15`). The unique constraint on `(material_id, date)` guarantees one row per (material_id, date), so `MAX(date)` is unambiguous and reflects the actual most-recent business date — not the most-recently-submitted row. Using `MAX(id)` would let a backfill insert silently shadow the real recent row.
+
+**Consumption enrichment is best-effort.** If `fetchConsumptionAveragesAll()` returns empty (API unreachable, allowlist miss, etc.), sync still runs from `daily_inputs` data. Materials without consumption data get `coverage_shifts = null`, `daily_avg = null`, `shift_avg = null`. `resolveSeverity()` falls back to `'High'` for null-coverage SHORTAGE and to streak-based severity for CAUTION.
+
+**No filter on consumption presence.** All SHORTAGE/CAUTION materials appear in the PM table regardless of whether they're tracked by the consumption API. This is a change from earlier behavior where industrial tools / spare parts (not in the API's ~1,233 consumables) were silently excluded.
 
 #### API Endpoints
 
@@ -450,13 +489,17 @@ Clicking a row opens a modal showing:
 **Auth**: `X-API-Key: WAREHOUSE_DASHBOARD_KEY_2026`
 **Config**: `config('services.consumption_api.url')` / `config('services.consumption_api.key')`
 
-Only consumable materials are tracked by this API (~1233 items). Industrial tools and spare parts in SHORTAGE/CAUTION have no consumption data — they are filtered out of the Problematic Materials results.
+Only consumable materials are tracked by this API (~1,233 items). Industrial tools / spare parts have no consumption data; they still appear in the PM table but with `coverage_shifts`, `daily_avg`, `shift_avg` set to `null`.
 
-Join key: `material_id (external API) ↔ material_number (materials table)`
+Bulk fetch parameters: `location_id=1`, `months=3`, `page`, `limit=200`. The bulk fetch paginates until `page >= totalPages` (or page count drops below `limit`).
+
+Join key: `material_id` (API) ↔ `material_number` (materials table). Both sides normalize via `strtoupper(trim(...))`.
 
 **Caching**:
-- `consumption_averages_all` — 1 hour, only populated when the response is non-empty
-- `problematic_materials_sync` — 5 min, prevents redundant syncs
+- `consumption_averages_all` — 1 hour. Only populated when the response is non-empty (so an API hiccup never poisons the cache with `[]`).
+- `problematic_materials_synced` — 5 min. Prevents redundant syncs within the window.
+
+**Best-effort enrichment**: if the API returns an empty / errored result, sync proceeds without consumption data. Coverage / avg fields go `null` for that cycle, and the next sync retries cleanly.
 
 ---
 
@@ -573,10 +616,12 @@ User changes filter or page
 
 | Limitation | Detail |
 |------------|--------|
-| No overdue trend history | `OverdueDaysService` tracks current status only; no historical series. `OverdueTrendChart` was repurposed as a "Status Count Overview" bar chart. |
-| MaterialInventoryOverview dummy | The bottom inventory table uses static placeholder data. The `filters` prop is wired but the fetch is not yet implemented. |
-| Consumption API coverage | Only consumable materials are tracked. Industrial tools/spare parts have `null` consumption data and are excluded from the PM table. |
-| External API dependency | `ProblematicMaterialsService` depends on `http://103.93.52.79:2000`. If unreachable, cached results are returned; if cache is cold, the table is empty. |
+| No overdue trend history | `OverdueDaysService` tracks current status only; no historical series. `OverdueTrendChart` was repurposed as a "Status Count Overview" bar chart but is not currently rendered on the dashboard. |
+| MaterialInventoryOverview dummy | The bottom inventory table on Slide 3 uses static placeholder data. The `filters` prop is wired but the fetch is not yet implemented. |
+| Consumption API coverage | Only consumable materials are tracked (~1,233 items). Industrial tools / spare parts appear in the PM table but with `null` `coverage_shifts` / `daily_avg` / `shift_avg`. |
+| External API dependency | `ProblematicMaterialsService` depends on `http://103.93.52.79:2000`. If unreachable, sync still runs from `daily_inputs` (since the empty-API hard-skip was removed); enrichment fields just go `null` until the API recovers. |
+| `streak_days` is "days since latest input", not "consecutive days in critical status" | The SQL formula computes business days between `CURDATE()` and `latest.date`. A material that's been SHORTAGE for 5 consecutive days but had its latest daily_input *yesterday* will show `streak_days = 1`. `resolveSeverity()` for CAUTION is keyed on this value, so severity may under-report. |
+| Hardcoded `location_id=1` in bulk consumption fetch | `fetchConsumptionAveragesAll()` always passes `location_id=1`. If the API uses location IDs to scope its response and Sunter 2 materials sit under a different ID, those materials will be enriched as if absent from the API. |
 
 ---
 

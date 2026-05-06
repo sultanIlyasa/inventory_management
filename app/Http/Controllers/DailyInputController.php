@@ -7,6 +7,7 @@ use App\Models\DailyInput;
 use App\Models\Materials;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\DailyInputExport;
@@ -70,6 +71,7 @@ class DailyInputController extends Controller
             ...$validated,
             'status' => $status
         ]);
+        Cache::forget('problematic_materials_synced');
 
         return response()->json([
             'success' => true,
@@ -191,6 +193,8 @@ class DailyInputController extends Controller
     {
         $dailyInput = DailyInput::findOrFail($id);
         $dailyInput->delete();
+        Cache::forget('problematic_materials_synced');
+
         return response()->json([
             'success' => true,
             'message' => 'Daily input deleted successfully'
@@ -250,6 +254,9 @@ class DailyInputController extends Controller
             });
 
             DB::commit();
+            if ($updatedCount > 0) {
+                Cache::forget('problematic_materials_synced');
+            }
 
             return response()->json([
                 'success' => true,

@@ -201,11 +201,6 @@ const menuItems = [
         icon: ShieldX
     },
     {
-        name: "Request Material",
-        route: "request.material.tracker.index",
-        icon: Truck
-    },
-    {
         name: "Login",
         route: "login",
         icon: LogIn

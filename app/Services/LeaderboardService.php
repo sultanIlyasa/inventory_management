@@ -45,7 +45,7 @@ class LeaderboardService
     private function getLeaderboard(string $status, array $filters, int $perPage, int $page): array
     {
         // Step 1: Build WHERE conditions
-        $whereConditions = ["daily_inputs.status = :status"];
+        $whereConditions = ["latest.status = :status"];
         $bindings = ['status' => $status];
 
         if (!empty($filters['usage'])) {
@@ -68,12 +68,14 @@ class LeaderboardService
         }
 
         $whereClause = implode(' AND ', $whereConditions);
+        $currentStatusCte = $this->currentStatusCte();
 
         // Step 2: Get total count (for pagination)
         $countSql = "
+            {$currentStatusCte}
             SELECT COUNT(DISTINCT materials.id) as total
             FROM materials
-            INNER JOIN daily_inputs ON materials.id = daily_inputs.material_id
+            INNER JOIN latest ON materials.id = latest.material_id
             WHERE {$whereClause}
         ";
 
@@ -91,22 +93,16 @@ class LeaderboardService
                 materials.usage,
                 materials.location,
                 materials.gentani,
-                COUNT(DISTINCT daily_inputs.date) as days,
-                MAX(daily_inputs.daily_stock) as current_stock
+                COALESCE(streaks.days, 0) as days,
+                latest.daily_stock as current_stock
             FROM materials
-            INNER JOIN daily_inputs ON materials.id = daily_inputs.material_id
+            INNER JOIN latest ON materials.id = latest.material_id
+            LEFT JOIN streaks ON materials.id = streaks.material_id
             WHERE {$whereClause}
-            GROUP BY
-                materials.id,
-                materials.material_number,
-                materials.description,
-                materials.pic_name,
-                materials.usage,
-                materials.location,
-                materials.gentani
             ORDER BY days DESC
             LIMIT :limit OFFSET :offset
         ";
+        $dataSql = $currentStatusCte . $dataSql;
 
         $dataBindings = array_merge($bindings, [
             'limit' => $perPage,
@@ -151,7 +147,7 @@ class LeaderboardService
         }
 
         // Build WHERE conditions (same as main query)
-        $whereConditions = ["daily_inputs.status = :status"];
+        $whereConditions = ["latest.status = :status"];
         $bindings = ['status' => $status];
 
         if (!empty($filters['usage'])) {
@@ -174,22 +170,19 @@ class LeaderboardService
         }
 
         $whereClause = implode(' AND ', $whereConditions);
+        $currentStatusCte = $this->currentStatusCte();
 
         // Query to get statistics
         $statsSql = "
+            {$currentStatusCte}
             SELECT
-                AVG(days_per_material.days) as avg_days,
-                MAX(days_per_material.days) as max_days,
-                MIN(days_per_material.days) as min_days
-            FROM (
-                SELECT
-                    materials.id,
-                    COUNT(DISTINCT daily_inputs.date) as days
-                FROM materials
-                INNER JOIN daily_inputs ON materials.id = daily_inputs.material_id
-                WHERE {$whereClause}
-                GROUP BY materials.id
-            ) as days_per_material
+                AVG(COALESCE(streaks.days, 0)) as avg_days,
+                MAX(COALESCE(streaks.days, 0)) as max_days,
+                MIN(COALESCE(streaks.days, 0)) as min_days
+            FROM materials
+            INNER JOIN latest ON materials.id = latest.material_id
+            LEFT JOIN streaks ON materials.id = streaks.material_id
+            WHERE {$whereClause}
         ";
 
         $stats = DB::selectOne($statsSql, $bindings);
@@ -208,7 +201,7 @@ class LeaderboardService
      */
     public function getTopMaterials(string $status, array $filters = [], int $limit = 5): array
     {
-        $whereConditions = ["daily_inputs.status = :status"];
+        $whereConditions = ["latest.status = :status"];
         $bindings = ['status' => $status];
 
         if (!empty($filters['usage'])) {
@@ -231,8 +224,10 @@ class LeaderboardService
         }
 
         $whereClause = implode(' AND ', $whereConditions);
+        $currentStatusCte = $this->currentStatusCte();
 
         $sql = "
+            {$currentStatusCte}
             SELECT
                 materials.id,
                 materials.material_number,
@@ -241,19 +236,12 @@ class LeaderboardService
                 materials.usage,
                 materials.location,
                 materials.gentani,
-                COUNT(DISTINCT daily_inputs.date) as days,
-                MAX(daily_inputs.daily_stock) as current_stock
+                COALESCE(streaks.days, 0) as days,
+                latest.daily_stock as current_stock
             FROM materials
-            INNER JOIN daily_inputs ON materials.id = daily_inputs.material_id
+            INNER JOIN latest ON materials.id = latest.material_id
+            LEFT JOIN streaks ON materials.id = streaks.material_id
             WHERE {$whereClause}
-            GROUP BY
-                materials.id,
-                materials.material_number,
-                materials.description,
-                materials.pic_name,
-                materials.usage,
-                materials.location,
-                materials.gentani
             ORDER BY days DESC
             LIMIT :limit
         ";
@@ -268,7 +256,7 @@ class LeaderboardService
      */
     public function getFastestToCritical(array $filters = [], int $limit = 5): array
     {
-        $whereConditions = ["daily_inputs.status = :status"];
+        $whereConditions = ["latest.status = :status"];
         $bindings = ['status' => 'SHORTAGE'];
 
         if (!empty($filters['usage']))    { $whereConditions[] = "materials.usage = :usage";       $bindings['usage']    = $filters['usage']; }
@@ -277,19 +265,20 @@ class LeaderboardService
         if (!empty($filters['pic_name'])) { $whereConditions[] = "materials.pic_name = :pic_name"; $bindings['pic_name'] = $filters['pic_name']; }
 
         $whereClause = implode(' AND ', $whereConditions);
+        $currentStatusCte = $this->currentStatusCte();
 
         // Fetch enough candidates to find $limit distinct days values
         $fetchLimit = $limit * 20;
         $sql = "
+            {$currentStatusCte}
             SELECT materials.id, materials.material_number, materials.description,
                    materials.pic_name, materials.usage, materials.location, materials.gentani,
-                   COUNT(DISTINCT daily_inputs.date) as days,
-                   MAX(daily_inputs.daily_stock) as current_stock
+                   COALESCE(streaks.days, 0) as days,
+                   latest.daily_stock as current_stock
             FROM materials
-            INNER JOIN daily_inputs ON materials.id = daily_inputs.material_id
+            INNER JOIN latest ON materials.id = latest.material_id
+            LEFT JOIN streaks ON materials.id = streaks.material_id
             WHERE {$whereClause}
-            GROUP BY materials.id, materials.material_number, materials.description,
-                     materials.pic_name, materials.usage, materials.location, materials.gentani
             ORDER BY days ASC
             LIMIT :limit
         ";
@@ -337,17 +326,16 @@ class LeaderboardService
         }
 
         $whereClause = !empty($whereConditions) ? 'AND ' . implode(' AND ', $whereConditions) : '';
+        $currentStatusCte = $this->currentStatusCte();
 
         $sql = "
+            {$currentStatusCte}
             SELECT
-                SUM(CASE WHEN daily_inputs.status = 'CAUTION' THEN 1 ELSE 0 END) as caution_count,
-                SUM(CASE WHEN daily_inputs.status = 'SHORTAGE' THEN 1 ELSE 0 END) as shortage_count
-            FROM (
-                SELECT DISTINCT materials.id, daily_inputs.status
-                FROM materials
-                INNER JOIN daily_inputs ON materials.id = daily_inputs.material_id
-                WHERE 1=1 {$whereClause}
-            ) as unique_materials
+                SUM(CASE WHEN latest.status = 'CAUTION' THEN 1 ELSE 0 END) as caution_count,
+                SUM(CASE WHEN latest.status = 'SHORTAGE' THEN 1 ELSE 0 END) as shortage_count
+            FROM materials
+            INNER JOIN latest ON materials.id = latest.material_id
+            WHERE 1=1 {$whereClause}
         ";
 
         $result = DB::selectOne($sql, $bindings);
@@ -356,5 +344,65 @@ class LeaderboardService
             'caution_count' => $result->caution_count ?? 0,
             'shortage_count' => $result->shortage_count ?? 0,
         ];
+    }
+
+    private function currentStatusCte(): string
+    {
+        return "
+            WITH ranked_by_day AS (
+                SELECT
+                    daily_inputs.id,
+                    daily_inputs.material_id,
+                    daily_inputs.date,
+                    daily_inputs.daily_stock,
+                    daily_inputs.status,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY daily_inputs.material_id, daily_inputs.date
+                        ORDER BY daily_inputs.id DESC
+                    ) as day_rank
+                FROM daily_inputs
+            ),
+            deduped_inputs AS (
+                SELECT id, material_id, date, daily_stock, status
+                FROM ranked_by_day
+                WHERE day_rank = 1
+            ),
+            latest_ranked AS (
+                SELECT
+                    deduped_inputs.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY deduped_inputs.material_id
+                        ORDER BY deduped_inputs.date DESC, deduped_inputs.id DESC
+                    ) as latest_rank
+                FROM deduped_inputs
+            ),
+            latest AS (
+                SELECT *
+                FROM latest_ranked
+                WHERE latest_rank = 1
+            ),
+            streak_scan AS (
+                SELECT
+                    deduped_inputs.material_id,
+                    deduped_inputs.status,
+                    latest.status as latest_status,
+                    SUM(CASE WHEN deduped_inputs.status <> latest.status THEN 1 ELSE 0 END) OVER (
+                        PARTITION BY deduped_inputs.material_id
+                        ORDER BY deduped_inputs.date DESC, deduped_inputs.id DESC
+                        ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+                    ) as previous_status_breaks
+                FROM deduped_inputs
+                INNER JOIN latest ON latest.material_id = deduped_inputs.material_id
+            ),
+            streaks AS (
+                SELECT
+                    material_id,
+                    COUNT(*) as days
+                FROM streak_scan
+                WHERE status = latest_status
+                    AND COALESCE(previous_status_breaks, 0) = 0
+                GROUP BY material_id
+            )
+        ";
     }
 }

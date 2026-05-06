@@ -12,14 +12,10 @@
                         <h1 class="text-2xl font-semibold text-gray-900">Warehouse Performance Monitoring</h1>
                     </div>
                     <button
-                        class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:bg-gray-100"
+                        class="lg:hidden inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:bg-gray-100"
                         @click="showMobileFilters = !showMobileFilters">
-                        <span>{{ showMobileFilters ? 'Hide Filters' : 'Show Filters' }}</span>
-                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 4h18M4 8h16M6 12h12m-8 4h4m-6 4h8" />
-                        </svg>
+                        <span>Filters</span>
+                        <SlidersHorizontal class="h-4 w-4" />
                     </button>
                 </header>
 
@@ -29,7 +25,7 @@
                 </div>
 
                 <!-- Global Filters -->
-                <div v-if="showMobileFilters" class="mt-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div :class="showMobileFilters ? 'block' : 'hidden lg:block'" class="mt-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                     <div class="flex flex-wrap gap-4 items-end">
                         <!-- Location -->
                         <div>
@@ -88,13 +84,11 @@
                     <!-- Arrows + dot indicators -->
                     <div class="flex items-center gap-2 shrink-0">
                         <button @click="prevSlide()"
+                            aria-label="Previous section"
                             class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                                <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
+                            <ChevronLeft class="h-4 w-4" />
                         </button>
-                        <div class="flex items-center gap-1.5">
+                        <div class="flex items-center gap-1.5 lg:hidden">
                             <button v-for="(_, i) in carouselSlides" :key="i"
                                 @click="goToSlide(i)"
                                 :class="currentSlide === i ? 'w-5 bg-blue-600' : 'w-2 bg-gray-300 hover:bg-gray-400'"
@@ -102,11 +96,9 @@
                             </button>
                         </div>
                         <button @click="nextSlide()"
+                            aria-label="Next section"
                             class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                                <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
+                            <ChevronRight class="h-4 w-4" />
                         </button>
                     </div>
                 </div>
@@ -114,7 +106,9 @@
                 <!-- ── Carousel Viewport ──────────────────────────────────────────── -->
                 <div class="mt-3 relative overflow-hidden"
                     @mouseenter="pauseCarousel"
-                    @mouseleave="resumeCarousel">
+                    @mouseleave="resumeCarousel"
+                    @touchstart.passive="onTouchStart"
+                    @touchend.passive="onTouchEnd">
 
                     <!-- Slides Track -->
                     <div class="flex transition-transform duration-500 ease-in-out"
@@ -188,7 +182,7 @@
                                             <table class="min-w-full">
                                                 <thead class="bg-gray-50">
                                                     <tr
-                                                        class="text-left text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                                                        class="text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
                                                         <th class="px-3 py-2 w-8">#</th>
                                                         <th class="px-3 py-2">Material</th>
                                                         <th class="px-3 py-2 hidden sm:table-cell">Status</th>
@@ -198,7 +192,7 @@
                                                         <th class="px-3 py-2 whitespace-nowrap">Streak</th>
                                                         <th class="px-3 py-2 hidden md:table-cell whitespace-nowrap">
                                                             Last Updated</th>
-                                                        <th class="px-3 py-2 whitespace-nowrap">Est. GR</th>
+                                                        <th class="px-3 py-2 whitespace-nowrap hidden sm:table-cell">Est. GR</th>
                                                         <th class="px-3 py-2 w-6"></th>
                                                     </tr>
                                                 </thead>
@@ -229,7 +223,7 @@
                                                             <td class="px-3 py-2.5 hidden md:table-cell">
                                                                 <div class="h-3 w-18 rounded bg-gray-200"></div>
                                                             </td>
-                                                            <td class="px-3 py-2.5">
+                                                            <td class="px-3 py-2.5 hidden sm:table-cell">
                                                                 <div class="h-6 w-28 rounded bg-gray-200"></div>
                                                             </td>
                                                             <td class="px-3 py-2.5"></td>
@@ -306,7 +300,7 @@
                                                                 formatDate(m.last_updated) }}</span>
                                                         </td>
 
-                                                        <td class="px-3 py-2.5" @click.stop>
+                                                        <td class="px-3 py-2.5 hidden sm:table-cell" @click.stop>
                                                             <div class="flex items-center gap-1">
                                                                 <input type="text"
                                                                     :ref="el => mountDatePicker(el as HTMLInputElement, m.id)"
@@ -317,12 +311,7 @@
                                                                     @click="clearTableDate(m)"
                                                                     class="text-gray-300 hover:text-red-400 transition-colors"
                                                                     title="Clear date">
-                                                                    <svg class="h-3 w-3" viewBox="0 0 24 24"
-                                                                        fill="none">
-                                                                        <path d="M6 6l12 12M18 6L6 18"
-                                                                            stroke="currentColor" stroke-width="2.5"
-                                                                            stroke-linecap="round" />
-                                                                    </svg>
+                                                                    <X class="h-3 w-3" />
                                                                 </button>
                                                                 <span v-if="grSaveState[m.id] === 'saving'"
                                                                     class="text-[10px] text-gray-400">…</span>
@@ -334,12 +323,7 @@
                                                         </td>
 
                                                         <td class="px-3 py-2.5 text-right">
-                                                            <svg class="h-3.5 w-3.5 text-gray-400" viewBox="0 0 24 24"
-                                                                fill="none">
-                                                                <path d="M9 6l6 6-6 6" stroke="currentColor"
-                                                                    stroke-width="2" stroke-linecap="round"
-                                                                    stroke-linejoin="round" />
-                                                            </svg>
+                                                            <ChevronRight class="h-3.5 w-3.5 text-gray-400 ml-auto" />
                                                         </td>
                                                     </tr>
                                                 </tbody>
@@ -493,85 +477,87 @@
 
                             <button class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
                                 @click="closeDetail" aria-label="Close">
-                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
-                                    <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2"
-                                        stroke-linecap="round" />
-                                </svg>
+                                <X class="h-5 w-5" />
                             </button>
                         </div>
 
                         <div class="p-4 space-y-4 max-h-[75vh] overflow-auto">
                             <!-- Key stats -->
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                <div class="rounded-xl border border-gray-200 p-3">
-                                    <p class="text-xs text-gray-500">Durability Stock</p>
-                                    <p class="text-sm font-semibold text-gray-900">
+                            <dl class="grid grid-cols-2 gap-x-8 gap-y-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+                                <div>
+                                    <dt class="text-xs text-gray-500">Durability Stock</dt>
+                                    <dd class="text-sm font-semibold text-gray-900">
                                         <template v-if="selectedMaterial?.coverage_shifts !== null">
                                             {{ selectedMaterial?.coverage_shifts?.toFixed(1) }} shifts
                                         </template>
                                         <span v-else class="text-gray-400">No data</span>
-                                    </p>
+                                    </dd>
                                 </div>
-                                <div class="rounded-xl border border-gray-200 p-3">
-                                    <p class="text-xs text-gray-500">Streak Days</p>
-                                    <p class="text-sm font-semibold text-gray-900">
-                                        {{ selectedMaterial?.streak_days }} days
-                                    </p>
+                                <div>
+                                    <dt class="text-xs text-gray-500">Streak Days</dt>
+                                    <dd class="text-sm font-semibold text-gray-900">{{ selectedMaterial?.streak_days }} days</dd>
                                 </div>
-                                <div class="rounded-xl border border-gray-200 p-3">
-                                    <p class="text-xs text-gray-500">Current Stock</p>
-                                    <p class="text-sm font-semibold text-gray-900">
-                                        {{ selectedMaterial?.instock }} {{ selectedMaterial?.usage }}
-                                    </p>
+                                <div>
+                                    <dt class="text-xs text-gray-500">Current Stock</dt>
+                                    <dd class="text-sm font-semibold text-gray-900">{{ selectedMaterial?.instock }} {{ selectedMaterial?.usage }}</dd>
                                 </div>
-                                <div class="rounded-xl border border-gray-200 p-3">
-                                    <p class="text-xs text-gray-500">Action</p>
-                                    <p class="text-sm font-semibold text-gray-900">
-                                        {{ selectedMaterial?.severity === 'Line-Stop' ? 'Escalate' : 'Monitor' }}
-                                    </p>
+                                <div>
+                                    <dt class="text-xs text-gray-500">Action</dt>
+                                    <dd class="text-sm font-semibold text-gray-900">{{ selectedMaterial?.severity === 'Line-Stop' ? 'Escalate' : 'Monitor' }}</dd>
                                 </div>
-                            </div>
+                            </dl>
 
                             <!-- Material info -->
                             <div class="rounded-xl border border-gray-200 p-3">
                                 <p class="text-sm font-semibold text-gray-900 mb-2">Material Info</p>
-                                <div class="grid grid-cols-2 gap-2 text-sm">
-                                    <div><span class="text-gray-500">PIC:</span> <span class="font-medium">{{
-                                        selectedMaterial?.pic_name }}</span></div>
-                                    <div><span class="text-gray-500">Location:</span> <span class="font-medium">{{
-                                        selectedMaterial?.location }}</span></div>
-                                    <div><span class="text-gray-500">Usage:</span> <span class="font-medium">{{
-                                        selectedMaterial?.usage }}</span></div>
-                                    <div><span class="text-gray-500">Shift avg:</span> <span class="font-medium">{{
-                                        selectedMaterial?.shift_avg ?? '—' }}</span></div>
-                                    <div><span class="text-gray-500">Daily avg:</span> <span class="font-medium">{{
-                                        selectedMaterial?.daily_avg ?? '—' }}</span></div>
-                                    <div><span class="text-gray-500">Instock:</span> <span class="font-medium">{{
-                                        selectedMaterial?.instock ?? '—' }}</span></div>
-                                    <div class="col-span-2 flex items-center gap-2">
-                                        <span class="text-gray-500">Est. GR:</span>
-                                        <input v-if="selectedMaterial" type="text"
-                                            :ref="el => mountModalDatePicker(el as HTMLInputElement)"
-                                            :value="selectedMaterial.estimated_gr ?? ''" placeholder="dd/mm/yyyy"
-                                            class="rounded border border-gray-200 px-2 py-1 text-sm text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300" />
-                                        <button v-if="selectedMaterial?.estimated_gr" @click="clearModalDate()"
-                                            class="text-gray-300 hover:text-red-400 transition-colors"
-                                            title="Clear date">
-                                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                                                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5"
-                                                    stroke-linecap="round" />
-                                            </svg>
-                                        </button>
-                                        <span v-if="selectedMaterial && grSaveState[selectedMaterial.id] === 'saving'"
-                                            class="text-xs text-gray-400">Saving…</span>
-                                        <span
-                                            v-else-if="selectedMaterial && grSaveState[selectedMaterial.id] === 'saved'"
-                                            class="text-xs text-emerald-600">Saved ✓</span>
-                                        <span
-                                            v-else-if="selectedMaterial && grSaveState[selectedMaterial.id] === 'error'"
-                                            class="text-xs text-red-500">Error !</span>
+                                <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                                    <div>
+                                        <dt class="text-xs text-gray-500">PIC</dt>
+                                        <dd class="font-medium text-gray-900">{{ selectedMaterial?.pic_name }}</dd>
                                     </div>
-                                </div>
+                                    <div>
+                                        <dt class="text-xs text-gray-500">Location</dt>
+                                        <dd class="font-medium text-gray-900">{{ selectedMaterial?.location }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-xs text-gray-500">Usage</dt>
+                                        <dd class="font-medium text-gray-900">{{ selectedMaterial?.usage }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-xs text-gray-500">Shift avg</dt>
+                                        <dd class="font-medium text-gray-900">{{ selectedMaterial?.shift_avg ?? '—' }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-xs text-gray-500">Daily avg</dt>
+                                        <dd class="font-medium text-gray-900">{{ selectedMaterial?.daily_avg ?? '—' }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-xs text-gray-500">Instock</dt>
+                                        <dd class="font-medium text-gray-900">{{ selectedMaterial?.instock ?? '—' }}</dd>
+                                    </div>
+                                    <div class="col-span-2 flex items-center gap-2 pt-1">
+                                        <dt class="text-xs text-gray-500 shrink-0">Est. GR</dt>
+                                        <dd class="flex items-center gap-1.5">
+                                            <input v-if="selectedMaterial" type="text"
+                                                :ref="el => mountModalDatePicker(el as HTMLInputElement)"
+                                                :value="selectedMaterial.estimated_gr ?? ''" placeholder="dd/mm/yyyy"
+                                                class="rounded border border-gray-200 px-2 py-1 text-sm text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-300" />
+                                            <button v-if="selectedMaterial?.estimated_gr" @click="clearModalDate()"
+                                                class="text-gray-300 hover:text-red-400 transition-colors"
+                                                title="Clear date">
+                                                <X class="h-4 w-4" />
+                                            </button>
+                                            <span v-if="selectedMaterial && grSaveState[selectedMaterial.id] === 'saving'"
+                                                class="text-xs text-gray-400">Saving…</span>
+                                            <span
+                                                v-else-if="selectedMaterial && grSaveState[selectedMaterial.id] === 'saved'"
+                                                class="text-xs text-emerald-600">Saved ✓</span>
+                                            <span
+                                                v-else-if="selectedMaterial && grSaveState[selectedMaterial.id] === 'error'"
+                                                class="text-xs text-red-500">Error !</span>
+                                        </dd>
+                                    </div>
+                                </dl>
                             </div>
                         </div>
 
@@ -599,7 +585,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import flatpickr from 'flatpickr'
 import 'flatpickr/dist/flatpickr.min.css'
 import { buildFilterParams } from '@/utils/filterParams'
-import OverdueTrendChart from '@/Components/OverdueTrendChart.vue'
 import RecoveryTrendChart from '@/Components/RecoveryTrendChart.vue'
 import DistributionDonutChart from '@/Components/DistributionDonutChart.vue'
 import FastestToCriticalChart from '@/Components/FastestToCriticalChart.vue'
@@ -608,6 +593,7 @@ import CautionOverdueLeaderboard from '@/Components/CautionOverdueLeaderboard.vu
 import ShortageOverdueLeaderboard from '@/Components/ShortageOverdueLeaderboard.vue'
 import StatusChangeContent from '@/Components/StatusChangeContent.vue'
 import MaterialInventoryOverview from '@/Components/MaterialInventoryOverview.vue'
+import { ChevronLeft, ChevronRight, X, SlidersHorizontal } from 'lucide-vue-next'
 
 import {
     Chart,
@@ -658,7 +644,7 @@ function goToSlide(index: number) {
 
 function startAutoplay() {
     if (autoplayTimer || carouselHovered) return
-    autoplayTimer = setInterval(nextSlide, 4000)
+    autoplayTimer = setInterval(nextSlide, 15000)
 }
 
 function stopAutoplay() {
@@ -681,6 +667,22 @@ function pauseCarousel() {
 function resumeCarousel() {
     carouselHovered = false
     startAutoplay()
+}
+
+// ── Touch swipe ───────────────────────────────────────────────────────────────
+
+let touchStartX = 0
+
+function onTouchStart(e: TouchEvent) {
+    touchStartX = e.touches[0].clientX
+}
+
+function onTouchEnd(e: TouchEvent) {
+    const delta = e.changedTouches[0].clientX - touchStartX
+    if (Math.abs(delta) > 50) {
+        delta < 0 ? nextSlide() : prevSlide()
+        resetAutoplay()
+    }
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────

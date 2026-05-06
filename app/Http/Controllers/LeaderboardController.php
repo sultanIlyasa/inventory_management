@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
-use App\Services\LeaderboardService;
 use App\Http\Requests\LeaderboardRequest;
-use Illuminate\Support\Facades\Cache;
+use App\Services\LeaderboardService;
+use Inertia\Inertia;
 
 /**
  * Skinny Controller for Inertia.js
@@ -31,8 +30,8 @@ class LeaderboardController extends Controller
         $perPage = (int) $request->input('per_page', 10);
 
         // Get both leaderboards with pagination
-        $cautionData = $this->getCachedLeaderboard('CAUTION', $filters, $perPage, $page);
-        $shortageData = $this->getCachedLeaderboard('SHORTAGE', $filters, $perPage, $page);
+        $cautionData = $this->getLeaderboardData('CAUTION', $filters, $perPage, $page);
+        $shortageData = $this->getLeaderboardData('SHORTAGE', $filters, $perPage, $page);
 
         return Inertia::render('WarehouseMonitoring/Leaderboard', [
             'cautionData' => $cautionData,
@@ -43,8 +42,7 @@ class LeaderboardController extends Controller
     }
 
     /**
-     * API endpoint for AJAX calls (if you still need it)
-     * Returns JSON instead of Inertia response
+     * API endpoint for AJAX calls
      */
     public function cautionApi(LeaderboardRequest $request)
     {
@@ -52,11 +50,11 @@ class LeaderboardController extends Controller
         $page = (int) $request->input('page', 1);
         $perPage = (int) $request->input('per_page', 10);
 
-        $data = $this->getCachedLeaderboard('CAUTION', $filters, $perPage, $page);
+        $data = $this->getLeaderboardData('CAUTION', $filters, $perPage, $page);
 
         return response()->json([
             'success' => true,
-            'data' => $data
+            'data' => $data,
         ]);
     }
 
@@ -69,35 +67,20 @@ class LeaderboardController extends Controller
         $page = (int) $request->input('page', 1);
         $perPage = (int) $request->input('per_page', 10);
 
-        $data = $this->getCachedLeaderboard('SHORTAGE', $filters, $perPage, $page);
+        $data = $this->getLeaderboardData('SHORTAGE', $filters, $perPage, $page);
 
         return response()->json([
             'success' => true,
-            'data' => $data
+            'data' => $data,
         ]);
     }
 
-    /**
-     * Get cached leaderboard data
-     */
-    private function getCachedLeaderboard(string $type, array $filters, int $perPage, int $page): array
+    private function getLeaderboardData(string $type, array $filters, int $perPage, int $page): array
     {
-        // Include page in cache key!
-        $cacheKey = sprintf(
-            'leaderboard_%s_%s_page_%d_per_%d',
-            $type,
-            md5(json_encode($filters)),
-            $page,  // ← IMPORTANT: Page must be in cache key
-            $perPage
-        );
+        if ($type === 'CAUTION') {
+            return $this->leaderboardService->getCautionLeaderboard($filters, $perPage, $page);
+        }
 
-        // Cache for 5 minutes
-        return Cache::remember($cacheKey, 300, function () use ($type, $filters, $perPage, $page) {
-            if ($type === 'CAUTION') {
-                return $this->leaderboardService->getCautionLeaderboard($filters, $perPage, $page);
-            } else {
-                return $this->leaderboardService->getShortageLeaderboard($filters, $perPage, $page);
-            }
-        });
+        return $this->leaderboardService->getShortageLeaderboard($filters, $perPage, $page);
     }
 }

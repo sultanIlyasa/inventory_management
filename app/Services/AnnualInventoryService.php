@@ -1378,6 +1378,7 @@ class AnnualInventoryService
 
                 if ($soh !== null) {
                     $updateData['soh'] = $soh;
+                    $updateData['soh_updated_at'] = now();
                 }
 
                 // Recalculate final discrepancy if actual_qty exists

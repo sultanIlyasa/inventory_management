@@ -36,8 +36,9 @@ return [
     ],
 
     'consumption_api' => [
-        'url' => env('CONSUMPTION_API_URL', 'http://103.93.52.79:2000/api/transaction/analytics/consumption-average'),
+        'url' => env('CONSUMPTION_API_URL', 'http://api.1-saps.com/api/transaction/analytics/consumption-average'),
         'key' => env('CONSUMPTION_API_KEY', 'WAREHOUSE_DASHBOARD_KEY_2026'),
+        'verify_ssl' => env('CONSUMPTION_API_VERIFY_SSL', false),
     ],
 
 ];
